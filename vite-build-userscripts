@@ -1,0 +1,14 @@
+#!/bin/bash
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SRC_DIR="${SCRIPT_DIR}/src"
+echo "Building all userscripts in $SRC_DIR"
+for item in "$SRC_DIR"/*; do
+    if [ -d "$item" ] && [ -f "$item"/vite.config.ts ]; then
+        echo "building $item"
+        vite build --config "$item"/vite.config.ts
+    fi
+done
+if [ -d "$SRC_DIR" ] && [ -f "${SRC_DIR}"/generate-and-stage-userscript-index-html.ts ]; then
+        echo "building index html"
+        tsx "${SRC_DIR}"/generate-and-stage-userscript-index-html.ts
+fi

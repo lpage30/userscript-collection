@@ -1,2 +1,21 @@
 # userscript-collection
 Collection of userscripts for various purposes
+
+## aiassistantsiteproxy
+- stages an 'ai assistant agent' as userscript for chatgpt/googlegemini/microsoftcopilot
+- stages an 'ai assistant agent proxy' as userscript for a locally hosted 'empty' webpage.
+- This allows developer to enqueue 'ai ask' requests to the ai assistant agent proxy, who then communicates to the 3 ai assistant agents to ask the question
+- Bot respones are collected (along with question) by agent and posted to be received by ai assistant agent proxy
+- The 'ai assistant agent proxy' then periodically polls a REST API to obtain enqueued 'asks', and, as responses are received, it will call a POST REST API to post the aggregated responses.
+
+## jobcollectoraggregator
+- stages a 'job collector' as userscript for MANY different job sites. 
+- As user observes a job they like on the site, they can choose to 'collect'/'capture' it, storing information along with site origin
+- stages a 'job aggregator' as userscript for locally hosted webpage
+- this allows the user to select jobs from a variety of sites, and aggregate them into a single location for tracking
+- the 'job aggregator', upon webpage load, will post the collected sites to a REST API
+
+## downdetector
+- userscript for 3 of downdetector pages: home page, status page, and status map page
+- This userscript is more aligned with how/why userscripts are normally created. Got sick of having to sift through the webpage to get what we care about (as developers), and then also added some filtering/sorting features with metadata showing.
+- End result is those 3 pages are 'overlaid' with a dialog panel showing just what we want to see without any other mess.
