@@ -13,7 +13,9 @@ export const USAJobs: JobSite = {
   awaitPageLoad: () => awaitPageLoadByEvent(),
   addRenderable: async (renderable: HTMLElement) => {
     const parent = await awaitElementById("main_content");
-    parent.appendChild(renderable);
+    if (!Array.from(parent.children).some(child => child.id === renderable.id)) {
+      parent.appendChild(renderable);
+    }
   },
   removeRenderable: async (renderable: HTMLElement) => {
     if (renderable.parentElement) {
@@ -23,6 +25,7 @@ export const USAJobs: JobSite = {
   scrapeJob: async (href: string): Promise<Partial<JobApplication> | null> => {
     const result: Partial<JobApplication> = {
       jobDescriptionUrl: href,
+      source: USAJobs.name
     };
     const summaryOverviewLines =
       (

@@ -15,14 +15,70 @@ import {
   awaitPageLoadByEvent,
   awaitElementById,
 } from "../../common/await_functions";
-import { AIAssistantProxyPageUrl } from "../ai_service_types";
+import { ONE_DAY } from "../../common/datetime";
+import { AIAssistantProxyDashboardPageUrl } from "../ai_service_types";
+import { AIRequestStatusReport, AIResponseStatusReport, AIStatusReport } from "../ai_service_types";
+import { AISiteTypeArray } from "../AIAssistantSiteAgent/sites/sites";
+import {
+  createRenderableContainerAsChild,
+  renderInContainer,
+} from "../../common/ui/renderRenderable";
+import AIAssistantProxyDashboard from "./AIAssistantProxyDashboard";
 
 const fetchPostIntervalms = 10000;
 const siteAgentProxy = new SiteAgentProxy(AIAssistantSiteProxyConfig);
 
 let responses: ChatResponse[] = [];
+const emptyAIStatusReport: Partial<AIStatusReport> = {    
+    totalRequests: 0,
+    totalResponses: 0,
+    oldest: new Date(Date.now() + ONE_DAY),
+    newest: new Date(0),
+  }
+let requestResponseReport: { [site: string]: AIStatusReport} = AISiteTypeArray.reduce((report, site) => ({
+  ...report,
+  [site]: {...emptyAIStatusReport, site }
+}), {})
 
-async function runProcesses() {
+const updateResponseReport = (responses: {[site: string]: AIResponseStatusReport}) => {
+  requestResponseReport = Object.keys(responses).reduce((newReport, site) => {
+    const newRecord = {...(newReport[site] ?? {...emptyAIStatusReport, site})}
+    newRecord.totalResponses += responses[site].totalResponses
+    newRecord.oldest = responses[site].timestamp < newRecord.oldest.getTime() 
+      ? new Date(responses[site].timestamp)
+      : newRecord.oldest
+    newRecord.newest = responses[site].timestamp > newRecord.newest.getTime()
+      ? new Date(responses[site].timestamp)
+      : newRecord.newest
+    return {
+      ...newReport,
+      [site]: newRecord as AIStatusReport
+    }
+
+  }, {...requestResponseReport})
+}
+const updateRequestReport = (requests: {[site: string]: AIRequestStatusReport }) => {
+  requestResponseReport = Object.keys(requests).reduce((newReport, site) => {
+    const newRecord = {...(newReport[site] ?? {...emptyAIStatusReport, site})}
+    newRecord.totalRequests += responses[site].totalRequests
+    newRecord.oldest = responses[site].timestamp < newRecord.oldest.getTime() 
+      ? new Date(responses[site].timestamp)
+      : newRecord.oldest
+    newRecord.newest = responses[site].timestamp > newRecord.newest.getTime()
+      ? new Date(responses[site].timestamp)
+      : newRecord.newest
+    return {
+      ...newReport,
+      [site]: newRecord as AIStatusReport
+    }
+
+  }, {...requestResponseReport})
+
+}
+
+
+async function runProcesses(updateDashboard: (report: { [site: string]: AIStatusReport}) => void | null) {
+  
   siteAgentProxy.start((response) => {
     if ((response as any).error) {
       console.error(`Response Failure: ${(response as any).error}`);
@@ -37,7 +93,9 @@ async function runProcesses() {
       async (request: ChatRequest) => {
         await siteAgentProxy.ask(request);
       },
+      updateRequestReport
     );
+    if (updateDashboard) updateDashboard(requestResponseReport)
   }, fetchPostIntervalms);
 
   await awaitDelay(fetchPostIntervalms);
@@ -47,33 +105,41 @@ async function runProcesses() {
       const newResponses = responses;
       responses = [];
       return newResponses;
-    });
+    },
+    updateResponseReport);
+    if (updateDashboard) updateDashboard(requestResponseReport)
   }, fetchPostIntervalms);
+  
   return () => {
     clearInterval(timer1);
     clearInterval(timer2);
     siteAgentProxy.stop();
   };
 }
-const renderableId = "ai-assistance-proxy-notice";
+const renderableId = 'ai-dashboard'
 export const AIAssistantSiteAgentProxy: Userscript = {
   name: "AIAssistantSiteAgentProxy",
 
   isSupported: (href: string): boolean =>
-    href.includes(AIAssistantProxyPageUrl),
+    href.includes(AIAssistantProxyDashboardPageUrl),
 
   render: async (href: string): Promise<void> => {
-    if (!href.includes(AIAssistantProxyPageUrl)) {
+    if (!href.includes(AIAssistantProxyDashboardPageUrl)) {
       throw new Error(`${href} has no supported AIAssistantClient Userscript`);
     }
     await awaitPageLoadByEvent();
-    const text = `***In Use by AI Assistant SiteAgent Proxy ***`;
-    const renderable = document.createElement("div");
-    renderable.id = renderableId;
-    renderable.innerHTML = reactToHTMLString(<BlinkingRedText text={text} />);
-    const parent = await awaitElementById("ai-assistant-proxy");
-    parent.appendChild(renderable);
+    const container = createRenderableContainerAsChild(
+      document.body,
+      renderableId,
+    );
+    let updateDashboard: (report: { [site: string]: AIStatusReport}) => void | null = null
+    
+    renderInContainer(container, <AIAssistantProxyDashboard 
+      initialReport={requestResponseReport}
+      registerAIStatusReportChange={(update) => { updateDashboard = update}}
+    />);
+    await awaitElementById(renderableId);
 
-    await runProcesses();
+    await runProcesses(updateDashboard);
   },
 };

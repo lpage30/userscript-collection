@@ -36,6 +36,7 @@ export interface JobApplication {
   phoneScreenDate: Date | null;
   interviewDate: Date | null;
   nextAction: ApplicationNextAction;
+  source: string
 }
 export const JobFieldToDisplayName = Object.freeze({
   id: "Id",
@@ -51,6 +52,7 @@ export const JobFieldToDisplayName = Object.freeze({
   phoneScreenDate: "Phone Screen Date",
   interviewDate: "Interview Date",
   nextAction: "Next Action",
+  source: "Listing Source",
 });
 
 export const emptyApplication = (href: string = ""): JobApplication => ({
@@ -67,6 +69,7 @@ export const emptyApplication = (href: string = ""): JobApplication => ({
   phoneScreenDate: null,
   interviewDate: null,
   nextAction: "Apply",
+  source: "Manually-Entered",
 });
 
 export const getNextAction = (
@@ -103,18 +106,13 @@ export const getKnownNameValueDates = (
       toMonthDayYearDate(nameDate[1] as Date),
     ]) as [string, string][];
 
-export const getJobSourceType = (
-  application: JobApplication,
-): JobSourceType => {
-  return getJobSiteType(application.jobDescriptionUrl) ?? "Manually-Entered";
-};
-
 export const toFilledinJobApplication = (
   application: Partial<JobApplication> | null | undefined,
 ): JobApplication => {
   const result = {
     ...emptyApplication(),
     ...(application ?? {}),
+    source: getJobSiteType(application.jobDescriptionUrl) ?? "Manually-Entered"
   };
   return {
     ...result,

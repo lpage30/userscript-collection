@@ -2,9 +2,12 @@ import { ApiResponse } from "../../common/service_types";
 import {
   FetchRequestsRestUrl,
   PostResponsesRestUrl,
+  AIRequestStatusReport,
+  AIResponseStatusReport
 } from "../ai_service_types";
 import { ChatRequest, ChatResponse } from "../AIClient";
 import { ConnectedSite } from "./siteagentproxy";
+import { AISiteType } from "../AIAssistantSiteAgent/sites/sites"
 let lastConnectTime = 0;
 
 export async function fetchChatRequests(
@@ -51,15 +54,37 @@ export async function postChatResponses(responses: ChatResponse[]) {
   });
 }
 
-export async function processChatResponses(getResponses: () => ChatResponse[]) {
-  await postChatResponses(getResponses());
+export async function processChatResponses(
+  getResponses: () => ChatResponse[],   
+  reportResponses: (responses: {[site: string]: AIResponseStatusReport}) => void,
+) {
+  const timestamp = Date.now()
+  const responses = getResponses()
+  await postChatResponses(responses);
+  reportResponses(responses.reduce((siteReportMap, response) => {
+    const newRecord = {...(siteReportMap[response.clientName] ?? { timestamp })}
+    newRecord['site'] = newRecord['site'] ?? response.clientName
+    newRecord['totalResponses'] = (newRecord['totalResponses'] ?? 0) + 1
+    return {
+      ...siteReportMap,
+      [newRecord.site]: newRecord
+    }
+  }, {}))
 }
 export async function processChatRequests(
   getConnectedSites: () => ConnectedSite[],
   ask: (request: ChatRequest) => Promise<void>,
+  reportRequests: (requests: {[site: string]: AIRequestStatusReport}) => void,
 ) {
-  const requests = await fetchChatRequests(getConnectedSites);
+  const timestamp = Date.now()
+  const connectedSites = getConnectedSites()
+  const requests = await fetchChatRequests(() => connectedSites);
   for (const request of requests) {
     await ask(request);
   }
+  reportRequests(connectedSites.reduce((siteReportMap, {site}) => ({
+    ...siteReportMap,
+    [site]: { site, totalRequests: requests.length, timestamp}
+  }), {}))
+
 }

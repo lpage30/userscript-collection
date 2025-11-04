@@ -3,7 +3,7 @@
 // @version     0.1
 // @description tool supporting the proxying of ai assistant messages and responses
 // @author      lawrence L. Page
-
+// @include     http://localhost:3000/ai-assistant-proxy-dashboard.html
 // @namespace   lpage30-userscripts
 // @run-at      document-start
 

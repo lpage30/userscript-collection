@@ -19,7 +19,7 @@ const CompanySortComponent: React.FC<CompanySortComponentProps> = ({
   const [sorting, setSorting] = useState<CompanySort[]>(initialSorting);
   const [selectedSortField, setSelectedSortField] = useState<string>(null);
   const sortFieldOptions = CompanySortTypes.map((field) => ({
-    label: toTitleCase(field),
+    label: toTitleCase(field.split('_').join(' ')),
     value: field,
   }));
 

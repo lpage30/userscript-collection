@@ -16,7 +16,9 @@ export const WelcomeToTheJungle: JobSite = {
     const parent = (
       await awaitQuerySelection('div[data-testid="job-locations"]')
     ).parentElement!;
-    parent.appendChild(renderable);
+    if (!Array.from(parent.children).some(child => child.id === renderable.id)) {
+      parent.appendChild(renderable);
+    }
   },
   removeRenderable: async (renderable: HTMLElement) => {
     if (renderable.parentElement) {
@@ -26,6 +28,7 @@ export const WelcomeToTheJungle: JobSite = {
   scrapeJob: async (href: string): Promise<Partial<JobApplication> | null> => {
     const result: Partial<JobApplication> = {
       jobDescriptionUrl: href,
+      source: WelcomeToTheJungle.name
     };
     const jobSection = await awaitQuerySelection(
       'div[data-testid="job-section"]',

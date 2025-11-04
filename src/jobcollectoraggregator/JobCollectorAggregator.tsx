@@ -1,8 +1,8 @@
 import React from "react";
 import "../common/ui/styles.css";
 import { Userscript } from "../common/userscript";
-import { JobAggregator } from "./JobAggregator/jobAggregator";
-import { JobCollector } from "./JobCollector/jobCollector";
+import { JobAggregator } from "./JobAggregator/JobAggregator";
+import { JobCollector } from "./JobCollector/JobCollector";
 import { awaitDelay } from "../common/await_functions";
 
 const Scripts: Userscript[] = [JobAggregator, JobCollector];

@@ -39,7 +39,10 @@ export const GreenhouseIO: JobSite = {
         parent = document.body;
         break;
     }
-    parent.appendChild(renderable);
+    if (!Array.from(parent.children).some(child => child.id === renderable.id)) {
+      parent.appendChild(renderable);
+    }
+
   },
   removeRenderable: async (renderable: HTMLElement) => {
     if (renderable.parentElement) {
@@ -50,13 +53,17 @@ export const GreenhouseIO: JobSite = {
     const subSite = GreenhouseIO.subsite!(href);
     const result: Partial<JobApplication> = {
       jobDescriptionUrl: href,
+      source: GreenhouseIO.name
+
     };
     switch (subSite) {
       case "greenhouse":
         {
-          result.company = Array.from(document.querySelectorAll("a"))
-            .filter((a) => a.href.includes("job-boards.greenhouse.io"))
-            .map((a) => a.href.split("/").slice(-1)[0])[0];
+          if (href.includes('job-boards.greenhouse.io') && !href.includes('/embed/job_app?')) {
+            result.company = (new URL(href)).pathname.split('/').filter(p => 0 < p.length)[0]
+          } else if (document.querySelector("a.logo")) {
+            result.company = (new URL((document.querySelector("a.logo") as HTMLAnchorElement).href)).hostname.split('.').filter(part => !['www', 'com', 'gov', 'net', 'io', 'tv'].includes(part))[0]
+          }
           const titleLocation =
             (
               document.querySelector(

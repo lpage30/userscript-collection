@@ -15,7 +15,7 @@ export type HealthLevelType = (typeof HealthLevelTypes)[number];
 export type HealthLevelCountMap = { [level in HealthLevelType]: number };
 export type HealthLevelFilter = { [level in HealthLevelType]: boolean };
 
-export const CompanySortTypes = ['level', 'name' ] as const;
+export const CompanySortTypes = ['level', 'name', 'incident_risk' ] as const;
 export type CompanySortType = (typeof CompanySortTypes)[number];
 export const CompanyPageTypes = ['dashboard', 'status', 'map'] as const;
 export type CompanyPageType = (typeof CompanyPageTypes)[number];
@@ -34,13 +34,18 @@ export type CompanyPageInfo = {
     href: string, 
   };
 }
+export interface IncidentReports {
+  baseline15minAvg: number
+  pastHr15minAvg: number
+  incidentRiskPercent: number
+}
 export interface CompanyMetadata {
   timestamp: number;
   rank: number;
   level: HealthLevelType;
   companyName: string;
   tooltipLines: string[];
-  dataTime: { hour: number, day: number};
+  incidentReports: IncidentReports;
   pageInfo: CompanyPageInfo
 }
 export const toCardElementId = (index: number) => `company-card-shell-${index}`
@@ -105,15 +110,21 @@ function toCompanyInfo(
 
   const level = svg.classList[0] as HealthLevelType;
   const companyName = statusAnchor.innerText.trim();
-  const dataTime = {
-    hour: parseInt(companyDiv.dataset.hour),
-    day: parseInt(companyDiv.dataset.day)
+  const pastHourIncidentTotal = parseInt(companyDiv.dataset.hour)
+  const pastDayIncidentTotal = parseInt(companyDiv.dataset.day)
+  const baseline15minAvg = Math.trunc(pastDayIncidentTotal/96)
+  const pastHr15minAvg = Math.trunc(pastHourIncidentTotal/4)
+  const incidentRiskPercent = pastHr15minAvg / baseline15minAvg * 100
+  const incidentReports:  IncidentReports ={
+    baseline15minAvg,
+    pastHr15minAvg,
+    incidentRiskPercent
   }
   const tooltipLines = [
     `${companyName}`,
-    `${toMonthDayYearDateTime(timestamp)}`,
-    `HealthLevel: ${level}`,
-    `Rank: ${rank}`,
+    `Incident Spike: ${incidentReports.pastHr15minAvg}`,
+    `Incident Baseline: ${incidentReports.baseline15minAvg}`,
+    `IncidentRisk: ${incidentRiskPercent.toFixed(2)}%`
   ];
   const pageInfo: CompanyPageInfo = {
     ['dashboard']: {
@@ -134,7 +145,7 @@ function toCompanyInfo(
     level,
     companyName,
     tooltipLines,
-    dataTime,
+    incidentReports,
     pageInfo,
   };
   const card = {
@@ -175,6 +186,9 @@ function toSortFunction<T extends CompanyMetadata>(sorts: CompanySort[],): (l: T
         case 'name':
           result = sort.ascending ? l.companyName.localeCompare(r.companyName) : r.companyName.localeCompare(l.companyName);
           break;
+        case 'incident_risk':
+          result = sort.ascending ? l.incidentReports.incidentRiskPercent - r.incidentReports.incidentRiskPercent : r.incidentReports.incidentRiskPercent - l.incidentReports.incidentRiskPercent;
+          break
         default:
           break;
       }

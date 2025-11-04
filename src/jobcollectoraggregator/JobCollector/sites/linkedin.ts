@@ -2,6 +2,7 @@ import { JobSite } from "../jobsite";
 import {
   awaitPageLoadByMutation,
   awaitQueryAll,
+  awaitQuerySelection,
 } from "../../../common/await_functions";
 import { JobApplication } from "../../jobApplication";
 import { isEmpty } from "../../../common/functions";
@@ -16,8 +17,11 @@ export const LinkedIn: JobSite = {
     const parent = (
       await awaitQueryAll('button[class*="jobs-save-button"]')
     ).filter((e) => 0 < e.innerText.length)[0].parentElement!;
-    parent.appendChild(renderable);
+    if (!Array.from(parent.children).some(child => child.id === renderable.id)) {
+      parent.appendChild(renderable);
+    }
   },
+
   removeRenderable: async (renderable: HTMLElement) => {
     if (renderable.parentElement) {
       renderable.parentElement.removeChild(renderable);
@@ -26,6 +30,7 @@ export const LinkedIn: JobSite = {
   scrapeJob: async (href: string): Promise<Partial<JobApplication> | null> => {
     const result: Partial<JobApplication> = {
       jobDescriptionUrl: href.split("/?")[0],
+      source: LinkedIn.name
     };
 
     const topCardLines =

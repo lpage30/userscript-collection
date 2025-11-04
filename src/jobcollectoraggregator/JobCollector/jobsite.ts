@@ -9,3 +9,9 @@ export interface JobSite extends Site {
   scrapeJob: (href: string) => Promise<Partial<JobApplication> | null>;
   subsite?: (href: string) => string | null;
 }
+
+export const CommuteWordsToType = {
+  hybrid: 'hybrid',
+  site: 'on-site',
+  remote: 'remote'
+}

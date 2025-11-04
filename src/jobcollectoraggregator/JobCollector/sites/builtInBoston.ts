@@ -13,7 +13,9 @@ export const BuiltInBoston: JobSite = {
   awaitPageLoad: () => awaitPageLoadByEvent(),
   addRenderable: async (renderable: HTMLElement) => {
     const parent = (await awaitQuerySelection("h1")).parentElement!;
-    parent.appendChild(renderable);
+    if (!Array.from(parent.children).some(child => child.id === renderable.id)) {
+      parent.appendChild(renderable);
+    }
   },
   removeRenderable: async (renderable: HTMLElement) => {
     if (renderable.parentElement) {
@@ -23,6 +25,7 @@ export const BuiltInBoston: JobSite = {
   scrapeJob: async (href: string): Promise<Partial<JobApplication> | null> => {
     const result: Partial<JobApplication> = {
       jobDescriptionUrl: href,
+      source: BuiltInBoston.name
     };
     const topCardLines = document
       .getElementById("main")
@@ -42,7 +45,9 @@ export const BuiltInBoston: JobSite = {
       };
       result.company = topCardLines[indices.company];
       result.position = topCardLines[indices.title];
-      result.location = topCardLines[indices.location];
+      if (0 <= saveButtonIndex) {
+        result.location = topCardLines[indices.location];
+      }
     }
     return result;
   },

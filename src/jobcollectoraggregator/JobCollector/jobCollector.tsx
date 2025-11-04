@@ -6,7 +6,7 @@ import {
   setAsClickableTextComponent,
   TextSettings,
 } from "../../common/ui/clickableText";
-import { awaitElementById } from "../../common/await_functions";
+import { awaitElementById, awaitQueryAll } from "../../common/await_functions";
 import { collectJob, uncollectJob, isJobCollected } from "../jobCollections";
 
 const renderableId = "job-saver-button";
@@ -22,10 +22,11 @@ export const JobCollector: Userscript = {
       throw new Error(`${href} has no supported JobCollector Userscript`);
     }
     await jobSite.awaitPageLoad();
+
     const renderable = document.createElement("div");
     renderable.id = renderableId;
     renderable.style.alignContent = "center";
-
+  
     const getTextSettings = async (): Promise<TextSettings> => {
       const job = await jobSite.scrapeJob(window.location.href);
       const jobName = `${job?.position}@${job?.company}`;
