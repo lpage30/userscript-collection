@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import '../../common/ui/styles.css';
 import { Dialog } from 'primereact/dialog';
 import { JobApplication } from '../jobApplication';
 import { JobSiteTypeArray } from '../JobCollector/sites/sites';
 import { formatFileDate } from '../../common/datetime';
 import { JobCollectorStatusReport } from '../job_service_types';
+import CollectedJobBrowser from './CollectedJobBrowser';
 
 interface JobCollectorAggregatorDashboardProps {
   initialAggregation: JobApplication[]
@@ -14,8 +15,16 @@ interface JobCollectorAggregatorDashboardProps {
 const JobCollectorAggregatorDashboard: React.FC<JobCollectorAggregatorDashboardProps> = ({initialAggregation, registerJobAggregation}) => {
   const [aggregatedJobs, setAggregatedJobs] = useState<JobApplication[]>(initialAggregation)
   const [visible, setVisible] = useState(true);
+  const updateBrowserAggregationRef = useRef<(aggregatedJobs: JobApplication[]) => void>(null)
+  const updateAggregations = (aggregatedJobs: JobApplication[]) => {
+    setAggregatedJobs(aggregatedJobs)
+    if (updateBrowserAggregationRef.current) {
+      updateBrowserAggregationRef.current(aggregatedJobs)
+    }
 
-  registerJobAggregation(setAggregatedJobs)  
+  }
+
+  registerJobAggregation(updateAggregations)  
 
   const render = () => {
     const currentDate = new Date()
@@ -80,6 +89,7 @@ const JobCollectorAggregatorDashboard: React.FC<JobCollectorAggregatorDashboardP
             </tr>
           )}</tbody>
         </table>
+        <CollectedJobBrowser onJobApplicationChange={updateAggregations} registerJobAggregation={(callback) => { updateBrowserAggregationRef.current = callback }}/>
       </Dialog>
     );
   };

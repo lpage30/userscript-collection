@@ -71,6 +71,17 @@ export function uncollectJob(
   }
 }
 
+export function storeJobs(jobApplications: JobApplication[]) {
+  GM_setValue(
+    COLLECTION_NAME,
+    JSON.stringify(
+      jobApplications,
+      null,
+      2,
+    ),
+  );
+}
+
 export function mergeAggregation(
   aggregatedJobs: JobApplication[],
 ): Promise<ApiResponse<{ mergedApplicationCount: number }>> {
