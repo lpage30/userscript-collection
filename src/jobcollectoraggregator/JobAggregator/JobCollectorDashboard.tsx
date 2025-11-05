@@ -7,12 +7,12 @@ import { formatFileDate } from '../../common/datetime';
 import { JobCollectorStatusReport } from '../job_service_types';
 import CollectedJobBrowser from './CollectedJobBrowser';
 
-interface JobCollectorAggregatorDashboardProps {
+interface JobCollectorDashboardProps {
   initialAggregation: JobApplication[]
   registerJobAggregation: (updateAggregations: (aggregatedJobs: JobApplication[]) => void) => void
 }
 
-const JobCollectorAggregatorDashboard: React.FC<JobCollectorAggregatorDashboardProps> = ({initialAggregation, registerJobAggregation}) => {
+const JobCollectorDashboard: React.FC<JobCollectorDashboardProps> = ({initialAggregation, registerJobAggregation}) => {
   const [aggregatedJobs, setAggregatedJobs] = useState<JobApplication[]>(initialAggregation)
   const [visible, setVisible] = useState(true);
   const updateBrowserAggregationRef = useRef<(aggregatedJobs: JobApplication[]) => void>(null)
@@ -96,4 +96,4 @@ const JobCollectorAggregatorDashboard: React.FC<JobCollectorAggregatorDashboardP
   return render();
 };
 
-export default JobCollectorAggregatorDashboard;
+export default JobCollectorDashboard;

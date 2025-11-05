@@ -15,8 +15,8 @@ import {
   createRenderableContainerAsChild,
   renderInContainer,
 } from "../../common/ui/renderRenderable";
-import { JobCollectorAggregatorDashboardPageUrl } from "../job_service_types";
-import JobCollectorAggregatorDashboard from "./JobCollectorAggregatorDashboard";
+import { JobCollectorDashboardPageUrl } from "../job_service_types";
+import JobCollectorDashboard from "./JobCollectorDashboard";
 import { JobApplication } from "../jobApplication";
 
 async function handleAggregations(aggregation: JobApplication[]) {
@@ -28,10 +28,10 @@ const renderableId = 'jobs-dashboard'
 export const JobAggregator: Userscript = {
   name: "JobAggregator",
 
-  isSupported: (href: string): boolean => href.includes(JobCollectorAggregatorDashboardPageUrl),
+  isSupported: (href: string): boolean => href.includes(JobCollectorDashboardPageUrl),
 
   render: async (href: string): Promise<void> => {
-    if (!href.includes(JobCollectorAggregatorDashboardPageUrl)) {
+    if (!href.includes(JobCollectorDashboardPageUrl)) {
       throw new Error(`${href} has no supported JobAggregator Userscript`);
     }
     await awaitPageLoadByEvent();
