@@ -42,7 +42,7 @@ export const JobAggregator: Userscript = {
     const initialJobs = aggregateJobs()
     let updateDashboard: (aggregatedJobs: JobApplication[]) => void | null = null
     
-    renderInContainer(container, <JobCollectorAggregatorDashboard 
+    renderInContainer(container, <JobCollectorDashboard 
       initialAggregation={initialJobs}
       registerJobAggregation={(update) => { updateDashboard = update}}
     />);

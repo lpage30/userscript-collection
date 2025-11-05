@@ -60,8 +60,13 @@ const JobCollectorDashboard: React.FC<JobCollectorDashboardProps> = ({initialAgg
         onHide={() => setVisible(false)}
         style={{ width: '90vw', height: '90vh' }}
         header={<>
-          <h2>Job Collector Dashboard</h2>
-          <sub>{formatFileDate(currentDate)}</sub>
+          <div className='text-center'><h2>Job Collector Dashboard</h2></div>
+          <div className='text-center'><sub>{formatFileDate(currentDate)}</sub></div>
+          <CollectedJobBrowser 
+            onJobApplicationChange={updateAggregations}
+            registerJobAggregation={(callback) => { updateBrowserAggregationRef.current = callback }}
+            style={{display: 'flex', padding: '3px', justifyContent: 'center'}}
+          />
         </>}
         className='p-dialog-maximized'
       >
@@ -89,7 +94,6 @@ const JobCollectorDashboard: React.FC<JobCollectorDashboardProps> = ({initialAgg
             </tr>
           )}</tbody>
         </table>
-        <CollectedJobBrowser onJobApplicationChange={updateAggregations} registerJobAggregation={(callback) => { updateBrowserAggregationRef.current = callback }}/>
       </Dialog>
     );
   };

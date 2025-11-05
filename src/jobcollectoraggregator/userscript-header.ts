@@ -3,7 +3,7 @@
 // @version     0.1
 // @description tool supporting collection of Jobs from job sites, and aggregation for JobApplication app
 // @author      lawrence L. Page
-// @include     http://localhost:3000/job-collector-aggregator-dashboard.html
+// @include     http://localhost:3000/job-collector-dashboard.html
 // @namespace   lpage30-userscripts
 // @run-at      document-start
 

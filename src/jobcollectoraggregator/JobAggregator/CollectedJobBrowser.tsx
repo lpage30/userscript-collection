@@ -7,35 +7,49 @@ import {
 import { Dropdown } from 'primereact/dropdown';
 import { Button } from 'primereact/button';
 import { JobApplication } from '../jobApplication';
+import { Dialog } from 'primereact/dialog';
 
 interface CollectedJobBrowserProps {
     onJobApplicationChange: (aggregatedJobs: JobApplication[]) => void
     registerJobAggregation: (updateAggregations: (aggregatedJobs: JobApplication[]) => void) => void
+    style?: React.CSSProperties
 
 }
-const CollectedJobBrowser: React.FC<CollectedJobBrowserProps> = ({onJobApplicationChange, registerJobAggregation}) => {
+const CollectedJobBrowser: React.FC<CollectedJobBrowserProps> = ({
+    onJobApplicationChange,
+    registerJobAggregation,
+    style
+}) => {
     const [jobApplications, setJobApplications] = useState<JobApplication[]>(aggregateJobs())
     const [deletedApplicationIndices, setDeletedApplicationIndices] = useState<number[]>([])
-    const [selectedApplicationId, setSelectedApplicationId] = useState<number>(null)
+    const [selectedApplicationIndex, setSelectedApplicationIndex] = useState<number>(null)
+    const [iframeHref, setIframeHref] = useState<string>(null)
+    const [visible, setVisible] = useState(false)
 
+    const handleJobSelect = (applicationIndex: number)  => {
+        setIframeHref(jobApplications[applicationIndex].jobDescriptionUrl)
+        setSelectedApplicationIndex(applicationIndex)
+    }
     const handleUpdate = (aggregatedJobs: JobApplication[]) => {
-        setSelectedApplicationId(null)
+        setIframeHref(null)
+        setSelectedApplicationIndex(null)
         setDeletedApplicationIndices([])
         setJobApplications(aggregatedJobs)
     }
     registerJobAggregation(handleUpdate)
     const refresh = () => {
-        setSelectedApplicationId(null)
+        setIframeHref(null)
+        setSelectedApplicationIndex(null)
         setDeletedApplicationIndices([])
         setJobApplications(aggregateJobs())
         onJobApplicationChange(jobApplications)
     }
 
     const toggleDelete = () => {
-        if (deletedApplicationIndices.includes(selectedApplicationId)) {
-            setDeletedApplicationIndices(deletedApplicationIndices.filter(value => value !== selectedApplicationId))
+        if (deletedApplicationIndices.includes(selectedApplicationIndex)) {
+            setDeletedApplicationIndices(deletedApplicationIndices.filter(value => value !== selectedApplicationIndex))
         } else {
-            setDeletedApplicationIndices([...deletedApplicationIndices, selectedApplicationId])
+            setDeletedApplicationIndices([...deletedApplicationIndices, selectedApplicationIndex])
         }
     }
 
@@ -43,6 +57,7 @@ const CollectedJobBrowser: React.FC<CollectedJobBrowserProps> = ({onJobApplicati
         storeJobs(jobApplications.filter((j, index) => !deletedApplicationIndices.includes(index)))
         refresh()
     }
+    const popupBrowser = () => setVisible(true)
     const render = () => {
         const picklistOptions = jobApplications.map((job, index) => ({
             label: `${job.source}: ${job.position}@${job.company}`,
@@ -50,57 +65,89 @@ const CollectedJobBrowser: React.FC<CollectedJobBrowserProps> = ({onJobApplicati
             markedForDeletion: deletedApplicationIndices.includes(index),
             descriptionUrl: job.jobDescriptionUrl
         }))
-        return (<table
-            style={{
-                tableLayout: 'auto',
-                marginLeft: 'auto',
-                marginRight: 'auto',
-                marginTop: '0',
-                marginBottom: 'auto',
-                width: '100%',
-            }}
-        ><tbody>
-        <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-            <td>
-                <Dropdown 
-                    options={picklistOptions}
-                    optionLabel={'label'}
-                    optionValue={'value'}
-                    value={selectedApplicationId}
-                    onChange={(e) => setSelectedApplicationId(e.value)}
-                    highlightOnSelect={false}
-                    style={{ width: '100%' }}
-                    itemTemplate={(option) => (<span>{
-                        option.markedForDeletion
-                        ? <s>{option.label}</s>
-                        : option.label
-                        }</span>
-                    )}
-                    placeholder='Job Applications'
-                />
-                <div style={{display: 'flex'}}>
-                    <Button 
-                        onClick={() => toggleDelete()} 
-                        disabled={null === selectedApplicationId}
-                    >
-                        {picklistOptions[selectedApplicationId].markedForDeletion ? 'Restore' : 'Delete'} {picklistOptions[selectedApplicationId].label}
-                    </Button>
-                    <Button 
-                        onClick={() => apply()} 
-                        disabled={0 === deletedApplicationIndices.length}
-                    >
-                        Apply {deletedApplicationIndices.length} Deletions
-                    </Button>
-                    <Button 
-                        onClick={() => refresh()} 
-                    >
-                        Refesh
-                    </Button>
-                </div>
-            </td>
-            <td>{null !== selectedApplicationId && <iframe src={picklistOptions[selectedApplicationId].descriptionUrl}></iframe>}</td>
-        </tr>
-        </tbody></table>
+        return (
+        <div style={style ?? {}}>
+            <Button className="app-button" onClick={(() => popupBrowser())}>Browse and Manage Jobs</Button>
+            <Dialog
+                showHeader={true}
+                closable={true}
+                position={'center'}
+                visible={visible}
+                onHide={() => setVisible(false)}
+                style={{ width: '90vw', height: '90vh' }}
+                className='p-dialog-maximized'
+                header={
+                    <div style={{textAlign: 'center'}}>
+                        <h2>Select Job, Browse and Manage</h2>
+                        <div style={{display: 'flex', padding: '3px', justifyContent: 'center'}}>
+                            <Button 
+                                className="app-button"
+                                onClick={() => toggleDelete()} 
+                                disabled={null === selectedApplicationIndex}
+                            >{selectedApplicationIndex !== null
+                                ? `${picklistOptions[selectedApplicationIndex].markedForDeletion ? 'Restore' : 'Delete'}`
+                                : 'disabled'
+                            }
+                            </Button>
+                            <Button 
+                                className="app-button"
+                                onClick={() => apply()} 
+                                disabled={0 === deletedApplicationIndices.length}
+                            >
+                                Apply {deletedApplicationIndices.length} Deletions
+                            </Button>
+                            <Button
+                                className="app-button" 
+                                onClick={() => refresh()} 
+                            >
+                                Refesh
+                            </Button>
+                        </div>
+
+                    </div>
+                }
+            >
+                <table
+                    style={{
+                        tableLayout: 'auto',
+                        marginLeft: 'auto',
+                        marginRight: 'auto',
+                        marginTop: '0',
+                        marginBottom: '0',
+                        height: '100%',
+                        width: '100%',
+                    }}><tbody>
+                    <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+                        <td style={{padding: '3px'}}>
+                            <Dropdown 
+                                options={picklistOptions}
+                                optionLabel={'label'}
+                                optionValue={'value'}
+                                value={selectedApplicationIndex}
+                                onChange={(e) => handleJobSelect(e.value)}
+                                highlightOnSelect={false}
+                                style={{ width: '100%' }}
+                                itemTemplate={(option) => (<span>{
+                                    option.markedForDeletion
+                                    ? <s>{option.label}</s>
+                                    : option.label
+                                    }</span>
+                                )}
+                                placeholder={`Collected Jobs (${picklistOptions.length}) Picklist - Pick one`}
+                            />
+                        </td>
+                    </tr>
+                    <tr style={{width: '100%', height: '100%', top: 0, left: 0 }}>
+                        <td>
+                            <iframe 
+                                src={iframeHref}
+                                style={{ width: '100%', height: '100%'}}
+                            ></iframe>    
+                        </td>
+                    </tr>
+                </tbody></table>
+            </Dialog>
+        </div>
         )
     }
     return render()
