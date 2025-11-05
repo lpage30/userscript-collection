@@ -60,7 +60,7 @@ const JobCollectorDashboard: React.FC<JobCollectorDashboardProps> = ({initialAgg
         onHide={() => setVisible(false)}
         style={{ width: '90vw', height: '90vh' }}
         header={<>
-          <h2>Job Collector Aggregator</h2>
+          <h2>Job Collector Dashboard</h2>
           <sub>{formatFileDate(currentDate)}</sub>
         </>}
         className='p-dialog-maximized'

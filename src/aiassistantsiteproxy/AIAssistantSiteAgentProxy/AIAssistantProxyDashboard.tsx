@@ -33,7 +33,7 @@ const AIAssistantProxyDashboard: React.FC<AIAssistantProxyDashboardProps> = ({ i
         onHide={() => setVisible(false)}
         style={{ width: '90vw', height: '90vh' }}
         header={<>
-          <h2>AI Assistant Proxy</h2>
+          <h2>AI Assistant Proxy Dashboard</h2>
           <sub>{formatFileDate(currentDate)}</sub>
         </>}
         className='p-dialog-maximized'
