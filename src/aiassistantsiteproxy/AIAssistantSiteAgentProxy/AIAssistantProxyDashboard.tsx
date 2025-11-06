@@ -1,10 +1,16 @@
 import React, { useState } from 'react';
 import '../../common/ui/styles.css';
 import { Dialog } from 'primereact/dialog';
+import { Button } from 'primereact/button';
 import { AIStatusReport, isDifferentAIStatusReport } from '../ai_service_types';
 import { formatFileDate } from '../../common/datetime';
+import { AISites } from '../AIAssistantSiteAgent/sites/sites';
 
-
+const openSites = () => {
+  AISites.forEach(site => {
+    window.open(site.siteUrls[0], site.name)
+  })
+}
 interface AIAssistantProxyDashboardProps {
   initialReport: { [site: string]: AIStatusReport}
   registerAIStatusReportChange: (updateAIStatusReport: (report: { [site: string]: AIStatusReport}) => void) => void
@@ -33,8 +39,13 @@ const AIAssistantProxyDashboard: React.FC<AIAssistantProxyDashboardProps> = ({ i
         onHide={() => setVisible(false)}
         style={{ width: '90vw', height: '90vh' }}
         header={<>
-          <h2>AI Assistant Proxy Dashboard</h2>
-          <sub>{formatFileDate(currentDate)}</sub>
+          <div className='text-center'><h2>AI Assistant Proxy Dashboard <small style={{fontSize: '50%'}}>({AISites.length} Sites)</small></h2></div>
+          <div style={{display: 'flex', padding: '3px', justifyContent: 'center'}}>
+            <Button 
+              className="app-button"
+              onClick={openSites}
+            >Open AI Sites</Button>
+          </div>
         </>}
         className='p-dialog-maximized'
       >

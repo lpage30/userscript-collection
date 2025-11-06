@@ -24,6 +24,10 @@ export async function fetchChatRequests(
       data: JSON.stringify({ connectedSites: getConnectedSites() }),
       onload: (response: GM_xmlhttpRequestResponse) => {
         lastConnectTime = Date.now();
+        if (response.status < 200 || 300 <= response.status) {
+          reject(new Error(response.statusText))
+          return
+        }
         const result: ApiResponse<ChatRequest[]> = JSON.parse(
           response.responseText,
         );
@@ -47,6 +51,10 @@ export async function postChatResponses(responses: ChatResponse[]) {
       },
       data: JSON.stringify({ responses }),
       onload: (response: GM_xmlhttpRequestResponse) => {
+        if (response.status < 200 || 300 <= response.status) {
+          reject(new Error(response.statusText))
+          return
+        }
         resolve();
       },
       onerror: (response) => reject(new Error(response.statusText)),

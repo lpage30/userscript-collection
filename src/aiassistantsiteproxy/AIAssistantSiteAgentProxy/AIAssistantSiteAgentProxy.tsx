@@ -24,6 +24,7 @@ import {
   renderInContainer,
 } from "../../common/ui/renderRenderable";
 import AIAssistantProxyDashboard from "./AIAssistantProxyDashboard";
+import { toString } from "../../common/functions";
 
 const fetchPostIntervalms = 10000;
 const siteAgentProxy = new SiteAgentProxy(AIAssistantSiteProxyConfig);
@@ -129,21 +130,25 @@ export const AIAssistantSiteAgentProxy: Userscript = {
     }
     let updateDashboard: (report: { [site: string]: AIStatusReport}) => void | null = null    
     await awaitPageLoadByEvent();
-    await runProcesses(updateDashboard);
-
-    const hrefParams = new URLSearchParams((new URL(href)).search.toLowerCase())
-    const headless =  ['true', ''].includes(hrefParams.get('headless'))
-    if (headless) {
-      return
+    let stop: () => void | null = null
+    try {
+      const hrefParams = new URLSearchParams((new URL(href)).search.toLowerCase())
+      const headless =  ['true', ''].includes(hrefParams.get('headless'))
+      if (!headless) {
+        const container = createRenderableContainerAsChild(
+          document.body,
+          renderableId,
+        );
+        renderInContainer(container, <AIAssistantProxyDashboard 
+          initialReport={requestResponseReport}
+          registerAIStatusReportChange={(update) => { updateDashboard = update}}
+        />);
+        await awaitElementById(renderableId);
+      }
+      stop = await runProcesses(updateDashboard);      
+    } catch(e) {
+      console.error(`Failed running AIDashboard ${toString(e)}`, e)
+      if (stop) stop()
     }
-    const container = createRenderableContainerAsChild(
-      document.body,
-      renderableId,
-    );
-    renderInContainer(container, <AIAssistantProxyDashboard 
-      initialReport={requestResponseReport}
-      registerAIStatusReportChange={(update) => { updateDashboard = update}}
-    />);
-    await awaitElementById(renderableId);
   },
 };

@@ -7,6 +7,13 @@ import { JobSiteTypeArray } from '../JobCollector/sites/sites';
 import { formatFileDate } from '../../common/datetime';
 import { JobCollectorStatusReport } from '../job_service_types';
 import CollectedJobBrowser from './CollectedJobBrowser';
+import { JobSites } from '../JobCollector/sites/sites';
+
+const openSites = () => {
+  JobSites.forEach(site => {
+    window.open(site.siteUrls[0], site.name)
+  })
+}
 
 interface JobCollectorDashboardProps {
   initialAggregation: JobApplication[]
@@ -70,7 +77,7 @@ const JobCollectorDashboard: React.FC<JobCollectorDashboardProps> = ({
         onHide={() => setVisible(false)}
         style={{ width: '90vw', height: '90vh' }}
         header={<>
-          <div className='text-center'><h2>Job Collector Dashboard</h2></div>
+          <div className='text-center'><h2>Job Collector Dashboard <small style={{fontSize: '50%'}}>({JobSites.length} Sites)</small></h2></div>
           <div className='text-center'>
             <sub>{aggregatedJobs.length} Jobs Collected</sub>
           </div>
@@ -88,7 +95,11 @@ const JobCollectorDashboard: React.FC<JobCollectorDashboardProps> = ({
                 : null !== mergedCount 
                   ? `Already Merged`
                   : 'Merge Jobs to Server'}
-            </Button>
+            </Button>&nbsp;&nbsp;
+            <Button 
+              className="app-button"
+              onClick={openSites}
+            >Open Job Sites</Button>
           </div>
         </>}
         className='p-dialog-maximized'

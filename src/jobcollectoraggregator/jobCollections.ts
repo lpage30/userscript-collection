@@ -95,6 +95,10 @@ export function mergeAggregation(
         },
         data: JSON.stringify({ applications: aggregatedJobs }),
         onload: (response: GM_xmlhttpRequestResponse) => {
+          if (response.status < 200 || 300 <= response.status) {
+            reject(new Error(response.statusText))
+            return
+          }
           const result: ApiResponse<{ mergedApplicationCount: number }> =
             JSON.parse(response.responseText);
           resolve(result);
