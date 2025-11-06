@@ -22,7 +22,9 @@ import { JobApplication } from "../jobApplication";
 async function handleAggregations(aggregation: JobApplication[]) {
   if (0 < aggregation.length) {
     const response = await mergeAggregation(aggregation);
+    return response.data.mergedApplicationCount
   }
+  return 0
 }
 const renderableId = 'jobs-dashboard'
 export const JobAggregator: Userscript = {
@@ -35,26 +37,41 @@ export const JobAggregator: Userscript = {
       throw new Error(`${href} has no supported JobAggregator Userscript`);
     }
     await awaitPageLoadByEvent();
-    const container = createRenderableContainerAsChild(
-      document.body,
-      renderableId,
-    );
     const initialJobs = aggregateJobs()
     let updateDashboard: (aggregatedJobs: JobApplication[]) => void | null = null
     
-    renderInContainer(container, <JobCollectorDashboard 
-      initialAggregation={initialJobs}
-      registerJobAggregation={(update) => { updateDashboard = update}}
-    />);
-    await awaitElementById(renderableId);
-    
-    await handleAggregations(initialJobs);
+    const hrefParams = new URLSearchParams((new URL(href)).search.toLowerCase())
+    const autoMerge = ['true', ''].includes(hrefParams.get('automerge'))
+    const headless =  ['true', ''].includes(hrefParams.get('headless'))
+
+    if (autoMerge) {
+      handleAggregations(initialJobs)
+    }
+
     GM_addValueChangeListener(COLLECTION_NAME, () => {
       const jobs = aggregateJobs()
-      handleAggregations(jobs)
+      if (autoMerge) {
+        handleAggregations(jobs)
+      }
       if (updateDashboard) {
         updateDashboard(jobs)
       }
     });
+    if (headless) {
+      return
+    }
+
+    const container = createRenderableContainerAsChild(
+      document.body,
+      renderableId,
+    );
+    
+    renderInContainer(container, <JobCollectorDashboard 
+      initialAggregation={initialJobs}
+      registerJobAggregation={(update) => { updateDashboard = update}}
+      mergeAggregation={handleAggregations}
+    />);
+    await awaitElementById(renderableId);
+    
   },
 };

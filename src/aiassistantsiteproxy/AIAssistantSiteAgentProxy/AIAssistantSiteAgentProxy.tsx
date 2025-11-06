@@ -127,19 +127,23 @@ export const AIAssistantSiteAgentProxy: Userscript = {
     if (!href.includes(AIAssistantProxyDashboardPageUrl)) {
       throw new Error(`${href} has no supported AIAssistantClient Userscript`);
     }
+    let updateDashboard: (report: { [site: string]: AIStatusReport}) => void | null = null    
     await awaitPageLoadByEvent();
+    await runProcesses(updateDashboard);
+
+    const hrefParams = new URLSearchParams((new URL(href)).search.toLowerCase())
+    const headless =  ['true', ''].includes(hrefParams.get('headless'))
+    if (headless) {
+      return
+    }
     const container = createRenderableContainerAsChild(
       document.body,
       renderableId,
     );
-    let updateDashboard: (report: { [site: string]: AIStatusReport}) => void | null = null
-    
     renderInContainer(container, <AIAssistantProxyDashboard 
       initialReport={requestResponseReport}
       registerAIStatusReportChange={(update) => { updateDashboard = update}}
     />);
     await awaitElementById(renderableId);
-
-    await runProcesses(updateDashboard);
   },
 };

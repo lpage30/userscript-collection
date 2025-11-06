@@ -102,6 +102,13 @@ const CollectedJobBrowser: React.FC<CollectedJobBrowserProps> = ({
                             >
                                 Refesh
                             </Button>
+                            <Button
+                                className="app-button"
+                                onClick={() => apply()} 
+                                disabled={0 === deletedApplicationIndices.length}
+                            >
+                                Apply {deletedApplicationIndices.length} Deletions
+                            </Button>
                         </div>
 
                     </div>

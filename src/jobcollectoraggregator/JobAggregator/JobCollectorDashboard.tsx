@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import '../../common/ui/styles.css';
 import { Dialog } from 'primereact/dialog';
+import { Button } from 'primereact/button';
 import { JobApplication } from '../jobApplication';
 import { JobSiteTypeArray } from '../JobCollector/sites/sites';
 import { formatFileDate } from '../../common/datetime';
@@ -10,18 +11,27 @@ import CollectedJobBrowser from './CollectedJobBrowser';
 interface JobCollectorDashboardProps {
   initialAggregation: JobApplication[]
   registerJobAggregation: (updateAggregations: (aggregatedJobs: JobApplication[]) => void) => void
+  mergeAggregation: (aggregatedJobs: JobApplication[]) => Promise<number>
 }
 
-const JobCollectorDashboard: React.FC<JobCollectorDashboardProps> = ({initialAggregation, registerJobAggregation}) => {
+const JobCollectorDashboard: React.FC<JobCollectorDashboardProps> = ({
+  initialAggregation, 
+  registerJobAggregation,
+  mergeAggregation,
+}) => {
   const [aggregatedJobs, setAggregatedJobs] = useState<JobApplication[]>(initialAggregation)
   const [visible, setVisible] = useState(true);
   const updateBrowserAggregationRef = useRef<(aggregatedJobs: JobApplication[]) => void>(null)
+  const [mergedCount, setMergedCount] = useState<number>(null)
   const updateAggregations = (aggregatedJobs: JobApplication[]) => {
     setAggregatedJobs(aggregatedJobs)
     if (updateBrowserAggregationRef.current) {
       updateBrowserAggregationRef.current(aggregatedJobs)
+      setMergedCount(null)
     }
-
+  }
+  const handleMerge = async () => {
+    setMergedCount(await mergeAggregation(aggregatedJobs))
   }
 
   registerJobAggregation(updateAggregations)  
@@ -61,12 +71,25 @@ const JobCollectorDashboard: React.FC<JobCollectorDashboardProps> = ({initialAgg
         style={{ width: '90vw', height: '90vh' }}
         header={<>
           <div className='text-center'><h2>Job Collector Dashboard</h2></div>
-          <div className='text-center'><sub>{formatFileDate(currentDate)}</sub></div>
-          <CollectedJobBrowser 
-            onJobApplicationChange={updateAggregations}
-            registerJobAggregation={(callback) => { updateBrowserAggregationRef.current = callback }}
-            style={{display: 'flex', padding: '3px', justifyContent: 'center'}}
-          />
+          <div className='text-center'>
+            <sub>{aggregatedJobs.length} Jobs Collected</sub>
+          </div>
+          <div style={{display: 'flex', padding: '3px', justifyContent: 'center'}}>
+            <CollectedJobBrowser 
+              onJobApplicationChange={updateAggregations}
+              registerJobAggregation={(callback) => { updateBrowserAggregationRef.current = callback }}
+            />&nbsp;&nbsp;
+            <Button 
+              className="app-button"
+              onClick={handleMerge}
+              disabled={0 === aggregatedJobs.length || null !== mergedCount}
+            >{0 === aggregatedJobs.length 
+                ? 'No Jobs to Merge' 
+                : null !== mergedCount 
+                  ? `Already Merged`
+                  : 'Merge Jobs to Server'}
+            </Button>
+          </div>
         </>}
         className='p-dialog-maximized'
       >
