@@ -44,8 +44,10 @@ const Dashboard: React.FC<DashboardProps> = ({
     SortedFilteredItems<Card>
   >(
     sortAndFilterItems(cards, {
-      filter: persistence.loadFilter(),
-      sorting: persistence.loadSorting(),
+      filter: persistence.loadFilter()
+        .filter(itemFilter => undefined !== filterableItems[itemFilter.field]),
+      sorting: persistence.loadSorting()
+        .filter(itemSort => sortingFields.includes(itemSort.field)),
     }),
   );
   const focusedElementIdRef = useRef<string>(null)
