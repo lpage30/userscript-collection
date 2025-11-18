@@ -1,8 +1,8 @@
 import React from "react";
 import "../common/ui/styles.css";
 import { Userscript } from "../common/userscript";
-import { Persistence } from "../dashboardcomponents/persistence";
-import { sortingFields, filterableItems, scrapePosts, PageTypes, theLayoffBaseUrl, getPageType } from "./posts";
+import { Persistence, StaleDuration } from "../dashboardcomponents/persistence";
+import { Post, sortingFields, filterableItems, scrapePosts, PageTypes, theLayoffBaseUrl, getPageType, toPostCard } from "./posts";
 import {
   awaitPageLoadByMutation,
   awaitElementById,
@@ -23,6 +23,7 @@ export const TheLayoffDashboard: Userscript = {
   
   render: async (href: string): Promise<void> => {
     await awaitPageLoadByMutation();
+    const timestamp = Date.now()
     const navBarElement = document.getElementById('navbar')
     if (navBarElement) {
       navBarElement.style.display = 'none'
@@ -30,6 +31,16 @@ export const TheLayoffDashboard: Userscript = {
     const pagetype = getPageType(href)
     const persistence = Persistence('TheLayoff', filterableItems)
     const cards = scrapePosts(pagetype)
+    let last25Cards: Post[] = []
+    if (pagetype == 'last25') {
+      last25Cards = [...cards]
+      persistence.storeDashboard(timestamp, last25Cards)
+    } else {
+      const dashboard = persistence.loadDashboard<Post>(timestamp - StaleDuration);
+      if (dashboard) {
+          last25Cards = dashboard.cards.map(toPostCard);
+      }
+    }
     const container = createRenderableContainerAsChild(
       document.body,
       renderableId

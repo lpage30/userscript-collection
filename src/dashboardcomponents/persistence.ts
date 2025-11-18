@@ -4,7 +4,7 @@
 import { ONE_MINUTE } from '../common/datetime';
 import { ItemSort, ItemFilter, FilterableItems, Dashboard, Card } from './datatypes';
 
-const StaleDuration = 10 * ONE_MINUTE;
+export const StaleDuration = 10 * ONE_MINUTE;
 
 export class PersistenceClass {
   private selectedElementIdVariableName: string

@@ -1,9 +1,6 @@
 import { Card, FilterableItems, ItemFilter, toCardIndex } from '../../dashboardcomponents/datatypes';
-import { PersistenceClass } from '../../dashboardcomponents/persistence';
+import { PersistenceClass, StaleDuration } from '../../dashboardcomponents/persistence';
 import { toTitleCase } from '../../common/functions';
-import { ONE_MINUTE } from '../../common/datetime';
-
-const StaleDuration = 10 * ONE_MINUTE;
 
 export const HealthLevelTypes = ['danger', 'warning', 'success'] as const;
 export type HealthLevelType = (typeof HealthLevelTypes)[number];
@@ -34,7 +31,7 @@ export interface CompanyMetadata extends Card {
   rank: number;
   level: HealthLevelType;
   companyName: string;
-  incidentReports: IncidentReports;
+  incidentReports?: IncidentReports;
   incidentRisk: number
   pageInfo: CompanyPageInfo
 }
@@ -56,7 +53,9 @@ function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata 
   metadata.rank = data.rank ?? 0
   metadata.level = data.level ?? 'success'
   metadata.companyName = data.companyName ?? ''
-  metadata.incidentReports = data.incidentReports ?? { baseline15minAvg: 0, pastHr15minAvg: 0, incidentRiskPercent: 0 }
+  const nullIncidentReports = [null, undefined].includes(data.incidentReports) || Object.values(data.incidentReports).some(value => null === value)
+  metadata.incidentReports = nullIncidentReports ? { baseline15minAvg: 0, pastHr15minAvg: 0, incidentRiskPercent: 0 } : data.incidentReports
+  
   metadata.pageInfo = data.pageInfo ?? {
       ['dashboard']: {
         href: 'https://downdetector.com/',
@@ -72,18 +71,19 @@ function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata 
   metadata.incidentRisk = data.incidentRisk ?? 0
   metadata.renderable = data.renderable ?? null
   metadata.displayLines = () => {
-    try {
+    if (nullIncidentReports) {
+      console.log(`Warning: ${metadata.companyName} - has null IncidentReports`)
       return [
         `${metadata.companyName}`,
-        `Incident Spike: ${metadata.incidentReports.pastHr15minAvg}`,
-        `Incident Baseline: ${metadata.incidentReports.baseline15minAvg}`,
-        `IncidentRisk: ${metadata.incidentReports.incidentRiskPercent.toFixed(2)}%`
-      ];
+        'missing incident data'
+      ]
     }
-    catch(e) {
-      console.error('failed displayLines', e)
-      throw e
-    }
+    return [
+      `${metadata.companyName}`,
+      `Incident Spike: ${metadata.incidentReports.pastHr15minAvg}`,
+      `Incident Baseline: ${metadata.incidentReports.baseline15minAvg}`,
+      `IncidentRisk: ${metadata.incidentReports.incidentRiskPercent.toFixed(2)}%`
+    ];
   }
   metadata.label = () => `#${metadata.rank} ${metadata.companyName}`
   metadata.color = () => metadata.level === 'danger' ? 'red' : metadata.level === 'warning' ? 'yellow' : 'lightblue'
@@ -104,13 +104,19 @@ function toCompanyInfo(
   const companyName = statusAnchor.innerText.trim();
   const pastHourIncidentTotal = parseInt(companyDiv.dataset.hour)
   const pastDayIncidentTotal = parseInt(companyDiv.dataset.day)
-  const baseline15minAvg = Math.trunc(pastDayIncidentTotal/96)
-  const pastHr15minAvg = Math.trunc(pastHourIncidentTotal/4)
-  const incidentRiskPercent = pastHr15minAvg / baseline15minAvg * 100
-  const incidentReports:  IncidentReports ={
-    baseline15minAvg,
-    pastHr15minAvg,
-    incidentRiskPercent
+  let incidentReports: IncidentReports | undefined = undefined
+  let incidentRiskPercent = 0
+  if (!isNaN(pastHourIncidentTotal) && !isNaN(pastDayIncidentTotal)) {
+    const baseline15minAvg = Math.trunc(pastDayIncidentTotal/96)
+    const pastHr15minAvg = Math.trunc(pastHourIncidentTotal/4)
+    incidentRiskPercent = pastHr15minAvg / baseline15minAvg * 100
+    incidentReports = {
+      baseline15minAvg,
+      pastHr15minAvg,
+      incidentRiskPercent
+    }
+  } else {
+    console.error(`${companyName} has empty dataset hour/day hour(${companyDiv.dataset.hour}) day(${companyDiv.dataset.day})`)
   }
   const pageInfo: CompanyPageInfo = {
     ['dashboard']: {

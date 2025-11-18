@@ -7,9 +7,20 @@ interface InfoDisplayProps {
 
 }
 export const InfoDisplay: React.FC<InfoDisplayProps> = ({ registerDisplayTrigger }) => {
-  const [data, setData] = useState<InfoDisplayItem | null>(null)
+  const [displayLines, setDisplayLines] = useState<string[]>([])
   if (registerDisplayTrigger) {
-    registerDisplayTrigger((data: InfoDisplayItem | null ) => setData(data))
+    registerDisplayTrigger((data: InfoDisplayItem | null ) => {
+      if (data === null) {
+        setDisplayLines([])
+        return
+      }
+      try {
+        setDisplayLines(data.displayLines())
+      } catch (e) {
+        console.error(`Failed setting displayLines for InfoDisplay. ${JSON.stringify(data as any,null, 2)}`, e)
+        setDisplayLines([])
+      }
+    })
   }
   return <table style={{ 
       tableLayout: 'auto',
@@ -21,11 +32,13 @@ export const InfoDisplay: React.FC<InfoDisplayProps> = ({ registerDisplayTrigger
     }}
     ><tbody>
     {
-      (data?.displayLines() ?? []).map(line =>(
-        <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-          <td className="text-sm text-center">{line}</td>
-        </tr>
-      ))
+      displayLines.map(line =>(
+          <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+            <td className="text-sm text-center">{line}</td>
+          </tr>
+        )
+      )
+        
     }
   </tbody></table>
 };

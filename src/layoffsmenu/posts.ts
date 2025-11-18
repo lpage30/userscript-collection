@@ -30,7 +30,7 @@ function parseRepliesText(replyText: string): { replyCount: number, lastReply: D
         lastReply: parseDateTime(result[2])
     }
 }
-function toPostCard(data: Partial<Post>): Post {
+export function toPostCard(data: Partial<Post>): Post {
     const post: Partial<Post> = {}
     post.company = data.company ?? ''
     post.companyHref = data.companyHref ?? ''
@@ -77,14 +77,14 @@ function scrapePost(postElement: HTMLElement, pageType: string): Post {
     const title = header.innerText
     const text = (header.nextElementSibling as HTMLElement).innerText
     if (onLast25Page) {
-        const companyH2 = document.createElement('h2')
+        const companyH3 = document.createElement('h3')
         const companyAnchor = document.createElement('a')
-        companyH2.className = 'post-title'
+        companyH3.className = 'post-title'
         companyAnchor.className = 'thread-link'
         companyAnchor.href = companyHref
-        companyAnchor.innerText = company
-        companyH2.appendChild(companyAnchor)
-        header.insertBefore(companyH2, header.firstElementChild)
+        companyAnchor.innerHTML = `<sub>${company}</sub>`
+        companyH3.appendChild(companyAnchor)
+        header.appendChild(companyH3)
     }
     return toPostCard({
         company,

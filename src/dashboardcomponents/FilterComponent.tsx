@@ -72,20 +72,19 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
                     </td>
                   ))
                 }
+                const maxValueLen = valueCheckedArray.reduce((maxTextLen, [value]) => value.length > maxTextLen ? value.length : maxTextLen, 0)
                 return (<td>
-                  <div style={{ display: "flex", padding: "5px" }}>
                     <MultiSelect 
                       value={valueCheckedArray.filter(([value, checked]) => checked).map(([value]) => value)}
                       options={valueCheckedArray.map(([value]) => value)}
-                      filter
-                      placeholder={`FilterBy Selected ${itemFilter.field}s`}
+                      placeholder={`FilterBy Selected ${itemFilter.field}`}
                       onChange={(e) => {
                         valueCheckedArray.map(([value]) => value).forEach(value => {
                           handleFilterChange(itemFilter.field, value, e.value.includes(value))
                         })
                       }}
+                      style={{ width: `${maxValueLen * 10}px`}}
                     />
-                  </div>
                 </td>)
 
               }
