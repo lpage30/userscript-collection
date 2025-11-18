@@ -1,29 +1,19 @@
-// @grant       GM_setValue
-// @grant       GM_getValue
-// @grant       GM_deleteValue
+import { Card, FilterableItems, ItemFilter, toCardIndex } from '../../dashboardcomponents/datatypes';
+import { PersistenceClass } from '../../dashboardcomponents/persistence';
 import { toTitleCase } from '../../common/functions';
-import { ONE_MINUTE, toMonthDayYearDateTime } from '../../common/datetime';
+import { ONE_MINUTE } from '../../common/datetime';
 
-const CompanyMetadataVariableName = 'downdetected_companies';
-const SelectedCompanyElementId = 'selected_company_element_id';
-const FilterVariableName = 'filters';
-const SortVariableName = 'sortings';
 const StaleDuration = 10 * ONE_MINUTE;
 
 export const HealthLevelTypes = ['danger', 'warning', 'success'] as const;
 export type HealthLevelType = (typeof HealthLevelTypes)[number];
-export type HealthLevelCountMap = { [level in HealthLevelType]: number };
-export type HealthLevelFilter = { [level in HealthLevelType]: boolean };
 
-export const CompanySortTypes = ['level', 'name', 'incident_risk' ] as const;
-export type CompanySortType = (typeof CompanySortTypes)[number];
 export const CompanyPageTypes = ['dashboard', 'status', 'map'] as const;
 export type CompanyPageType = (typeof CompanyPageTypes)[number];
 
-export interface CompanySort {
-  sortType: CompanySortType;
-  ascending: boolean;
-}
+export const sortingFields = ['level', 'companyName', 'incidentRisk' ];
+export const filterableItems: FilterableItems = { level: { field: 'level', filter: { danger: true, warning: true, success: true }} as ItemFilter}
+
 export type CompanyPageInfo = {
   dashboard: {
     href: string
@@ -39,72 +29,74 @@ export interface IncidentReports {
   pastHr15minAvg: number
   incidentRiskPercent: number
 }
-export interface CompanyMetadata {
+export interface CompanyMetadata extends Card {
   timestamp: number;
   rank: number;
   level: HealthLevelType;
   companyName: string;
-  tooltipLines: string[];
   incidentReports: IncidentReports;
+  incidentRisk: number
   pageInfo: CompanyPageInfo
 }
-export const toCardElementId = (index: number) => `company-card-shell-${index}`
-export const fromCardElementId = (elementId: string): number => parseInt(elementId.split('-').slice(-1)[0])
-export const toCardIndex = (elementId: string, companies: CompanyMetadata[] | undefined): number | null => {
-    const index = (companies ?? []).findIndex(
-      (item) => item.pageInfo.dashboard.elementId === elementId,
-    );
-    return index < 0 ? null : index
-}
-export const toCard = (elementId: string, companies: CompanyMetadata[] | undefined): CompanyMetadata | null => {
-  const index = toCardIndex(elementId, companies)
+
+export const toCard = (elementId: string, pageName: string, companies: CompanyMetadata[] | undefined): CompanyMetadata | null => {
+  const index = toCardIndex(elementId, pageName, companies)
   return index === null ? companies[index] : null
 }
-  
-export interface CompanyCard extends CompanyMetadata {
-  renderable: HTMLElement;
-}
-export interface Dashboard {
-  timestamp: number;
-  companies: CompanyMetadata[];
-}
-
+ 
 export interface CompanyStatusCard {
   renderable: HTMLElement;
   companyName: string;
   company?: CompanyMetadata;
   allCompanies?: CompanyMetadata[];
 }
-
-export interface SortingFilter {
-  filter: HealthLevelFilter;
-  sorting: CompanySort[];
-}
-
-export interface SortedFilteredCompanies<T extends CompanyMetadata> {
-  sortingFilter: SortingFilter;
-  sortedCompanies: T[];
-  filteredCompanies: T[];
-}
-
-
-
-const toHealthPriority = (level: HealthLevelType) => {
-  switch (level) {
-    case 'danger':
-      return 1;
-    case 'warning':
-      return 2;
-    default:
-      return 3;
+function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata {
+  const metadata: Partial<CompanyMetadata> = {}
+  metadata.timestamp = data.timestamp ?? Date.now()
+  metadata.rank = data.rank ?? 0
+  metadata.level = data.level ?? 'success'
+  metadata.companyName = data.companyName ?? ''
+  metadata.incidentReports = data.incidentReports ?? { baseline15minAvg: 0, pastHr15minAvg: 0, incidentRiskPercent: 0 }
+  metadata.pageInfo = data.pageInfo ?? {
+      ['dashboard']: {
+        href: 'https://downdetector.com/',
+        elementId: ''
+      },
+      ['status']: {
+        href: '',
+      },
+      ['map']: {
+        href: '',
+      }
   }
-};
+  metadata.incidentRisk = data.incidentRisk ?? 0
+  metadata.renderable = data.renderable ?? null
+  metadata.displayLines = () => {
+    try {
+      return [
+        `${metadata.companyName}`,
+        `Incident Spike: ${metadata.incidentReports.pastHr15minAvg}`,
+        `Incident Baseline: ${metadata.incidentReports.baseline15minAvg}`,
+        `IncidentRisk: ${metadata.incidentReports.incidentRiskPercent.toFixed(2)}%`
+      ];
+    }
+    catch(e) {
+      console.error('failed displayLines', e)
+      throw e
+    }
+  }
+  metadata.label = () => `#${metadata.rank} ${metadata.companyName}`
+  metadata.color = () => metadata.level === 'danger' ? 'red' : metadata.level === 'warning' ? 'yellow' : 'lightblue'
+  metadata.href = (pageName: string) => metadata.pageInfo[pageName].href
+  metadata.elementId = (pageName: string) => metadata.pageInfo.dashboard.elementId
+  return metadata as CompanyMetadata
 
+}
 function toCompanyInfo(
   timestamp: number,
   rank: number,
   companyDiv: HTMLElement,
-): { card: CompanyCard; metadata: CompanyMetadata } {
+): CompanyMetadata {
   const svg = companyDiv.querySelector('svg');
   const statusAnchor = companyDiv.querySelector('a')!;
 
@@ -120,12 +112,6 @@ function toCompanyInfo(
     pastHr15minAvg,
     incidentRiskPercent
   }
-  const tooltipLines = [
-    `${companyName}`,
-    `Incident Spike: ${incidentReports.pastHr15minAvg}`,
-    `Incident Baseline: ${incidentReports.baseline15minAvg}`,
-    `IncidentRisk: ${incidentRiskPercent.toFixed(2)}%`
-  ];
   const pageInfo: CompanyPageInfo = {
     ['dashboard']: {
       href: 'https://downdetector.com/',
@@ -139,156 +125,52 @@ function toCompanyInfo(
     }
   }
 
-  const metadata = {
+  return toCompanyMetadataCard({
     timestamp,
     rank,
     level,
     companyName,
-    tooltipLines,
     incidentReports,
     pageInfo,
-  };
-  const card = {
-    ...metadata,
-    renderable: companyDiv,
-  };
-  return { card, metadata };
+    incidentRisk: incidentRiskPercent,
+    renderable: companyDiv
+  })
 }
 
-function storeDashboard(timestamp: number, companies: CompanyMetadata[]) {
-  GM_setValue(CompanyMetadataVariableName, {
-    timestamp,
-    companies,
-  });
-}
-
-function loadDashboard(tooOldTimestamp: number): Dashboard | null {
-  let dashboard: Dashboard | null = GM_getValue(
-    CompanyMetadataVariableName,
-    null,
-  );
-  if (dashboard && dashboard.timestamp < tooOldTimestamp) {
-    GM_deleteValue(CompanyMetadataVariableName);
-    dashboard = null;
-  }
-  return dashboard;
-}
-
-function toSortFunction<T extends CompanyMetadata>(sorts: CompanySort[],): (l: T, r: T) => number {
-  return (l: T, r: T): number => {
-    let result = 0
-    for (const sort of sorts) {
-      if (0 !== result) return result
-      switch (sort.sortType) {
-        case 'level':
-          result = sort.ascending ? toHealthPriority(l.level) - toHealthPriority(r.level) : toHealthPriority(r.level) - toHealthPriority(l.level);
-          break;
-        case 'name':
-          result = sort.ascending ? l.companyName.localeCompare(r.companyName) : r.companyName.localeCompare(l.companyName);
-          break;
-        case 'incident_risk':
-          result = sort.ascending ? l.incidentReports.incidentRiskPercent - r.incidentReports.incidentRiskPercent : r.incidentReports.incidentRiskPercent - l.incidentReports.incidentRiskPercent;
-          break
-        default:
-          break;
-      }
-    }
-    return result
-  }
-}
-export const toHealthLevelColor = (level: HealthLevelType) => {
-  switch (toHealthPriority(level)) {
-    case 1:
-      return 'red';
-    case 2:
-      return 'yellow';
-    default:
-      return 'lightblue';
-  }
-};
-
-export const initialHealthLevelCountMap = Object.freeze(
-  HealthLevelTypes.reduce(
-    (initialMap, level) => ({
-      ...initialMap,
-      [level as HealthLevelType]: 0,
-    }),
-    {},
-  ) as HealthLevelCountMap,
-);
-
-
-export const initialHealthLevelFilter = Object.freeze(
-  HealthLevelTypes.reduce(
-    (initialMap, level) => ({
-      ...initialMap,
-      [level as HealthLevelType]: true,
-    }),
-    {},
-  ) as HealthLevelFilter,
-);
-
-export function storeSelectedElementId(elementId: string) {
-  GM_setValue(SelectedCompanyElementId, {
-    timestamp: Date.now(),
-    elementId,
-  });
-}
-
-export function storeFilter(filter: HealthLevelFilter) {
-  GM_setValue(FilterVariableName, filter);
-}
-
-export function loadFilter(): HealthLevelFilter {
-  return GM_getValue(FilterVariableName, initialHealthLevelFilter);
-}
-
-export function storeSorting(sortings: CompanySort[]) {
-  GM_setValue(SortVariableName, sortings);
-}
-
-export function loadSorting(): CompanySort[] {
-  return GM_getValue(SortVariableName, []);
-}
-
-export function loadSelectedElementId(): string | null {
-  let selected = GM_getValue(SelectedCompanyElementId);
-  if (selected && selected.timestamp < Date.now() - StaleDuration) {
-    GM_deleteValue(SelectedCompanyElementId);
-    selected = null;
-  }
-  return selected ? selected.elementId : null;
-}
 export const dashboardCardsQueryAllSelector = 'div[class*="company-index"]'
+
 export function processCompanyDashboardCards(
   cardElements: HTMLElement[],
-): CompanyCard[] {
+  persistence: PersistenceClass
+): CompanyMetadata[] {
   const timestamp = Date.now();
   const result = cardElements.map((element, index) =>
     toCompanyInfo(timestamp, index + 1, element),
   );
-  storeDashboard(
+  persistence.storeDashboard(
     timestamp,
-    result.map(({ metadata }) => metadata),
+    result
   );
-  return result.map(({ card }) => card);
+  return result;
 }
 
 export const statusElementId = 'chart-row'
 export const statusMapElementId = 'map_container'
+
 export function processCompanyStatus(
   pageType: CompanyPageType,
   statusElement: HTMLElement,
   statusHref: string,
+  persistence: PersistenceClass
 ): CompanyStatusCard {
   const timestamp = Date.now();
-  const dashboard = loadDashboard(timestamp - StaleDuration);
+  const dashboard = persistence.loadDashboard<CompanyMetadata>(timestamp - StaleDuration);
   const result: Partial<CompanyStatusCard> = {
     renderable: statusElement,
   };
   if (dashboard) {
-    result.allCompanies = dashboard.companies;
-    const foundCompany = dashboard.companies.find(
+    result.allCompanies = dashboard.cards.map(toCompanyMetadataCard);
+    const foundCompany = result.allCompanies.find(
       (company) => company.pageInfo[pageType].href === statusHref,
     );
     if (foundCompany) {
@@ -309,28 +191,3 @@ export function processCompanyStatus(
   return result as CompanyStatusCard;
 }
 
-export function toHealthLevelCountMap(
-  companies: CompanyMetadata[],
-): HealthLevelCountMap {
-  const result = { ...initialHealthLevelCountMap };
-  companies.forEach(({ level }) => {
-    result[level]++;
-  });
-  return result;
-}
-
-export function sortAndFilterCompanies<T extends CompanyMetadata>(
-  companies: T[],
-  sortingFilter: SortingFilter,
-): SortedFilteredCompanies<T> {
-  const sortFunction = toSortFunction<T>(sortingFilter.sorting)
-  const sortedCompanies: T[] = [...companies].sort(sortFunction)
-  const filteredCompanies: T[] = sortedCompanies.filter(
-    ({ level }) => sortingFilter.filter[level],
-  );
-  return {
-    sortingFilter,
-    sortedCompanies,
-    filteredCompanies,
-  };
-}

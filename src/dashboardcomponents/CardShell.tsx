@@ -1,6 +1,6 @@
 import React from "react";
 
-interface CompanyCardShellProps {
+interface CardShellProps {
   id: string
   index: number;
   onFocus: (index: number) => void;
@@ -9,7 +9,7 @@ interface CompanyCardShellProps {
   onMouseOut: (index: number) => void
 }
 
-const CompanyCardShell: React.FC<CompanyCardShellProps> = ({
+const CardShell: React.FC<CardShellProps> = ({
   id,
   index,
   onFocus,
@@ -36,4 +36,4 @@ const CompanyCardShell: React.FC<CompanyCardShellProps> = ({
     </>
   );
 };
-export default CompanyCardShell;
+export default CardShell;

@@ -1,46 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import {
-  CompanyMetadata,
-  loadSelectedElementId,
-  storeSelectedElementId,
-  toHealthLevelColor,
-  CompanyPageType,
-  CompanyPageTypes
-} from './CompanyTypes';
+import { PicklistItem } from './datatypes';
+import { PersistenceClass } from './persistence';
 import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
-import '../../common/ui/styles.css';
-import { toTitleCase } from '../../common/functions';
-import { awaitElementById } from '../../common/await_functions';
+import '../common/ui/styles.css';
+import { toTitleCase } from '../common/functions';
+import { awaitElementById } from '../common/await_functions';
 
-interface CompanyPicklistProps {
-  usingPage: CompanyPageType;
-  companies: CompanyMetadata[];
+interface PicklistProps {
+  persistence: PersistenceClass;
+  pageTypes: string[];
+  usingPage: string;
+  items: PicklistItem[];
   onFocusInDashboard?: (elementId: string) => Promise<void>;
   onMouseOver: (elementId: string) => void
   onMouseOut: (elementId: string) => void
 }
-
-const toCompanyIndex = (elementId: string | null, companies: CompanyMetadata[]): number =>
-  elementId === null ? -1 : companies.findIndex(company => company.pageInfo.dashboard.elementId === elementId)
-
-const toExistingElementId = (elementId: string | null, companies: CompanyMetadata[]): string | null => {
-  if (toCompanyIndex(elementId, companies) < 0) return null
-  return elementId
-}
-
-const CompanyPicklist: React.FC<CompanyPicklistProps> = ({
-  companies,
+const Picklist: React.FC<PicklistProps> = ({
+  persistence,
+  pageTypes,
+  items,
   usingPage,
   onFocusInDashboard,
   onMouseOver,
   onMouseOut
 }) => {
-  const [selectedElementId, setSelectedElementId] = useState(toExistingElementId(loadSelectedElementId(), companies));
+  const toItemIndex = (elementId: string | null, items: PicklistItem[]): number =>
+    elementId === null ? -1 : items.findIndex(item => item.elementId(usingPage) === elementId)
+
+  const toExistingElementId = (elementId: string | null, items: PicklistItem[]): string | null => {
+    if (toItemIndex(elementId, items) < 0) return null
+    return elementId
+  }
+
+  const [selectedElementId, setSelectedElementId] = useState(toExistingElementId(persistence.loadSelectedElementId(), items));
 
   useEffect(() => {
     const init = async () => {
-      const initialElementId = toExistingElementId(loadSelectedElementId(), companies);
+      const initialElementId = toExistingElementId(persistence.loadSelectedElementId(), items);
       if (initialElementId && usingPage === 'dashboard') {
         await onFocusInDashboard(initialElementId);
       }
@@ -50,22 +47,22 @@ const CompanyPicklist: React.FC<CompanyPicklistProps> = ({
   }, []);
   useEffect(() => {
     const applyMouseOverandOutToItemTemplateParent = async () => {
-      for(const company of companies) {
-        const optionElement = await awaitElementById(`${company.pageInfo.dashboard.elementId}-option`)
+      for(const item of items) {
+        const optionElement = await awaitElementById(`${item.elementId(usingPage)}-option`)
         let parentElement = optionElement.parentElement
         while(parentElement && parentElement.tagName !== 'LI') { parentElement = parentElement.parentElement}
         if (parentElement === null) {
           parentElement = optionElement
         }
-        parentElement.addEventListener('mouseover', () => onMouseOver(company.pageInfo.dashboard.elementId))
-        parentElement.addEventListener('mouseout', () => onMouseOut(company.pageInfo.dashboard.elementId))
+        parentElement.addEventListener('mouseover', () => onMouseOver(item.elementId(usingPage)))
+        parentElement.addEventListener('mouseout', () => onMouseOut(item.elementId(usingPage)))
       }
     }
     applyMouseOverandOutToItemTemplateParent()
   })
 
-  const openSelectedInPage = (page: CompanyPageType) => {
-    const index = toCompanyIndex(selectedElementId, companies)
+  const openSelectedInPage = (page: string) => {
+    const index = toItemIndex(selectedElementId, items)
     if (index < 0) return
     switch(page) {
       case 'dashboard':
@@ -75,17 +72,17 @@ const CompanyPicklist: React.FC<CompanyPicklistProps> = ({
         }
       default:
         if (usingPage === page) {
-          window.location.href = companies[index].pageInfo[usingPage].href
+          window.location.href = items[index].href(usingPage)
         } else {
-          window.open(companies[index].pageInfo[page].href)
+          window.open(items[index].href(page))
         }
         break
     }
   }
-  const onCompanySelect = (elementId: string | null) => {
-    const index = toCompanyIndex(elementId, companies)
+  const onItemSelect = (elementId: string | null) => {
+    const index = toItemIndex(elementId, items)
     if (index < 0) return
-    storeSelectedElementId(elementId)
+    persistence.storeSelectedElementId(elementId)
     setSelectedElementId(elementId)
     if (onFocusInDashboard) {
       onFocusInDashboard(elementId)
@@ -96,12 +93,12 @@ const CompanyPicklist: React.FC<CompanyPicklistProps> = ({
       label: string;
       value: string;
       color: string;
-      company: CompanyMetadata
-    }[] = companies.map((company) => ({
-      label: `#${company.rank} ${company.companyName}`,
-      value: company.pageInfo.dashboard.elementId,
-      color: toHealthLevelColor(company.level),
-      company,
+      item: PicklistItem
+    }[] = items.map((item) => ({
+      label: item.label(),
+      value: item.elementId(usingPage),
+      color: item.color(),
+      item,
     }));
     return (
       <table
@@ -122,13 +119,13 @@ const CompanyPicklist: React.FC<CompanyPicklistProps> = ({
                 optionLabel={'label'}
                 optionValue={'value'}
                 value={selectedElementId}
-                onChange={(e) => onCompanySelect(e.value)}
+                onChange={(e) => onItemSelect(e.value)}
                 highlightOnSelect={false}
                 style={{ width: '100%' }}
                 itemTemplate={(option) => (
                   <div
                     id={`${option.value}-option`}
-                    className='company-picklist-option'
+                    className='item-picklist-option'
                     style={
                       {
                         '--border-color-left': `3px solid ${option.color}`,
@@ -138,17 +135,17 @@ const CompanyPicklist: React.FC<CompanyPicklistProps> = ({
                     {option.label}
                   </div>
                 )}
-                placeholder='Pick Company for Dashboard / Status Focus'
+                placeholder='Pick Item for Dashboard / Status Focus'
               />
             </td>
           </tr><tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
             <td style={{display: 'flex'}}>
-            {CompanyPageTypes.filter(page => page !== 'dashboard' || usingPage !== 'dashboard').map((name, index) => 
+            {pageTypes.filter(page => page !== 'dashboard' || usingPage !== 'dashboard').map((name, index) => 
                 <Button 
                   style={{marginLeft: 0 < index ? '3px' : '0px', marginTop: '3px'}}
                   className="app-button"
                   onClick={() => openSelectedInPage(name)}
-                  disabled={toCompanyIndex(selectedElementId, companies) < 0}
+                  disabled={toItemIndex(selectedElementId, items) < 0}
                 >Open for {toTitleCase(name)}</Button>
             )}
             </td>
@@ -159,4 +156,4 @@ const CompanyPicklist: React.FC<CompanyPicklistProps> = ({
   }
   return render();
 };
-export default CompanyPicklist;
+export default Picklist;

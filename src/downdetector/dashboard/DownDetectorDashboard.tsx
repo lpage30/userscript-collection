@@ -6,12 +6,13 @@ import {
   awaitQueryAll,
   awaitElementById,
 } from "../../common/await_functions";
-import { dashboardCardsQueryAllSelector, processCompanyDashboardCards } from "../common/CompanyTypes";
+import { CompanyPageTypes, sortingFields, filterableItems, dashboardCardsQueryAllSelector, processCompanyDashboardCards } from "../common/CompanyTypes";
 import {
   createRenderableContainerAsChild,
   renderInContainer,
 } from "../../common/ui/renderRenderable";
-import CompanyDashboard from "./CompanyDashboard";
+import Dashboard from "../../dashboardcomponents/Dashboard";
+import { Persistence } from "../../dashboardcomponents/persistence";
 
 const renderableId = "downdetector-dashboard-panel";
 export const DownDetectorDashboard: Userscript = {
@@ -21,14 +22,24 @@ export const DownDetectorDashboard: Userscript = {
 
   render: async (href: string): Promise<void> => {
     await awaitPageLoadByMutation();
+    const persistence = Persistence('DownDetector', filterableItems)
     const cards = processCompanyDashboardCards(
       await awaitQueryAll(dashboardCardsQueryAllSelector),
+      persistence
     );
     const container = createRenderableContainerAsChild(
       document.body,
       renderableId,
     );
-    renderInContainer(container, <CompanyDashboard page={'dashboard'} companies={cards} />);
+
+    renderInContainer(container, <Dashboard 
+      title={`DownDetector Dashboard's Top ${cards.length}`}
+      persistence={persistence}
+      pageTypes={[...CompanyPageTypes]}
+      filterableItems={filterableItems}
+      sortingFields={sortingFields}
+      page={'dashboard'}
+      cards={cards} />);
     await awaitElementById(renderableId);
   },
 };

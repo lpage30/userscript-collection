@@ -11,6 +11,10 @@ export const ONE_SECOND = 1000;
 export const ONE_MINUTE = 60 * ONE_SECOND;
 export const ONE_HOUR = 60 * ONE_MINUTE;
 export const ONE_DAY = 24 * ONE_HOUR;
+export const ONE_WEEK = 7 * ONE_DAY;
+export const ONE_MONTH = 2629746000
+export const ONE_YEAR = 31556952000
+
 export const toEpochOffset = (days: number, hours: number) => ((days * ONE_DAY) + (hours * ONE_HOUR))
 
 export const TIME_TYPE = {
@@ -21,6 +25,7 @@ export const TIME_TYPE = {
   MILLISECOND: "MILLISECOND",
 };
 
+export type TIME_UNIT_TYPE = 'years' | 'year' | 'months' | 'month' | 'weeks' | 'week' | 'days' | 'day' | 'hours' | 'hour' | 'minutes' | 'minute' | 'seconds' | 'second'
 const FORMAT_SIZE_TYPE = {
   SHORT: "SHORT",
   LONG: "LONG",
@@ -128,6 +133,33 @@ export function formatDuration(
   }
   return result.trim();
 }
+export function toDuration(timeValue: number, timeUnit: TIME_UNIT_TYPE): number {
+  switch(timeUnit) {
+    case 'years':
+    case 'year':
+      return timeValue * ONE_YEAR
+    case 'months':
+    case 'month':
+      return timeValue * ONE_MONTH
+    case 'weeks':
+    case 'week':
+      return timeValue * ONE_WEEK
+    case 'days':
+    case 'day':
+      return timeValue * ONE_DAY
+    case 'hours':
+    case 'hour':
+      return timeValue * ONE_HOUR
+    case 'minutes':
+    case 'minute':
+      return timeValue * ONE_MINUTE
+    case 'seconds':
+    case 'second':
+      return timeValue * ONE_SECOND
+    default:
+      return timeValue
+  }
+}
 export const toDate = (date: string | Date | number): Date | null => {
   if (isDate(date)) return date;
   if (isString(date)) return parseDate(date);
@@ -186,3 +218,13 @@ export const formatFileDate = (date: string | Date | number): string => {
       })
     : (date as string);
 };
+
+export const parseDateTime = (timeAgoString: string): Date | undefined => {
+  const timeAgoRegex = /[. ]*(\d+) ([^ ]+).*/g
+  const parts = timeAgoRegex.exec(` ${timeAgoString}`)
+  if (null == parts) return undefined
+
+  const timeValue = parseInt(parts[1])
+  const timeUnit = parts[2] as TIME_UNIT_TYPE
+  return new Date(Date.now() - toDuration(timeValue, timeUnit))
+}

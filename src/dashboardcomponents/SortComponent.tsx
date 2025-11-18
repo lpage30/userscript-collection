@@ -1,24 +1,26 @@
 import React, { useState } from "react";
-import { CompanySortTypes, CompanySort } from "./CompanyTypes";
+import { ItemSort } from "./datatypes";
 import { Checkbox } from "primereact/checkbox";
 import { Dropdown } from "primereact/dropdown";
-import { toTitleCase } from "../../common/functions";
-import "../../common/ui/styles.css";
+import { toTitleCase } from "../common/functions";
+import "../common/ui/styles.css";
 
-interface CompanySortComponentProps {
-  initialSorting: CompanySort[];
-  onSortChange: (sorting: CompanySort[]) => void;
+interface SortComponentProps {
+  sortFields: string[]
+  initialSorting: ItemSort[];
+  onSortChange: (sorting: ItemSort[]) => void;
   style?: React.CSSProperties
 }
 
-const CompanySortComponent: React.FC<CompanySortComponentProps> = ({
+const SortComponent: React.FC<SortComponentProps> = ({
+  sortFields,
   initialSorting,
   onSortChange,
   style,
 }) => {
-  const [sorting, setSorting] = useState<CompanySort[]>(initialSorting);
+  const [sorting, setSorting] = useState<ItemSort[]>(initialSorting);
   const [selectedSortField, setSelectedSortField] = useState<string>(null);
-  const sortFieldOptions = CompanySortTypes.map((field) => ({
+  const sortFieldOptions = sortFields.map((field) => ({
     label: toTitleCase(field.split('_').join(' ')),
     value: field,
   }));
@@ -31,11 +33,11 @@ const CompanySortComponent: React.FC<CompanySortComponentProps> = ({
     const newSorting = checked
       ? [
           ...sorting,
-          { sortType: field, ascending: ascendingCheckbox } as CompanySort,
+          { field, ascending: ascendingCheckbox } as ItemSort,
         ]
       : sorting.filter(
           (item) =>
-            !(item.sortType === field && item.ascending === ascendingCheckbox),
+            !(item.field === field && item.ascending === ascendingCheckbox),
         );
     setSorting(newSorting);
     onSortChange(newSorting);
@@ -43,7 +45,7 @@ const CompanySortComponent: React.FC<CompanySortComponentProps> = ({
   const getSorting = (
     fieldName: string,
   ): { ascending: boolean; order: number } | null => {
-    const index = sorting.findIndex(({ sortType }) => sortType === fieldName);
+    const index = sorting.findIndex(({ field }) => field === fieldName);
     return index < 0
       ? null
       : { ascending: sorting[index].ascending, order: index + 1 };
@@ -156,4 +158,4 @@ const CompanySortComponent: React.FC<CompanySortComponentProps> = ({
   return render();
 };
 
-export default CompanySortComponent;
+export default SortComponent;

@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { CSSProperties, useRef } from "react";
 import "./styles.css";
 import { PrimeReactProvider } from "primereact/api";
 import { createRoot } from "react-dom/client";
@@ -19,13 +19,28 @@ export function renderInContainer(
 export function createRenderableContainerAsChild(
   parentElement: HTMLElement,
   containerId: string,
+  options?: {
+    atFront?: boolean,
+    containerStyle?: CSSProperties
+  }
 ): HTMLElement {
-  const containerElement =
-    document.getElementById(containerId) ?? document.createElement("div");
+  const { atFront, containerStyle } = options ?? {}
+  const containerElement = document.getElementById(containerId) ?? document.createElement("div");
   containerElement.id = containerId;
+  if (containerStyle) {
+    for(const key in containerStyle) {
+      if (Object.prototype.hasOwnProperty.call(containerStyle, key)) {
+        containerElement.style[key] = containerStyle[key]
+      }
+    }
+  }
   if (containerElement.parentElement) {
     containerElement.parentElement.removeChild(containerElement);
   }
-  parentElement.appendChild(containerElement);
+  if (atFront === true) {
+    parentElement.insertBefore(containerElement, parentElement.firstChild)
+  } else {
+    parentElement.appendChild(containerElement);
+  }
   return containerElement;
 }

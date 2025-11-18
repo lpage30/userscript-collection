@@ -5,7 +5,8 @@ import {
   awaitPageLoadByMutation,
   awaitElementById,
 } from "../../common/await_functions";
-import { statusElementId, processCompanyStatus } from "../common/CompanyTypes";
+import { statusElementId, processCompanyStatus, sortingFields, filterableItems, CompanyPageTypes } from "../common/CompanyTypes";
+import { Persistence } from "../../dashboardcomponents/persistence";
 import {
   createRenderableContainerAsChild,
   renderInContainer,
@@ -21,15 +22,24 @@ export const DownDetectorCompanyStatus: Userscript = {
 
   render: async (href: string): Promise<void> => {
     await awaitPageLoadByMutation();
+    const persistence = Persistence('DownDetector', filterableItems)    
     const status = processCompanyStatus('status',
       await awaitElementById(statusElementId),
       href,
+      persistence,
     );
     const container = createRenderableContainerAsChild(
       document.body,
       renderableId,
     );
-    renderInContainer(container, <CompanyStatus page={'status'} company={status} />);
+    renderInContainer(container, <CompanyStatus 
+      persistence={persistence}
+      pageTypes={[...CompanyPageTypes]}
+      filterableItems={filterableItems}
+      sortingFields={sortingFields}
+      company={status} 
+      page={'status'} 
+    />);
     await awaitElementById(renderableId);
   },
 };

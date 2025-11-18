@@ -4,39 +4,43 @@ import { Dialog } from "primereact/dialog";
 import {
   CompanyStatusCard,
   CompanyMetadata,
-  HealthLevelFilter,
-  loadFilter,
-  toHealthLevelCountMap,
-  CompanySort,
-  loadSorting,
-  SortedFilteredCompanies,
-  sortAndFilterCompanies,
   CompanyPageType,
   toCard
-  
 } from "../common/CompanyTypes";
 import { awaitDelay } from "../../common/await_functions";
-import CompanyPicklist from "../common/CompanyPickList";
-import CompanyFilterSort from "../common/CompanyFilterSort";
-import CompanyInfoDisplay from "../common/CompanyInfoDisplay";
+import { SortedFilteredItems, sortAndFilterItems, ItemFilter, ItemSort, FilterableItems } from "../../dashboardcomponents/datatypes";
+import { PersistenceClass } from "../../dashboardcomponents/persistence";
+import Picklist from "../../dashboardcomponents/PickList";
+import FilterSort from "../../dashboardcomponents/FilterSort";
+import InfoDisplay from "../../dashboardcomponents/InfoDisplay";
 
 interface CompanyStatusProps {
+  persistence: PersistenceClass
+  pageTypes: string[]
+  filterableItems: FilterableItems
+  sortingFields: string[]
   company: CompanyStatusCard;
   page: CompanyPageType
 }
-const CompanyStatus: React.FC<CompanyStatusProps> = ({ company, page }) => {
-  const triggerInfoDisplayRef = useRef<(company: CompanyMetadata | null ) => void>(null)
+const CompanyStatus: React.FC<CompanyStatusProps> = ({
+  persistence, 
+  pageTypes,
+  filterableItems,
+  sortingFields,
+  company,
+  page
+}) => {
+  const triggerInfoDisplayRef = useRef<(data: CompanyMetadata | null ) => void>(null)
   const containerRef = useRef(null);
   const containerupdatedRef = useRef(false);
-  const [sortedFilteredCompanies, setSortedFilteredCompanies] = useState<
-    SortedFilteredCompanies<CompanyMetadata>
+  const [sortedFilteredItems, setSortedFilteredItems] = useState<
+    SortedFilteredItems<CompanyMetadata>
   >(
-    sortAndFilterCompanies(company.allCompanies ?? [], {
-      filter: loadFilter(),
-      sorting: loadSorting(),
+    sortAndFilterItems(company.allCompanies ?? [], {
+      filter: persistence.loadFilter(),
+      sorting: persistence.loadSorting(),
     }),
   );
-
   const [visible, setVisible] = useState(true);
   useEffect(() => {
     awaitDelay(500).then(() => {
@@ -53,15 +57,16 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({ company, page }) => {
     });
   });
   const handlFilterSorting = (
-    filter: HealthLevelFilter,
-    sorting: CompanySort[],
+    filter: ItemFilter[],
+    sorting: ItemSort[],
   ) => {
-    setSortedFilteredCompanies(
-      sortAndFilterCompanies(company.allCompanies ?? [], {filter, sorting}),
+    setSortedFilteredItems(
+      sortAndFilterItems(company.allCompanies ?? [], { filter, sorting }),
     );
   };
+
   const onMouseOverElement = (elementId: string) => {
-    const company = toCard(elementId, sortedFilteredCompanies.filteredCompanies)
+    const company = toCard(elementId, page, sortedFilteredItems.filteredItems)
     if (company && triggerInfoDisplayRef.current) {
       triggerInfoDisplayRef.current(company)
     }    
@@ -73,8 +78,8 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({ company, page }) => {
 
   }
   const render = () => {
-    const { sortedCompanies, filteredCompanies, sortingFilter } =
-      sortedFilteredCompanies;
+    const { sortedItems, filteredItems, sortingFilter } =
+      sortedFilteredItems;
     return (
       <Dialog
         showHeader={true}
@@ -101,18 +106,22 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({ company, page }) => {
             </tr>
             <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
               <td>
-                <CompanyPicklist
+                <Picklist
+                  persistence={persistence}
+                  pageTypes={pageTypes}
                   usingPage={page}
-                  companies={filteredCompanies}
+                  items={filteredItems}
                   onMouseOver={onMouseOverElement}
                   onMouseOut={onMouseOutElement}
                 />
               </td><td style={{width: '200px'}}>
-                <CompanyInfoDisplay registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay}}/>
+                <InfoDisplay registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay}}/>
               </td><td>
-                <CompanyFilterSort
-                  initialFilterSort={sortingFilter}
-                  healthLevelCountMap={toHealthLevelCountMap(sortedCompanies)}
+                <FilterSort
+                  persistence={persistence}
+                  filterableItems={filterableItems}
+                  sortingFields={sortingFields}
+                  initialFilterSort={sortedFilteredItems.sortingFilter}
                   onChange={handlFilterSorting}
                 />
               </td>

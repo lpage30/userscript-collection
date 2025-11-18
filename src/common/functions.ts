@@ -181,3 +181,19 @@ export function getLargestOverlappingPrefix(s1: string, s2: string): string {
   }
   return shortestString;
 }
+export function getAllDisplayedElements(): { e: HTMLElement, style: CSSStyleDeclaration}[] {
+  return Array.from(document.querySelectorAll('*'))
+    .map(e => ({
+      e: e as HTMLElement,
+      style: window.getComputedStyle(e, null)
+    }))
+    .filter(({style}) => style.display !== 'none')
+}
+export function getLargestZIndex(): number {
+  return getAllDisplayedElements().reduce((result, {style}) => {
+    const z = style.getPropertyValue('z-index')
+    if ([undefined, 'auto'].includes(z)) return result
+    const newZ = parseInt(z)
+    return newZ > result ? newZ : result
+  }, 0)
+}
