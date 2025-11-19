@@ -76,6 +76,7 @@ export const TheLayoffDashboard: Userscript = {
       sortingFields={sortingFields}
       page={pagetype}
       cards={cards}
+      layout={'vertical'}
     />);
     await awaitElementById(renderableId);
 

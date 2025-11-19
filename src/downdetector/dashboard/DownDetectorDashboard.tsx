@@ -39,7 +39,9 @@ export const DownDetectorDashboard: Userscript = {
       filterableItems={filterableItems}
       sortingFields={sortingFields}
       page={'dashboard'}
-      cards={cards} />);
+      cards={cards}
+      layout={'grid'}
+    />);
     await awaitElementById(renderableId);
   },
 };

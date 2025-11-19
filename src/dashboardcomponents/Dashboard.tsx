@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, CSSProperties } from 'react';
+import React, { useState, useEffect, useRef, CSSProperties, JSX } from 'react';
 import '../common/ui/styles.css';
 import { Dialog } from 'primereact/dialog';
 import { awaitElementById } from '../common/await_functions';
@@ -16,7 +16,7 @@ import InfoDisplay from './InfoDisplay';
 import FilterSort from './FilterSort';
 import CardShell from './CardShell';
 
-
+export type DashboardLayout = 'vertical' | 'horizontal' | 'grid'
 interface DashboardProps {
   title: string
   persistence: PersistenceClass
@@ -26,6 +26,7 @@ interface DashboardProps {
   page: string
   cards: Card[];
   style?: CSSProperties
+  layout?: DashboardLayout
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -36,7 +37,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   sortingFields,
   page, 
   cards,
-  style
+  style,
+  layout = 'grid'
 }) => {
   const triggerInfoDisplayRef = useRef<(displayItem: InfoDisplayItem | null) => void>(null)
   const [visible, setVisible] = useState(true);
@@ -138,7 +140,26 @@ const Dashboard: React.FC<DashboardProps> = ({
         };
     return result;
   };
-
+  const layoutItems = (layout: DashboardLayout, itemIndices: number[]): JSX.Element => {
+    return (
+      <div
+        id='card-container'
+        className={`${layout}-scroll-container`}
+      >
+        {itemIndices.map(index => (
+          <CardShell
+            id={toCardElementId(index)}
+            index={index}
+            onFocus={onFocus}
+            getStyle={getDivStyle}
+            onMouseOver={onMouseOver}
+            onMouseOut={onMouseOut}
+            className={`${layout}-scroll-content`}
+          />
+        ))}
+      </div>
+    )
+  }
 
   const render = () => {
     return (
@@ -193,26 +214,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
         className='p-dialog-maximized'
       >
-        <div
-          id='card-container'
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '1rem',
-            padding: '1rem',
-          }}
-        >
-          {sortedFilteredItems.sortedItems.map((_item, index) => (
-            <CardShell
-              id={toCardElementId(index)}
-              index={index}
-              onFocus={onFocus}
-              getStyle={getDivStyle}
-              onMouseOver={onMouseOver}
-              onMouseOut={onMouseOut}
-            />
-          ))}
-        </div>
+      { layoutItems(layout, sortedFilteredItems.sortedItems.map((_item, index) => index)) }
       </Dialog>
     );
   };

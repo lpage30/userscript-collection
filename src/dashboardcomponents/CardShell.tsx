@@ -7,6 +7,7 @@ interface CardShellProps {
   getStyle: (index: number) => React.CSSProperties;
   onMouseOver: (index: number) => void
   onMouseOut: (index: number) => void
+  className?: string
 }
 
 const CardShell: React.FC<CardShellProps> = ({
@@ -16,24 +17,24 @@ const CardShell: React.FC<CardShellProps> = ({
   getStyle,
   onMouseOver,
   onMouseOut,
+  className
 }) => {
   return (
-    <>
-      <div
-        id={id}
-        tabIndex={index}
-        onFocus={() => onFocus(index)}
-        style={getStyle(index)}
-        onClick={(e) => { 
-          if (e.currentTarget.firstElementChild) {
-            const link = e.currentTarget.firstElementChild.querySelector('a')
-            link.click()
-          }
-        }}
-        onMouseOver={() => onMouseOver(index)}
-        onMouseOut={() => onMouseOut(index)}
-      ></div>
-    </>
+    <div
+      id={id}
+      tabIndex={index}
+      onFocus={() => onFocus(index)}
+      className={className}
+      style={getStyle(index)}
+      onClick={(e) => { 
+        if (e.currentTarget.firstElementChild) {
+          const link = e.currentTarget.firstElementChild.querySelector('a')
+          link.click()
+        }
+      }}
+      onMouseOver={() => onMouseOver(index)}
+      onMouseOut={() => onMouseOut(index)}
+    ></div>
   );
 };
 export default CardShell;
