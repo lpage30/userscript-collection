@@ -32,6 +32,20 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     setFilter(newFilter);
     onFilterChange(Object.values(newFilter));
   };
+  const handleFilterChanges = (field: string, checkedValues: string[]) => {
+    const newItemFilter: ItemFilter = {
+      field,
+      filter: Object.entries(filterableItems[field].filter).reduce((newFilter, [value]) => ({
+        ...newFilter,
+        [value]: checkedValues.includes(value)
+      }), {})
+    }
+    const newFilter = {...filter}
+    newFilter[field] = newItemFilter
+    setFilter(newFilter);
+    onFilterChange(Object.values(newFilter));
+
+  }
 
   const render = () => {
     return (
@@ -48,7 +62,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
       >
         <tbody>
           <tr style={{ alignItems: "center", verticalAlign: "center" }}>
-            {Object.values(filterableItems).map(
+            {Object.values(filter).map(
               (itemFilter, index) => {
                 const valueCheckedArray = Object.entries(itemFilter.filter)
                 if (valueCheckedArray.length <= 5) {
@@ -78,11 +92,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
                       value={valueCheckedArray.filter(([value, checked]) => checked).map(([value]) => value)}
                       options={valueCheckedArray.map(([value]) => value)}
                       placeholder={`FilterBy Selected ${itemFilter.field}`}
-                      onChange={(e) => {
-                        valueCheckedArray.map(([value]) => value).forEach(value => {
-                          handleFilterChange(itemFilter.field, value, e.value.includes(value))
-                        })
-                      }}
+                      onChange={(e) => handleFilterChanges(itemFilter.field, e.value)}
                       style={{ width: `${maxValueLen * 10}px`}}
                     />
                 </td>)

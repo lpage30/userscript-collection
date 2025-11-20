@@ -40,16 +40,17 @@ const Dashboard: React.FC<DashboardProps> = ({
   style,
   layout = 'grid'
 }) => {
+
+  const loadedFilter = persistence.loadFilter()
+  const loadedSorting= persistence.loadSorting()
   const triggerInfoDisplayRef = useRef<(displayItem: InfoDisplayItem | null) => void>(null)
   const [visible, setVisible] = useState(true);
   const [sortedFilteredItems, setSortedFilteredItems] = useState<
     SortedFilteredItems<Card>
   >(
     sortAndFilterItems(cards, {
-      filter: persistence.loadFilter()
-        .filter(itemFilter => undefined !== filterableItems[itemFilter.field]),
-      sorting: persistence.loadSorting()
-        .filter(itemSort => sortingFields.includes(itemSort.field)),
+      filter: Object.entries(filterableItems).map(([field, itemFilter]) => loadedFilter.find(loaded => loaded.field === field) ?? itemFilter),
+      sorting: loadedSorting
     }),
   );
   const focusedElementIdRef = useRef<string>(null)

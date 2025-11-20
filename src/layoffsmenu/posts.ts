@@ -71,7 +71,7 @@ function scrapePost(postElement: HTMLElement, pageType: string): Post {
         : window.location.href
     const company = toTitleCase((new URL(companyHref)).pathname.replace(/\//g, '').replace(/-/g, ' ')) 
 
-    const date = parseDateTime(footerParts[0])
+    const date = parseDateTime(footerParts[0]) ?? new Date()
     const {replyCount, lastReply } = parseRepliesText(footerParts[3]) ?? {}
     const replyAnchor = Array.from(footer.querySelectorAll('a')).slice(onLast25Page ? -3 : -2).filter(a => !a.innerText.startsWith('@OP'))[0]
     const title = header.innerText
