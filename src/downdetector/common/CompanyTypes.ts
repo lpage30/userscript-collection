@@ -1,6 +1,8 @@
 import { Card, FilterableItems, ItemFilter, toCardIndex } from '../../dashboardcomponents/datatypes';
 import { PersistenceClass, StaleDuration } from '../../dashboardcomponents/persistence';
 import { toTitleCase } from '../../common/functions';
+import { toMonthDayYearDateTime } from '../../common/datetime';
+import { Status } from "../../statusAPIs/statustypes";
 
 export const HealthLevelTypes = ['danger', 'warning', 'success'] as const;
 export type HealthLevelType = (typeof HealthLevelTypes)[number];
@@ -47,6 +49,16 @@ export interface CompanyStatusCard {
   company?: CompanyMetadata;
   allCompanies?: CompanyMetadata[];
 }
+let ServiceStatusMap: { [service: string]: Status } = {}
+export function setServiceStatusMap(serviceStatus: { [service: string]: Status }) {
+  ServiceStatusMap = {...serviceStatus}
+}
+function getCompanyServiceStatus(companyName: string): Status | null {
+  const serviceNames = Object.keys(ServiceStatusMap)
+  const foundServiceName = serviceNames.find(name => companyName.includes(name))
+  return foundServiceName ? ServiceStatusMap[foundServiceName] : null
+
+}
 function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata {
   const metadata: Partial<CompanyMetadata> = {}
   metadata.timestamp = data.timestamp ?? Date.now()
@@ -71,12 +83,21 @@ function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata 
   metadata.incidentRisk = data.incidentRisk ?? 0
   metadata.renderable = data.renderable ?? null
   metadata.displayLines = () => {
-    if (nullIncidentReports) {
+    const foundStatus = getCompanyServiceStatus(metadata.companyName)
+    if (nullIncidentReports && foundStatus === null) {
       console.log(`Warning: ${metadata.companyName} - has null IncidentReports`)
       return [
         `${metadata.companyName}`,
         'missing incident data'
       ]
+    }
+    if (foundStatus) {
+        return [
+        `${metadata.companyName}`,
+        `Service Status: ${toMonthDayYearDateTime(foundStatus.timestamp)}`,
+        `Status Indicator: ${foundStatus.indicator}`,
+        `Activity: ${foundStatus.description}`,
+      ];
     }
     return [
       `${metadata.companyName}`,

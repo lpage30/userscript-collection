@@ -27,6 +27,7 @@ interface DashboardProps {
   cards: Card[];
   style?: CSSProperties
   layout?: DashboardLayout
+  addedHeaderComponent?: JSX.Element
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -38,7 +39,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   page, 
   cards,
   style,
-  layout = 'grid'
+  layout = 'grid',
+  addedHeaderComponent
 }) => {
 
   const loadedFilter = persistence.loadFilter()
@@ -168,7 +170,6 @@ const Dashboard: React.FC<DashboardProps> = ({
         showHeader={true}
         closable={false}
         position={'center'}
-        modal
         visible={visible}
         onHide={() => setVisible(false)}
         style={{ width: '90vw', height: '90vh', ...(style ?? {}) }}
@@ -211,6 +212,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                   />
                 </td>
               </tr>
+              {addedHeaderComponent && 
+                <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+                  <td colSpan={3}>
+                    {addedHeaderComponent}
+                  </td>
+                </tr>
+              }
             </tbody></table>
         }
         className='p-dialog-maximized'

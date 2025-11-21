@@ -6,13 +6,23 @@ import {
   awaitQueryAll,
   awaitElementById,
 } from "../../common/await_functions";
-import { CompanyPageTypes, sortingFields, filterableItems, dashboardCardsQueryAllSelector, processCompanyDashboardCards } from "../common/CompanyTypes";
+import { toMonthDayYearDateTime } from "../../common/datetime";
+import {
+  CompanyPageTypes,
+  sortingFields,
+  filterableItems,
+  dashboardCardsQueryAllSelector,
+  processCompanyDashboardCards,
+  setServiceStatusMap
+} from "../common/CompanyTypes";
 import {
   createRenderableContainerAsChild,
   renderInContainer,
 } from "../../common/ui/renderRenderable";
 import Dashboard from "../../dashboardcomponents/Dashboard";
 import { Persistence } from "../../dashboardcomponents/persistence";
+import { ServiceDashboardPopup } from "../../statusAPIs/ui/ServiceDashboard";
+import { Status } from "../../statusAPIs/statustypes";
 
 const renderableId = "downdetector-dashboard-panel";
 export const DownDetectorDashboard: Userscript = {
@@ -41,6 +51,7 @@ export const DownDetectorDashboard: Userscript = {
       page={'dashboard'}
       cards={cards}
       layout={'grid'}
+      addedHeaderComponent={<ServiceDashboardPopup onServiceStatus={setServiceStatusMap}/>}
     />);
     await awaitElementById(renderableId);
   },

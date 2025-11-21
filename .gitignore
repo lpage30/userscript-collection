@@ -12,3 +12,4 @@ package-lock.json
 /**/.vscode
 *.js
 /**/*.js
+/src/statusAPIs/*.js
