@@ -32,12 +32,21 @@ export const InfoDisplay: React.FC<InfoDisplayProps> = ({ registerDisplayTrigger
     }}
     ><tbody>
     {
-      displayLines.map(line =>(
-          <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-            <td className="text-sm text-center">{line}</td>
+      displayLines.map((line, index) => {
+        const centerTRStyle = { alignItems: 'center', verticalAlign: 'center' }
+        const centerTDClassname = "text-sm text-center"
+        let TRStyle = undefined
+        let TDClassname = 'text-sm'
+        if (index === 0 || !line.includes(': ')) {
+          TRStyle = centerTRStyle
+          TDClassname = centerTDClassname
+        }
+        return (
+          <tr style={TRStyle}>
+            <td className={TDClassname}>{line}</td>
           </tr>
         )
-      )
+      })
         
     }
   </tbody></table>

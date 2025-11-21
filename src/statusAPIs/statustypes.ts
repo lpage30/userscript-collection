@@ -21,6 +21,7 @@ export interface Incident {
 }
 
 export interface ServiceStatus {
+    statusPage: string
     serviceName: string
     status: Status | null
     incidents: Incident[] | null

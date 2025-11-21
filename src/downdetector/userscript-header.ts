@@ -15,4 +15,6 @@
 // @grant       GM_deleteValue
 // @grant       GM_xmlhttpRequest
 // @grant       window.onurlchange
+
+// @connect     cloudflarestatus.com
 // ==/UserScript==

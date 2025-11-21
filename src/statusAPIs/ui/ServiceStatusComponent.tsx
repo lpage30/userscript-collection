@@ -28,7 +28,7 @@ const ServiceStatusComponent: React.FC<ServiceStatusComponentComponentProps> = (
         >
             <thead>
                 <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                    <th className="text-center">{serviceStatus.serviceName}</th>
+                    <th className="text-center"><a href={serviceStatus.statusPage}>{serviceStatus.serviceName}</a></th>
                 </tr>
             </thead>
             <tbody>

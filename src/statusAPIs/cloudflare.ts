@@ -1,11 +1,14 @@
 // @grant       GM_xmlhttpRequest
+// @connect     *.cloudflarestatus.com
 import { Status, Incident, ServiceStatus, ServiceAPI } from "./statustypes"
 import { parseDate } from "../common/datetime"
 class CloudflareClass implements ServiceAPI{
+  statusPage: 'https://www.cloudflarestatus.com/'
   private summaryURL = 'https://www.cloudflarestatus.com/api/v2/summary.json'
   private data: ServiceStatus
   constructor() {
     this.data = {
+      statusPage: this.statusPage,
       serviceName: 'Cloudflare',
       status: null,
       incidents: null
@@ -49,7 +52,7 @@ class CloudflareClass implements ServiceAPI{
           resolve(this.data)
         },
         onerror: (response) => {
-          reject(new Error(response.statusText));
+          reject(new Error(response['error'] ?? response.statusText));
         }
       })
     })
