@@ -9,12 +9,16 @@
 
 // @include     https://downdetector.com/
 // @include     https://downdetector.com/status/*
+// @include     https://health.aws.com/health/status
 
 // @grant       GM_setValue
 // @grant       GM_getValue
 // @grant       GM_deleteValue
 // @grant       GM_xmlhttpRequest
 // @grant       window.onurlchange
+// @grant       GM_addValueChangeListener
+// @grant       GM_removeValueChangeListener
+// @grant       GM_openInTab
 
 // @connect     cloudflarestatus.com
 // ==/UserScript==

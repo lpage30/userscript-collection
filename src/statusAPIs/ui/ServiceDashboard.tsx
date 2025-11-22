@@ -7,6 +7,7 @@ import ServiceStatusComponent from './ServiceStatusComponent'
 
 interface ServiceDashboardProps {
   title: string
+  initialStatuses: ServiceStatus[]
   onServiceStatus?: (serviceStatus: { [service: string]: Status }) => void
   registerRefreshFunction?: (refreshFunction: (showDialog: boolean) => Promise<void>) => void
   onVisibleChange?: (visible: boolean) => void
@@ -21,16 +22,14 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
   title,
   onServiceStatus,
   registerRefreshFunction,
-  onVisibleChange
+  onVisibleChange,
+  initialStatuses
 }) => {
   const [state, setState] = useState<ServiceDashboardState>({
     visible: true,
-    statuses: [], 
+    statuses: initialStatuses, 
     status: {}
   })
-  useEffect(() => {
-    refresh(true)
-  }, [])
 
   const refresh = async (showDialog: boolean): Promise<void> => {
     const statuses = await StatusAPIs.load()
@@ -117,17 +116,19 @@ interface ServiceDashboardPopupProps {
 export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
   onServiceStatus,
 }) => {
+  const [initialStatuses, setInitialStatuses] = useState<ServiceStatus[]>([])
   const [visible, setVisible] = useState<boolean>(false)
   const refreshFunctionRef = useRef<(showDialog: boolean) => Promise<void>>(null)
   useEffect(() => {
-    if (onServiceStatus) {
-      StatusAPIs.load().then(statuses => 
+    StatusAPIs.load().then(statuses => {
+        setInitialStatuses(statuses)
+        if(onServiceStatus) {
           onServiceStatus(statuses.reduce((result, data) => ({
-          ...result,
-          [data.serviceName]: data.status
-        }), {} as { [service: string]: Status }))
-      )
-    }
+            ...result,
+            [data.serviceName]: data.status
+          }), {} as { [service: string]: Status }))
+        }
+    })
   },[])
   const onViewDashboard = () => {
     if(refreshFunctionRef.current) {
@@ -141,6 +142,7 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
       <Button className="app-button" onClick={() => onViewDashboard()}>View Service Dashboard</Button>
       {visible && <ServiceDashboard 
         title={'Service Status Dashboard'}
+        initialStatuses={initialStatuses}
         onServiceStatus={onServiceStatus}
         registerRefreshFunction={(refreshFunction: (showDialog: boolean) => Promise<void>) => refreshFunctionRef.current = refreshFunction}
         onVisibleChange={(showDashboard: boolean) => setVisible(showDashboard)}

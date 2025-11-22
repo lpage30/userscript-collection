@@ -28,10 +28,6 @@ export interface ServiceStatus {
 }
 
 export interface ServiceAPI {
-    serviceStatus: ServiceStatus
-    load(): Promise<ServiceStatus>
-}
-export interface ServiceAPIs {
-    serviceStatuses: ServiceStatus[]
+    serviceStatus: ServiceStatus[]
     load(): Promise<ServiceStatus[]>
 }

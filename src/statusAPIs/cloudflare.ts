@@ -2,8 +2,9 @@
 // @connect     *.cloudflarestatus.com
 import { Status, Incident, ServiceStatus, ServiceAPI } from "./statustypes"
 import { parseDate } from "../common/datetime"
-class CloudflareClass implements ServiceAPI{
-  statusPage: 'https://www.cloudflarestatus.com/'
+
+class CloudflareClass implements ServiceAPI {
+  statusPage = 'https://www.cloudflarestatus.com/'
   private summaryURL = 'https://www.cloudflarestatus.com/api/v2/summary.json'
   private data: ServiceStatus
   constructor() {
@@ -14,11 +15,11 @@ class CloudflareClass implements ServiceAPI{
       incidents: null
     }
   }
-  get serviceStatus(): ServiceStatus {
-    return this.data
+  get serviceStatus(): ServiceStatus[] {
+    return [this.data]
   }
-  load(): Promise<ServiceStatus> {
-    return new Promise<ServiceStatus>((resolve, reject) => {
+  load(): Promise<ServiceStatus[]> {
+    return new Promise<ServiceStatus[]>((resolve, reject) => {
       GM_xmlhttpRequest({
         method: 'GET',
         url: this.summaryURL,
@@ -49,7 +50,7 @@ class CloudflareClass implements ServiceAPI{
           }))
           this.data.status = status
           this.data.incidents = incidents
-          resolve(this.data)
+          resolve([this.data])
         },
         onerror: (response) => {
           reject(new Error(response['error'] ?? response.statusText));

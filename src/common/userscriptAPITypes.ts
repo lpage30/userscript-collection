@@ -55,6 +55,10 @@ declare global {
   function GM_getValue(name: string, defaultValue?: any): any;
   function GM_deleteValue(name: string): void;
   function GM_xmlhttpRequest(details: GM_xmlhttpRequestDetails): void;
+  function GM_openInTab(url: string, options?: { active?: boolean, insert?: number, setParent?: boolean, incognito?: boolean, pinned?: boolean, container?: number}): {
+    closed: boolean
+    close: () => void
+  } | null
   const unsafeWindow: Window;
 }
 export {};
