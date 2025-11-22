@@ -3,46 +3,61 @@
 // @grant       GM_removeValueChangeListener
 // @grant       GM_openInTab
 import { ServiceStatus, Status, Incident, ServiceAPI } from "./statustypes"
+import { Persistence, PersistenceClass, PersistableStatus } from "./persistence"
 
-const AWSStatusVariableName = 'aws_statuses'
-export const storeAWSStatus = (status: { status: Status, incidents: Incident[] }) => {
-    GM_setValue(AWSStatusVariableName, JSON.stringify(status))
+const awsPersistence = Persistence('AWS')
+export const storeAWSStatus = (status: PersistableStatus) => {
+    awsPersistence.storeStatus(status)
 }
-
-const loadAWSStatus = (): Promise<{ status: Status, incidents: Incident[] }> => new Promise<{ status: Status, incidents: Incident[] }>((resolve) => {
-    const listenerId = GM_addValueChangeListener(
-        AWSStatusVariableName,
-        (name: string, oldValue: any, newValue: any, remote: boolean) => {
-            GM_removeValueChangeListener(listenerId ?? "");
-            resolve(JSON.parse(newValue))
-        }
-    )
-})
-
 class AWSClass implements ServiceAPI {
+    isLoading: boolean
     statusPage = 'https://health.aws.com/health/status'
     private data: ServiceStatus
-
+    private persistence: PersistenceClass
+    private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
-            serviceName: 'AWS',
+            serviceName: 'Amazon Web Services',
             status: null,
             incidents: null
         }
+        this.persistence = awsPersistence
+        this.isLoading = false
+        this.onIsLoadingChangeCallbacks = []
     }
     get serviceStatus(): ServiceStatus[] {
         return [this.data]
     }
-    async load(): Promise<ServiceStatus[]> {
-        const loadStatusPromise = loadAWSStatus()
+    registerOnIsLoadingChange(onChange: (isLoading: boolean) => void) {
+        this.onIsLoadingChangeCallbacks.push(onChange)
+    }
+    private onIsLoadingChange(isLoading: boolean) {
+        this.onIsLoadingChangeCallbacks.forEach(onChange => onChange(isLoading))
+    }
+    async load(force: boolean): Promise<ServiceStatus[]> {
+        this.isLoading = true
+        this.onIsLoadingChange(this.isLoading)
+        if (!force) {
+            const existingStatus = this.persistence.getStatus()
+            if (existingStatus) {
+                this.data.status = existingStatus.status
+                this.data.incidents = existingStatus.incidents
+                this.isLoading = false
+                this.onIsLoadingChange(this.isLoading)
+                return [this.data]
+            }
+        }
+        const pendingStatus = this.persistence.awaitStatus()        
         const tab = GM_openInTab(this.statusPage, { active: false})
-        const { status, incidents } = await loadStatusPromise
+        const scrapedStatus = await pendingStatus
         if (tab && !tab.closed) {
             tab.close()
         }
-        this.data.status = status
-        this.data.incidents = incidents
+        this.data.status = scrapedStatus.status
+        this.data.incidents = scrapedStatus.incidents
+        this.isLoading = false
+        this.onIsLoadingChange(this.isLoading)
         return [this.data]
     }
 }

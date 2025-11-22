@@ -9,14 +9,15 @@ interface ServiceDashboardProps {
   title: string
   initialStatuses: ServiceStatus[]
   onServiceStatus?: (serviceStatus: { [service: string]: Status }) => void
-  registerRefreshFunction?: (refreshFunction: (showDialog: boolean) => Promise<void>) => void
+  registerRefreshFunction?: (refreshFunction: (showDialog: boolean, force: boolean) => Promise<void>) => void
   onVisibleChange?: (visible: boolean) => void
   initiallyVisible?: boolean
+
 }
 interface ServiceDashboardState {
   visible: boolean
+  isLoading: boolean
   statuses: ServiceStatus[]
-  status: { [service: string]: Status }
 }
 const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
   title,
@@ -27,24 +28,31 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
 }) => {
   const [state, setState] = useState<ServiceDashboardState>({
     visible: true,
-    statuses: initialStatuses, 
-    status: {}
+    isLoading: StatusAPIs.isLoading,
+    statuses: initialStatuses
   })
-
-  const refresh = async (showDialog: boolean): Promise<void> => {
-    const statuses = await StatusAPIs.load()
-    const status = statuses.reduce((result, data) => ({
-      ...result,
-      [data.serviceName]: data.status
-    }), {} as { [service: string]: Status })
+  StatusAPIs.registerOnIsLoadingChange((isLoading: boolean) => {
     setState({
-      visible: showDialog,
-      statuses,
-      status
+      ...state,
+      isLoading
     })
-    if (onServiceStatus) onServiceStatus(status)
+  })
+  const refresh = async (showDialog: boolean, force: boolean): Promise<void> => {
+    const statuses = await StatusAPIs.load(force)
+    if (onServiceStatus) {
+      onServiceStatus(statuses.reduce((result, data) => ({
+          ...result,
+          [data.serviceName]: data.status
+        }), {} as { [service: string]: Status })
+      )
+    }
     if (registerRefreshFunction) registerRefreshFunction(refresh)
     if (onVisibleChange) onVisibleChange(showDialog)
+    setState({
+      ...state,
+      visible: showDialog,
+      statuses
+    })
   }
 
   const hideDialog = () => {
@@ -80,32 +88,19 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
             </tr>
             <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
               <td>
-                  <Button onClick={() => refresh(true)}>Refresh Service Statuses</Button>
+                  <Button
+                    onClick={() => refresh(true, true)}
+                    disabled={state.isLoading}>{state.isLoading ? 'Loading' : 'Refresh'} Service Statuses</Button>
               </td>
             </tr>
           </tbody></table>
       }
       className='p-dialog-maximized'
     >
-      <table
-        style={{
-          tableLayout: 'auto',
-          marginLeft: 'auto',
-          marginRight: 'auto',
-          marginTop: '0',
-          marginBottom: 'auto',
-          width: '100%',
-        }}
-      ><tbody>
-      {state.statuses.map(serviceStatus => (
-        <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-          <td>
-            <ServiceStatusComponent serviceStatus={serviceStatus}/>
-          </td>
-        </tr>
-      ))}
-      </tbody>
-      </table>
+      {state.statuses.map((serviceStatus, index) => (<>
+        {0 < index && <hr/>}
+        <ServiceStatusComponent serviceStatus={serviceStatus}/>
+      </>))}
     </Dialog>
   )
 }
@@ -113,15 +108,31 @@ interface ServiceDashboardPopupProps {
   onServiceStatus?: (serviceStatus: { [service: string]: Status }) => void
 }
 
+interface ServiceDashboardPopupState {
+  visible: boolean
+  initialStatuses: ServiceStatus[]
+  isLoading: boolean
+}
 export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
   onServiceStatus,
 }) => {
-  const [initialStatuses, setInitialStatuses] = useState<ServiceStatus[]>([])
-  const [visible, setVisible] = useState<boolean>(false)
-  const refreshFunctionRef = useRef<(showDialog: boolean) => Promise<void>>(null)
+  const [state, setState] = useState<ServiceDashboardPopupState>({
+    visible: false,
+    initialStatuses: [],
+    isLoading: StatusAPIs.isLoading
+  })
+  StatusAPIs.registerOnIsLoadingChange((isLoading: boolean) => {
+    setState({
+      ...state,
+      isLoading
+    })
+  })
   useEffect(() => {
-    StatusAPIs.load().then(statuses => {
-        setInitialStatuses(statuses)
+    StatusAPIs.load(false).then(statuses => {
+        setState({
+          ...state,
+          initialStatuses: statuses
+        })
         if(onServiceStatus) {
           onServiceStatus(statuses.reduce((result, data) => ({
             ...result,
@@ -131,21 +142,21 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
     })
   },[])
   const onViewDashboard = () => {
-    if(refreshFunctionRef.current) {
-      refreshFunctionRef.current(true)
-    } else {
-      setVisible(true)
-    }
+    setState({
+      ...state,
+      visible: true
+    })
   }
   return (
     <div>
-      <Button className="app-button" onClick={() => onViewDashboard()}>View Service Dashboard</Button>
-      {visible && <ServiceDashboard 
+      <Button className="app-button"
+        onClick={() => onViewDashboard()}
+        disabled={state.isLoading}
+      >{state.isLoading ? 'Loading' : 'View'} Service Dashboard</Button>
+      {state.visible && <ServiceDashboard 
         title={'Service Status Dashboard'}
-        initialStatuses={initialStatuses}
+        initialStatuses={state.initialStatuses}
         onServiceStatus={onServiceStatus}
-        registerRefreshFunction={(refreshFunction: (showDialog: boolean) => Promise<void>) => refreshFunctionRef.current = refreshFunction}
-        onVisibleChange={(showDashboard: boolean) => setVisible(showDashboard)}
       />}
     </div>
   )

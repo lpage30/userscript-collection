@@ -16,60 +16,26 @@ const ServiceStatusComponent: React.FC<ServiceStatusComponentComponentProps> = (
         setIncidents(0 < incidents.length ? [] : serviceStatus.incidents)
     }
 
-    return (
-        <table style={{ 
-            tableLayout: 'auto',
-            marginLeft: 'auto',
-            marginRight: 'auto',
-            marginTop: '0',
-            marginBottom: 'auto',
-            width: '100%',    
-            }}
-        >
-            <thead>
-                <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                    <th className="text-center"><a href={serviceStatus.statusPage}>{serviceStatus.serviceName}</a></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                    <td><StatusComponent status={serviceStatus.status}/></td>
-                </tr>
-                <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                    <td>
-                        <table style={{ 
-                            tableLayout: 'auto',
-                            marginLeft: 'auto',
-                            marginRight: 'auto',
-                            marginTop: '0',
-                            marginBottom: 'auto',
-                            width: '100%',    
-                            }}
-                        >
-                            <tbody>
-                                <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                                    <td>
-                                        <Button className="app-button" onClick={() => toggleIncidents()}>
-                                            {0 === incidents.length ? 'Expand' : 'Collapse'} Incidents({serviceStatus.incidents.length})
-                                        </Button>
-                                    </td>
-                                </tr>
-                                {0 < incidents.length &&
-                                    incidents.map(incident => (
-                                        <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                                            <td>
-                                                <IncidentComponent incident={incident}/>
-                                            </td>
-                                        </tr>
-                                    ))
-                                }
-                            </tbody>
-                        </table>                        
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    )
+    return (<div style={{ width: '100%', margin: '0 auto'}}>
+        <div style={{display: 'flex', padding: '10px', alignItems: 'center'}}>
+            <h3 style={{paddingRight: '10px'}}><a href={serviceStatus.statusPage}>{serviceStatus.serviceName}</a></h3>
+            <StatusComponent status={serviceStatus.status}/>
+            <Button
+                className="app-button"
+                style={{border: '2px solid #007bff', borderRadius: '5px'}} 
+                onClick={() => toggleIncidents()}
+            >
+                {0 === incidents.length ? 'Expand' : 'Collapse'} Incidents({serviceStatus.incidents.length})
+            </Button>
+        </div>
+        {0 < incidents.length &&
+            incidents.map(incident => (
+                <div style={{marginLeft: '20px'}}>
+                    <IncidentComponent incident={incident}/>
+                </div>
+            ))
+        }
+    </div>)
 }
 
 export default ServiceStatusComponent

@@ -43,7 +43,7 @@ export const InfoDisplay: React.FC<InfoDisplayProps> = ({ registerDisplayTrigger
         }
         return (
           <tr style={TRStyle}>
-            <td className={TDClassname}>{line}</td>
+            <td className={TDClassname} style={{paddingLeft: '10px'}}>{line}</td>
           </tr>
         )
       })

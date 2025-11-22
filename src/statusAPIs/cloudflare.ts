@@ -2,23 +2,50 @@
 // @connect     *.cloudflarestatus.com
 import { Status, Incident, ServiceStatus, ServiceAPI } from "./statustypes"
 import { parseDate } from "../common/datetime"
+import { Persistence, PersistenceClass } from "./persistence"
 
 class CloudflareClass implements ServiceAPI {
+  isLoading: boolean
   statusPage = 'https://www.cloudflarestatus.com/'
   private summaryURL = 'https://www.cloudflarestatus.com/api/v2/summary.json'
   private data: ServiceStatus
+  private persistence: PersistenceClass
+  private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
+
   constructor() {
+    this.persistence = Persistence('Cloudflare')
     this.data = {
       statusPage: this.statusPage,
       serviceName: 'Cloudflare',
       status: null,
       incidents: null
     }
+    this.isLoading = false
+    this.onIsLoadingChangeCallbacks = []
   }
   get serviceStatus(): ServiceStatus[] {
     return [this.data]
   }
-  load(): Promise<ServiceStatus[]> {
+  registerOnIsLoadingChange(onChange: (isLoading: boolean) => void) {
+      this.onIsLoadingChangeCallbacks.push(onChange)
+  }
+  private onIsLoadingChange(isLoading: boolean) {
+      this.onIsLoadingChangeCallbacks.forEach(onChange => onChange(isLoading))
+  }
+
+  async load(force: boolean): Promise<ServiceStatus[]> {
+    this.isLoading = true
+    this.onIsLoadingChange(this.isLoading)
+    if (!force) {
+      const existingStatus = this.persistence.getStatus()
+      if (existingStatus) {
+        this.data.status = existingStatus.status
+        this.data.incidents = existingStatus.incidents
+        this.isLoading = false
+        this.onIsLoadingChange(this.isLoading)
+        return [this.data]
+      }
+    }
     return new Promise<ServiceStatus[]>((resolve, reject) => {
       GM_xmlhttpRequest({
         method: 'GET',
@@ -50,9 +77,14 @@ class CloudflareClass implements ServiceAPI {
           }))
           this.data.status = status
           this.data.incidents = incidents
+          this.persistence.storeStatus({status, incidents})
+          this.isLoading = false
+          this.onIsLoadingChange(this.isLoading)
           resolve([this.data])
         },
         onerror: (response) => {
+          this.isLoading = false
+          this.onIsLoadingChange(this.isLoading)
           reject(new Error(response['error'] ?? response.statusText));
         }
       })

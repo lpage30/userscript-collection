@@ -11,11 +11,11 @@ const IncidentUpdateComponent: React.FC<IncidentUpdateComponentProps> = ({
     update
 }) => {
     return (
-        <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-            <td><span>{toMonthDayYearDateTime(update.updated)}</span></td>
-            <td><span><strong>{update.status}</strong></span></td>
-            <td><span>{update.name}</span></td>
-        </tr>
+        <div style={{display: 'flex', padding: '10px', alignItems: 'center'}}>
+            <span style={{paddingRight: '10px'}}>{toMonthDayYearDateTime(update.updated)}</span>
+            <span style={{paddingRight: '10px'}}><strong>{update.status}</strong></span>
+            <span style={{paddingRight: '10px'}}>{update.name}</span>
+        </div>
     )
 }
 
@@ -36,51 +36,27 @@ const IncidentComponent: React.FC<IncidentComponentProps> = ({
 
     const maxTimestamp = incident.updated > incident.timestamp ? incident.updated : incident.timestamp
     return (
-        <table style={{ 
-            tableLayout: 'auto',
-            marginLeft: 'auto',
-            marginRight: 'auto',
-            marginTop: '0',
-            marginBottom: 'auto',
-            width: '100%',    
-            }}
-        >
-            {title && <thead><tr style={{ alignItems: 'center', verticalAlign: 'center' }}><th colSpan={4}>{title}</th></tr></thead>}
-            <tbody>
-                <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                    <td><span><strong>{incident.impact}</strong></span></td>
-                    <td><span><strong>{incident.status}</strong></span></td>
-                    <td><span>{incident.name}</span></td>
-                    <td><span>{toMonthDayYearDateTime(maxTimestamp)}</span></td>
-                </tr>
-                {0 < incident.updates.length && 
-                    <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                        <td colSpan={4}>
-                            <table style={{ 
-                                tableLayout: 'auto',
-                                marginLeft: 'auto',
-                                marginRight: 'auto',
-                                marginTop: '0',
-                                marginBottom: 'auto',
-                                width: '100%',    
-                                }}
-                            >
-                                <tbody>
-                                    <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                                        <td colSpan={3}>
-                                            <Button className="app-button" onClick={() => toggleUpdates()}>
-                                                {0 === updates.length ? 'Expand' : 'Collapse'} Updates({incident.updates.length})
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                    {updates.map(update => <IncidentUpdateComponent update={update}/>)}
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        <>
+            <div style={{display: 'flex', padding: '10px', alignItems: 'center'}}>
+                {title && <span style={{paddingRight: '10px'}}><strong>{title}</strong></span>}
+                <span style={{paddingRight: '10px'}}><strong>{incident.impact}</strong></span>
+                <span style={{paddingRight: '10px'}}><strong>{incident.status}</strong></span>
+                <span style={{paddingRight: '10px'}}>{incident.name}</span>
+                <span style={{paddingRight: '10px'}}>{toMonthDayYearDateTime(maxTimestamp)}</span>
+                <Button
+                    className="app-button"
+                    style={{border: '2px solid #007bff', borderRadius: '5px'}} 
+                    onClick={() => toggleUpdates()}
+                >
+                    {0 === updates.length ? 'Expand' : 'Collapse'} Updates({incident.updates.length})
+                </Button>
+            </div>
+            {updates.map(update => (
+                <div style={{marginLeft: '20px'}}>
+                    <IncidentUpdateComponent update={update}/>
+                </div>
+            ))}
+        </>
     )
 }
 export default IncidentComponent

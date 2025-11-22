@@ -28,6 +28,8 @@ export interface ServiceStatus {
 }
 
 export interface ServiceAPI {
+    isLoading: boolean
     serviceStatus: ServiceStatus[]
-    load(): Promise<ServiceStatus[]>
+    registerOnIsLoadingChange: (onChange: (isLoading: boolean) => void) => void
+    load(force: boolean): Promise<ServiceStatus[]>
 }

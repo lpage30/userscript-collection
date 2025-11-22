@@ -13,6 +13,19 @@ import { parseDateTime } from "../common/datetime";
 import { Status, Incident, IncidentUpdate, StatusType, ImpactType, IndicatorType } from "./statustypes";
 import { storeAWSStatus } from "./aws";
 
+const paginationAggregationVariableName = 'aws_paginated_status_aggregation'
+type AWSHealthPageServiceRegion = {service: string, region: string, status: string}
+type AWSHealthServiceMap = { [service: string]: AWSHealthPageServiceRegion[] }
+function deletePaginatedAggregation() {
+  GM_deleteValue(paginationAggregationVariableName)
+}
+function getPaginatedAggregation(): AWSHealthServiceMap | null {
+  const result = GM_getValue(paginationAggregationVariableName)
+  return result ? JSON.parse(result) : null
+}
+function storePaginatedAggregation(aggregate: AWSHealthServiceMap) {
+  GM_setValue(paginationAggregationVariableName, JSON.stringify(aggregate))
+}
 const toStatusImpactIndicator = (awsStatus: string): { status: StatusType, impact: ImpactType, indicator: IndicatorType} => {
   switch(awsStatus) {
     case 'No recent issues':
@@ -32,11 +45,10 @@ const toStatusImpactIndicator = (awsStatus: string): { status: StatusType, impac
   }
 }
 
-async function scrapeServiceStatusMap(pageNo: number, hasNextPage: boolean): Promise<{ [service: string]: {service: string, region: string, status: string}[]}> {
-  const pageinationVariableName = 'aws_pagination_aggregate'
+async function scrapeServiceStatusMap(pageNo: number, hasNextPage: boolean): Promise<AWSHealthServiceMap> {
   const serviceTable = await awaitElementById('status-history-service-list-table')
-  const initial: { [service: string]: {service: string, region: string, status: string}[]} = 1 < pageNo 
-    ? JSON.parse(GM_getValue(pageinationVariableName, JSON.stringify({})))
+  const initial: AWSHealthServiceMap = 1 < pageNo 
+    ? (getPaginatedAggregation() ?? {})
     : {}
   console.log(`Page ${pageNo}, More Pages: ${hasNextPage}`)
   const result = Array.from(serviceTable.querySelectorAll('tr[data-selection-item="item"]')).map(row => ({
@@ -63,9 +75,9 @@ async function scrapeServiceStatusMap(pageNo: number, hasNextPage: boolean): Pro
 
   }, initial)
   if (hasNextPage) {
-    GM_setValue(pageinationVariableName, JSON.stringify(result))
+    storePaginatedAggregation(result)
   } else {
-    GM_deleteValue(pageinationVariableName)
+    deletePaginatedAggregation()
   }
   return result
 }
@@ -79,15 +91,17 @@ export const AWSHealthStatus: Userscript = {
 
   render: async (href: string): Promise<void> => {
     await awaitPageLoadByMutation();
-    await awaitDelay(1000)
+    await awaitDelay(500)
     let hasNextPage = true
     let currentPageNo = 0
     while(hasNextPage) {
-      if (0 < currentPageNo) {
-        await awaitDelay(50)
-      }
+      const lastPageNo = currentPageNo
       const pages = Array.from(document.querySelector('ul[aria-label="Table pagination"]').querySelectorAll('button'))
       currentPageNo = parseInt(pages.filter(button => button.ariaCurrent === 'true')[0].innerText)
+      if (currentPageNo === lastPageNo) {
+        await awaitDelay(25)
+        continue
+      }
       const nextPage = pages.slice(-1)[0]
       hasNextPage = !nextPage.disabled
       const serviceStatusMap = await scrapeServiceStatusMap(currentPageNo, hasNextPage)
@@ -98,7 +112,7 @@ export const AWSHealthStatus: Userscript = {
         const statusText = overallStatus[0].trim()
         const timestamp = parseDateTime(overallStatus[1]) ?? new Date()
         const services = Object.keys(serviceStatusMap)
-        const status: { status: Status, incidents: Incident[] } = {
+        const result: { status: Status, incidents: Incident[] } = {
           status: {
             timestamp: timestamp.getTime(),
             description: statusText,
@@ -140,7 +154,7 @@ export const AWSHealthStatus: Userscript = {
             } as Incident
           }),
         }
-        storeAWSStatus(status)
+        storeAWSStatus(result)
         break
       } else {
         nextPage.click()

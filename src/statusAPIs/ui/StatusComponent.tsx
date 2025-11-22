@@ -11,25 +11,11 @@ const StatusComponent: React.FC<StatusComponentProps> = ({
     title,
     status
 }) => {
-    return (
-        <table style={{ 
-            tableLayout: 'auto',
-            marginLeft: 'auto',
-            marginRight: 'auto',
-            marginTop: '0',
-            marginBottom: 'auto',
-            width: '100%',    
-            }}
-        >
-            {title && <thead><tr style={{ alignItems: 'center', verticalAlign: 'center' }}><th colSpan={3}>{title}</th></tr></thead>}
-            <tbody>
-                <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                    <td><span><strong>{status.indicator}</strong></span></td>
-                    <td><span>{status.description}</span></td>
-                    <td><span>{toMonthDayYearDateTime(status.timestamp)}</span></td>
-                </tr>
-            </tbody>
-        </table>
-    )
+    return (<div style={{display: 'flex', padding: '10px'}}>
+        {title && <span style={{paddingRight: '10px'}}><strong>{title}</strong></span>}
+        <span style={{paddingRight: '10px'}}><strong>{status.indicator}</strong></span>
+        <span style={{paddingRight: '10px'}}>{status.description}</span>
+        <span>{toMonthDayYearDateTime(status.timestamp)}</span>
+    </div>)
 }
 export default StatusComponent
