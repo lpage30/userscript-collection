@@ -11,6 +11,14 @@
 // @include     https://downdetector.com/status/*
 // @include     https://health.aws.com/health/status
 // @include     https://azure.status.microsoft/en-us/status
+// @include     https://status.cloud.google.com/index.html
+// @include     https://status.cloud.google.com/regional/americas
+// @include     https://status.cloud.google.com/regional/europe
+// @include     https://status.cloud.google.com/regional/asia
+// @include     https://status.cloud.google.com/regional/middle-east
+// @include     https://status.cloud.google.com/regional/africa
+// @include     https://status.cloud.google.com/regional/multiregions
+
 
 // @grant       GM_setValue
 // @grant       GM_getValue

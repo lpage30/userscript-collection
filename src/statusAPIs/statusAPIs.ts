@@ -1,6 +1,7 @@
 import { Cloudflare } from "./cloudflare";
 import { AWS } from "./aws";
 import { Azure } from "./azure";
+import { GCP } from "./gcp"
 import { ServiceAPI, ServiceStatus } from "./statustypes";
 
 class ServiceAPIsClass implements ServiceAPI {
@@ -10,7 +11,8 @@ class ServiceAPIsClass implements ServiceAPI {
     private serviceAPIs: ServiceAPI[] = [
         Cloudflare,
         AWS,
-        Azure
+        Azure,
+        GCP
     ]
     constructor() {
         this.isLoading = false

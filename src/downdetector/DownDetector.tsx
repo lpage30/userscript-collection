@@ -6,6 +6,7 @@ import { DownDetectorCompanyStatus } from "./status/DownDetectorCompanyStatus";
 import { DownDetectorCompanyStatusMap } from "./status/DownDetectorCompanyStatusMap";
 import { AWSHealthStatus } from "../statusAPIs/AWSHealthStatus";
 import { AzureHealthStatus } from "../statusAPIs/AzureHealthStatus";
+import { GCPHealthStatus } from "../statusAPIs/GCPHealthStatus";
 import { awaitDelay } from "../common/await_functions";
 
 const Scripts: Userscript[] = [
@@ -13,7 +14,8 @@ const Scripts: Userscript[] = [
   DownDetectorCompanyStatus,
   DownDetectorCompanyStatusMap,
   AWSHealthStatus,
-  AzureHealthStatus
+  AzureHealthStatus,
+  GCPHealthStatus
 ];
 
 export async function main(lastLocationHref = "") {
