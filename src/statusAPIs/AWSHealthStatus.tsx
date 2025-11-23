@@ -30,6 +30,7 @@ const toStatusImpactIndicator = (awsStatus: string): { status: StatusType, impac
   switch(awsStatus) {
     case 'No recent issues':
     case 'No Reported Event':
+    case 'noEvent':
       return {
         status: 'healthy',
         impact: 'none',
@@ -107,7 +108,7 @@ export const AWSHealthStatus: Userscript = {
       const serviceStatusMap = await scrapeServiceStatusMap(currentPageNo, hasNextPage)
       if (nextPage.disabled) {
         const eventState = document.querySelector('div[class*="event-state"]') as HTMLElement
-        const indicator = (eventState.firstElementChild as HTMLElement).dataset.analytics
+        const indicator = toStatusImpactIndicator((eventState.firstElementChild as HTMLElement).dataset.analytics).indicator
         const overallStatus = eventState.innerText.split('\n')
         const statusText = overallStatus[0].trim()
         const timestamp = parseDateTime(overallStatus[1]) ?? new Date()

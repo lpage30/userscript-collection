@@ -8,25 +8,42 @@ import {
   awaitPageLoadByEvent,
   awaitQueryAll
 } from "../common/await_functions";
+import { PersistableStatus } from "./persistence";
 import { Status, Incident, IncidentUpdate} from "./statustypes";
 import { storeAzureStatus } from "./azure";
 
-const getMaxOccuringStatus = (statuses: string[]) => {
-  const statusOccurrence = statuses.reduce((statusOccurrenceMap, status) => {
-      statusOccurrenceMap[status] = statusOccurrenceMap[status] ?? 0 + 1
-      return statusOccurrenceMap
-  }, {} as { [status: string]: number})
+const NoStatusStatus = 'healthy'
+const getMaxOccurringValidStatus = (statuses: string[]) => {
+  const statusOccurrence = statuses
+    .filter(status => !['Not available', 'good', 'Good', 'Not Available', 'not available', 'not Available'].includes(status))
+    .reduce((statusOccurrenceMap, status) => ({
+      ...statusOccurrenceMap,
+      [status]: (statusOccurrenceMap[status] ?? 0) + 1,
+  }), {} as { [status: string]: number})
+
   return Object.entries(statusOccurrence).reduce((NameMax, [name, count]) => {
     return count > NameMax.max ? { name, max: count} : NameMax
-  }, { name: '', max: 0}).name
+  }, { name: NoStatusStatus, max: 0 }).name
 }
-
-async function scrapeServicesStatus(): Promise<{ status: Status, incidents: Incident[]}> {
-  const timestamp = Date.now()
-  const serviceRegionStatusTableArray: { columnHeaders: string[], dataRows: string[][] }[] = Array.from(await awaitQueryAll('table'))
+type ScrapedServiceStatusRegionsMap = {
+  [service:string]: {
+    status: string[],
+    regions: {
+      status: string,
+      region: string
+    }[]
+  }
+}
+async function scrapeServiceStatusRegions(): Promise<ScrapedServiceStatusRegionsMap> {
+  type ScrapedServiceStatusTable = {
+    columnHeaders: string[],
+    dataRows: string[][]
+  }
+  return Array.from(await awaitQueryAll('table'))
     .map(e => ({ header: e.children[0], body: e.children[1]}))
     .filter(({header, body}) => header !== undefined && body !== undefined && header.tagName === 'THEAD' && body.tagName === 'TBODY' && header.children[0] !== undefined)
     .map(({header, body}) => {
+      // scrape out the table definitions (headers + table data rows)
       const columnHeaders = Array.from(header.children[0].children).map(th => (th as HTMLElement).innerText.replace('\n', '').trim());
       const dataRows = Array.from(body.children)
         .filter(tr => tr.childElementCount === columnHeaders.length)
@@ -36,34 +53,24 @@ async function scrapeServicesStatus(): Promise<{ status: Status, incidents: Inci
       return { 
           columnHeaders,
           dataRows
-      };
-    })
-  const serviceStatusRegionsMapArray: { [serviceName: string]: { status: string[], regions: { region: string, status: string}[] } }[] =
-    serviceRegionStatusTableArray.map(({columnHeaders, dataRows}) => {
-        return dataRows.reduce((serviceStatusIncidentMap, serviceRegionRow) => {
-        const serviceName = serviceRegionRow[0]
-        const status = serviceRegionRow[1]
-        const regions = serviceRegionRow.slice(2).map((regionStatus, index) => ({ region: columnHeaders[2 + index], status: regionStatus}))
-        if(serviceStatusIncidentMap[serviceName] === undefined) {
-          serviceStatusIncidentMap[serviceName] = { status: [], incidents: [] }
-        }
-        serviceStatusIncidentMap[serviceName].status.push(status)
-        serviceStatusIncidentMap[serviceName].regions.push(...regions)
-        return serviceStatusIncidentMap
-      }, {})
-  })
-
-  const serviceStatusRegionsMap = serviceStatusRegionsMapArray.reduce((serviceMap, serviceRegionMap) => {
-    return Object.entries(serviceRegionMap).reduce((result, [serviceName, region]) => {
-      if (result[serviceName] === undefined) {
-        result[serviceName] = { status: [], regions: []}
-      }
-      result[serviceName].status.push(...region.status)
-      result[serviceName].regions.push(...region.regions)
-      return result
-    }, serviceMap)
-
-  }, {} as { [serviceName: string]: { status: string[], regions: { region: string, status: string}[] } })
+      } as ScrapedServiceStatusTable;
+    }).reduce((serviceStatusRegionsMap, {columnHeaders, dataRows}) => {
+        // extract and aggregate service + region info from all table definitions
+        return dataRows.reduce((result, serviceRegionRow) => {
+          const serviceName = serviceRegionRow[0]
+          const status = serviceRegionRow[1]
+          const regions = serviceRegionRow.slice(2).map((regionStatus, index) => ({ region: columnHeaders[2 + index], status: regionStatus}))
+          if(result[serviceName] === undefined) {
+            result[serviceName] = { status: [], regions: [] }
+          }
+          result[serviceName].status.push(status)
+          result[serviceName].regions.push(...regions)
+          return result
+      }, serviceStatusRegionsMap)
+    }, {} as ScrapedServiceStatusRegionsMap)
+}
+function toPersistableStatus(serviceStatusRegionsMap: ScrapedServiceStatusRegionsMap): PersistableStatus {
+  const timestamp = Date.now()
   const statuses: string[] = []
   const incidents = Object.entries(serviceStatusRegionsMap).map(([serviceName, statusRegions]) => {
     const updates = statusRegions.regions.map(({region, status}) => ({
@@ -71,24 +78,26 @@ async function scrapeServicesStatus(): Promise<{ status: Status, incidents: Inci
       status,
       updated: timestamp
     } as IncidentUpdate))
-    const serviceStatuses = [...statusRegions.status, ...updates.map(({status}) => status)]
-    const globalStatus = getMaxOccuringStatus(serviceStatuses)
-    statuses.push(...serviceStatuses)
+    let globalStatus = getMaxOccurringValidStatus(statusRegions.status)
+    if (globalStatus === NoStatusStatus) {
+      globalStatus = getMaxOccurringValidStatus(updates.map(({status}) => status))
+    }
+    statuses.push(globalStatus)
     return {
       timestamp,
-      impact: globalStatus,
+      impact: [NoStatusStatus].includes(globalStatus) ? 'none' : globalStatus,
       name: serviceName,
       status: globalStatus,
       updated: timestamp,
       updates
     } as Incident
   })
-
+  const overallStatus = getMaxOccurringValidStatus(statuses)
   return {
     status: {
       timestamp,
-      description: getMaxOccuringStatus(statuses),
-      indicator: getMaxOccuringStatus(statuses)
+      description: overallStatus,
+      indicator: overallStatus
     } as Status,
     incidents
   }
@@ -104,6 +113,7 @@ export const AzureHealthStatus: Userscript = {
 
   render: async (href: string): Promise<void> => {
     await awaitPageLoadByEvent();
-    storeAzureStatus(await scrapeServicesStatus())
+    const scrapedServiceStatusRegions = await scrapeServiceStatusRegions()
+    storeAzureStatus(toPersistableStatus(scrapedServiceStatusRegions))
   }
 }

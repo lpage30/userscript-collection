@@ -30,6 +30,7 @@ class ServiceAPIsClass implements ServiceAPI {
         this.isLoading = true
         this.onIsLoadingChange(this.isLoading)
         const result: ServiceStatus[] = (await Promise.all(this.serviceAPIs.map(api => api.load(force)))).flat()
+        this.isLoading = false
         this.onIsLoadingChange(this.isLoading)
         return result
     }
