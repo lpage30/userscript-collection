@@ -1,5 +1,6 @@
 import { Cloudflare } from "./cloudflare";
 import { AWS } from "./aws";
+import { Azure } from "./azure";
 import { ServiceAPI, ServiceStatus } from "./statustypes";
 
 class ServiceAPIsClass implements ServiceAPI {
@@ -8,7 +9,8 @@ class ServiceAPIsClass implements ServiceAPI {
 
     private serviceAPIs: ServiceAPI[] = [
         Cloudflare,
-        AWS
+        AWS,
+        Azure
     ]
     constructor() {
         this.isLoading = false
@@ -27,11 +29,7 @@ class ServiceAPIsClass implements ServiceAPI {
     async load(force: boolean = false): Promise<ServiceStatus[]> {
         this.isLoading = true
         this.onIsLoadingChange(this.isLoading)
-        const result: ServiceStatus[] = []
-        for (const api of this.serviceAPIs) {
-            result.push(...(await api.load(force)))
-        }
-        this.isLoading = false
+        const result: ServiceStatus[] = (await Promise.all(this.serviceAPIs.map(api => api.load(force)))).flat()
         this.onIsLoadingChange(this.isLoading)
         return result
     }

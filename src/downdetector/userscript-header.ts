@@ -10,6 +10,7 @@
 // @include     https://downdetector.com/
 // @include     https://downdetector.com/status/*
 // @include     https://health.aws.com/health/status
+// @include     https://azure.status.microsoft/en-us/status
 
 // @grant       GM_setValue
 // @grant       GM_getValue

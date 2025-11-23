@@ -5,13 +5,15 @@ import { DownDetectorDashboard } from "./dashboard/DownDetectorDashboard";
 import { DownDetectorCompanyStatus } from "./status/DownDetectorCompanyStatus";
 import { DownDetectorCompanyStatusMap } from "./status/DownDetectorCompanyStatusMap";
 import { AWSHealthStatus } from "../statusAPIs/AWSHealthStatus";
+import { AzureHealthStatus } from "../statusAPIs/AzureHealthStatus";
 import { awaitDelay } from "../common/await_functions";
 
 const Scripts: Userscript[] = [
   DownDetectorDashboard,
   DownDetectorCompanyStatus,
   DownDetectorCompanyStatusMap,
-  AWSHealthStatus
+  AWSHealthStatus,
+  AzureHealthStatus
 ];
 
 export async function main(lastLocationHref = "") {
