@@ -18,6 +18,7 @@
 // @include     https://status.cloud.google.com/regional/middle-east
 // @include     https://status.cloud.google.com/regional/africa
 // @include     https://status.cloud.google.com/regional/multiregions
+// @include     https://ocistatus.oraclecloud.com/
 
 
 // @grant       GM_setValue

@@ -10,8 +10,9 @@ import {
   awaitDelay
 } from "../common/await_functions";
 import { parseDateTime } from "../common/datetime";
-import { Status, Incident, IncidentUpdate, StatusType, ImpactType, IndicatorType } from "./statustypes";
+import { Status, Incident, IncidentUpdate } from "./statustypes";
 import { storeAWSStatus } from "./aws";
+import { getMaxOccurringValidStatus, NoStatusStatus } from "./conversionfunctions";
 
 const paginationAggregationVariableName = 'aws_paginated_status_aggregation'
 type AWSHealthPageServiceRegion = {service: string, region: string, status: string}
@@ -25,25 +26,6 @@ function getPaginatedAggregation(): AWSHealthServiceMap | null {
 }
 function storePaginatedAggregation(aggregate: AWSHealthServiceMap) {
   GM_setValue(paginationAggregationVariableName, JSON.stringify(aggregate))
-}
-const toStatusImpactIndicator = (awsStatus: string): { status: StatusType, impact: ImpactType, indicator: IndicatorType} => {
-  switch(awsStatus) {
-    case 'No recent issues':
-    case 'No Reported Event':
-    case 'noEvent':
-      return {
-        status: 'healthy',
-        impact: 'none',
-        indicator: 'none'
-      }
-    default:
-      return {
-        status: awsStatus,
-        impact: awsStatus,
-        indicator: awsStatus
-      }
-
-  }
 }
 
 async function scrapeServiceStatusMap(pageNo: number, hasNextPage: boolean): Promise<AWSHealthServiceMap> {
@@ -108,49 +90,33 @@ export const AWSHealthStatus: Userscript = {
       const serviceStatusMap = await scrapeServiceStatusMap(currentPageNo, hasNextPage)
       if (nextPage.disabled) {
         const eventState = document.querySelector('div[class*="event-state"]') as HTMLElement
-        const indicator = toStatusImpactIndicator((eventState.firstElementChild as HTMLElement).dataset.analytics).indicator
         const overallStatus = eventState.innerText.split('\n')
-        const statusText = overallStatus[0].trim()
+        const statusText = getMaxOccurringValidStatus([overallStatus[0].trim()])
         const timestamp = parseDateTime(overallStatus[1]) ?? new Date()
         const services = Object.keys(serviceStatusMap)
         const result: { status: Status, incidents: Incident[] } = {
           status: {
             timestamp: timestamp.getTime(),
             description: statusText,
-            indicator
+            indicator: getMaxOccurringValidStatus([(eventState.firstElementChild as HTMLElement).dataset.analytics])
           },
           incidents: services.map(serviceName => {
-            const statusObj: any = {
-              timestamp: timestamp.getTime(),
-              impactCountMap: {},
-              statusCountMap: {}
-            }
+            const updates = serviceStatusMap[serviceName].map(regions => {
+              return {
+                name: regions.region,
+                status: regions.status,
+                updated: timestamp.getTime()
+              } as IncidentUpdate
+            })
+            const status = getMaxOccurringValidStatus(updates.map(({status}) => status))
             return {
               timestamp: timestamp.getTime(),
               name: serviceName,
               updated: timestamp.getTime(),
-              updates: serviceStatusMap[serviceName].map(regions => {
-                const { status, impact } = toStatusImpactIndicator(regions.status)
-                statusObj.impactCountMap[impact] = (statusObj.impactCountMap[impact] ?? 0) + 1
-                statusObj.statusCountMap[status] = (statusObj.statusCountMap[status] ?? 0) + 1
-                return {
-                  name: regions.region,
-                  status,
-                  updated: timestamp.getTime()
-                } as IncidentUpdate
-              }),
-              status: Object.entries(statusObj.statusCountMap as { [name: string]: number })
-                .reduce((nameMaxCount, [name, count]) => {
-                  if (count > nameMaxCount.maxCount) {
-                    return { name, maxCount: count}
-                  }
-                }, { name: '', maxCount: 0} as {name: string, maxCount: number}).name,
-              impact: Object.entries(statusObj.impactCountMap as { [name: string]: number })
-                .reduce((nameMaxCount, [name, count]) => {
-                  if (count > nameMaxCount.maxCount) {
-                    return { name, maxCount: count}
-                  }
-                }, { name: '', maxCount: 0} as {name: string, maxCount: number}).name,
+              
+              updates,
+              status,
+              impact: status === NoStatusStatus ? 'none' : status 
 
             } as Incident
           }),

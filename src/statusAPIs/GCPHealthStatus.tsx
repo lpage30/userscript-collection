@@ -10,7 +10,8 @@ import {
 } from "../common/await_functions";
 import { PersistableStatus } from "./persistence";
 import { Status, Incident, IncidentUpdate} from "./statustypes";
-import { GCPZonePageUrlMap, storeGCPStatus, NoStatusStatus, getMaxOccurringValidStatus } from "./gcp";
+import { GCPZonePageUrlMap, storeGCPStatus } from "./gcp";
+import { NoStatusStatus, getMaxOccurringValidStatus } from "./conversionfunctions"
 
 const gcpUrls = Object.values(GCPZonePageUrlMap)
 const getZone = (href: string): string => {

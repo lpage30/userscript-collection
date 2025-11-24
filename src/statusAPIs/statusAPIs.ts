@@ -2,6 +2,7 @@ import { Cloudflare } from "./cloudflare";
 import { AWS } from "./aws";
 import { Azure } from "./azure";
 import { GCP } from "./gcp"
+import { OCI } from "./oci";
 import { ServiceAPI, ServiceStatus } from "./statustypes";
 
 class ServiceAPIsClass implements ServiceAPI {
@@ -12,7 +13,8 @@ class ServiceAPIsClass implements ServiceAPI {
         Cloudflare,
         AWS,
         Azure,
-        GCP
+        GCP,
+        OCI
     ]
     constructor() {
         this.isLoading = false

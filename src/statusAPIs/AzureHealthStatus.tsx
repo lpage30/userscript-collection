@@ -11,20 +11,8 @@ import {
 import { PersistableStatus } from "./persistence";
 import { Status, Incident, IncidentUpdate} from "./statustypes";
 import { storeAzureStatus } from "./azure";
+import { getMaxOccurringValidStatus, NoStatusStatus} from "./conversionfunctions";
 
-const NoStatusStatus = 'healthy'
-const getMaxOccurringValidStatus = (statuses: string[]) => {
-  const statusOccurrence = statuses
-    .filter(status => !['Not available', 'good', 'Good', 'Not Available', 'not available', 'not Available'].includes(status))
-    .reduce((statusOccurrenceMap, status) => ({
-      ...statusOccurrenceMap,
-      [status]: (statusOccurrenceMap[status] ?? 0) + 1,
-  }), {} as { [status: string]: number})
-
-  return Object.entries(statusOccurrence).reduce((NameMax, [name, count]) => {
-    return count > NameMax.max ? { name, max: count} : NameMax
-  }, { name: NoStatusStatus, max: 0 }).name
-}
 type ScrapedServiceStatusRegionsMap = {
   [service:string]: {
     status: string[],

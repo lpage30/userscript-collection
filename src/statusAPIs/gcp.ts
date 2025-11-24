@@ -4,6 +4,7 @@
 // @grant       GM_openInTab
 import { ServiceStatus, ServiceAPI } from "./statustypes"
 import { Persistence, PersistenceClass, PersistableStatus } from "./persistence"
+import { getMaxOccurringValidStatus } from "./conversionfunctions"
 
 export const GCPZonePageUrlMap = {
     overview: 'https://status.cloud.google.com/index.html',
@@ -14,19 +15,7 @@ export const GCPZonePageUrlMap = {
     africa: 'https://status.cloud.google.com/regional/africa',
     multiregion: 'https://status.cloud.google.com/regional/multiregions'
 }
-export const NoStatusStatus = 'healthy'
-export const getMaxOccurringValidStatus = (statuses: string[]) => {
-  const statusOccurrence = statuses
-    .filter(status => !['none', 'Available status'].includes(status))
-    .reduce((statusOccurrenceMap, status) => ({
-      ...statusOccurrenceMap,
-      [status]: (statusOccurrenceMap[status] ?? 0) + 1,
-  }), {} as { [status: string]: number})
 
-  return Object.entries(statusOccurrence).reduce((NameMax, [name, count]) => {
-    return count > NameMax.max ? { name, max: count} : NameMax
-  }, { name: NoStatusStatus, max: 0 }).name
-}
 const gcpPersistence = Persistence('gcp')
 export const storeGCPStatus = (zone: string, status: PersistableStatus) => {
     gcpPersistence.storeStatus(status, zone)
