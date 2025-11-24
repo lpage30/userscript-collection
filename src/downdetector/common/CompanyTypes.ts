@@ -2,7 +2,8 @@ import { Card, FilterableItems, ItemFilter, toCardIndex } from '../../dashboardc
 import { PersistenceClass, StaleDuration } from '../../dashboardcomponents/persistence';
 import { toTitleCase } from '../../common/functions';
 import { toMonthDayYearDateTime } from '../../common/datetime';
-import { Status } from "../../statusAPIs/statustypes";
+import { ServiceStatus } from "../../statusAPIs/statustypes";
+import { getServiceStatus, getDependentServiceStatuses } from '../../statusAPIs/servicestatuscache';
 
 export const HealthLevelTypes = ['danger', 'warning', 'success'] as const;
 export type HealthLevelType = (typeof HealthLevelTypes)[number];
@@ -49,16 +50,7 @@ export interface CompanyStatusCard {
   company?: CompanyMetadata;
   allCompanies?: CompanyMetadata[];
 }
-let ServiceStatusMap: { [service: string]: Status } = {}
-export function setServiceStatusMap(serviceStatus: { [service: string]: Status }) {
-  ServiceStatusMap = {...serviceStatus}
-}
-function getCompanyServiceStatus(companyName: string): Status | null {
-  const serviceNames = Object.keys(ServiceStatusMap)
-  const foundServiceName = serviceNames.find(name => companyName.includes(name))
-  return foundServiceName ? ServiceStatusMap[foundServiceName] : null
 
-}
 function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata {
   const metadata: Partial<CompanyMetadata> = {}
   metadata.timestamp = data.timestamp ?? Date.now()
@@ -83,28 +75,48 @@ function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata 
   metadata.incidentRisk = data.incidentRisk ?? 0
   metadata.renderable = data.renderable ?? null
   metadata.displayLines = () => {
-    const foundStatus = getCompanyServiceStatus(metadata.companyName)
-    if (nullIncidentReports && foundStatus === null) {
+    let result = [
+      `${metadata.companyName}`
+    ]
+    const foundStatus = getServiceStatus(metadata.companyName)
+    const foundDependentStatuses = getDependentServiceStatuses(metadata.companyName)
+    if (nullIncidentReports && foundStatus === null && foundDependentStatuses === null) {
       console.log(`Warning: ${metadata.companyName} - has null IncidentReports`)
       return [
-        `${metadata.companyName}`,
+        ...result,
         'missing incident data'
       ]
     }
-    if (foundStatus) {
-        return [
-        `${metadata.companyName}`,
-        `Service Status: ${toMonthDayYearDateTime(foundStatus.timestamp)}`,
-        `Status Indicator: ${foundStatus.indicator}`,
-        `Activity: ${foundStatus.description}`,
+    if (foundStatus === null && foundDependentStatuses === null) {
+      return [
+        ...result,
+        `Incident Spike: ${metadata.incidentReports.pastHr15minAvg}`,
+        `Incident Baseline: ${metadata.incidentReports.baseline15minAvg}`,
+        `IncidentRisk: ${metadata.incidentReports.incidentRiskPercent.toFixed(2)}%`
       ];
     }
-    return [
-      `${metadata.companyName}`,
-      `Incident Spike: ${metadata.incidentReports.pastHr15minAvg}`,
-      `Incident Baseline: ${metadata.incidentReports.baseline15minAvg}`,
-      `IncidentRisk: ${metadata.incidentReports.incidentRiskPercent.toFixed(2)}%`
-    ];
+
+    if (foundStatus) {
+        result = [
+        ...result,
+        `Service Status: ${toMonthDayYearDateTime(foundStatus.status.timestamp)}`,
+        `Status Indicator: ${foundStatus.status.indicator}`,
+        `Activity: ${foundStatus.status.description}`,
+      ];
+    }
+
+    if (foundDependentStatuses) {
+        result = [
+          ...result,
+          ...(foundDependentStatuses.map(serviceStatus => ([
+            `${serviceStatus.serviceName} Status: ${toMonthDayYearDateTime(serviceStatus.status.timestamp)}`,
+            `  Status Indicator: ${foundStatus.status.indicator}`,
+            `  Activity: ${foundStatus.status.description}`,
+          ])).flat())
+        ];
+
+    }
+    return result
   }
   metadata.label = () => `#${metadata.rank} ${metadata.companyName}`
   metadata.color = () => metadata.level === 'danger' ? 'red' : metadata.level === 'warning' ? 'yellow' : 'lightblue'

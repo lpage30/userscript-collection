@@ -44,5 +44,9 @@ export class PersistenceClass {
             )
         })
     }
+    deleteStatus(serviceSuffix?: string) {
+        const variableName = serviceSuffix ? `${this.serviceStatusVariableName}_${serviceSuffix}`: this.serviceStatusVariableName
+        GM_deleteValue(variableName);
+    }
 }
 export const Persistence = (servicePrefix: string) => new PersistenceClass(servicePrefix)

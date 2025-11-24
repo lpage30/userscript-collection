@@ -13,8 +13,7 @@ import {
   filterableItems,
   dashboardCardsQueryAllSelector,
   processCompanyDashboardCards,
-  setServiceStatusMap
-} from "../common/CompanyTypes";
+ } from "../common/CompanyTypes";
 import {
   createRenderableContainerAsChild,
   renderInContainer,
@@ -22,7 +21,7 @@ import {
 import Dashboard from "../../dashboardcomponents/Dashboard";
 import { Persistence } from "../../dashboardcomponents/persistence";
 import { ServiceDashboardPopup } from "../../statusAPIs/ui/ServiceDashboard";
-import { Status } from "../../statusAPIs/statustypes";
+import { setServiceStatus } from "../../statusAPIs/servicestatuscache";
 
 const renderableId = "downdetector-dashboard-panel";
 export const DownDetectorDashboard: Userscript = {
@@ -51,7 +50,7 @@ export const DownDetectorDashboard: Userscript = {
       page={'dashboard'}
       cards={cards}
       layout={'grid'}
-      addedHeaderComponent={<ServiceDashboardPopup onServiceStatus={setServiceStatusMap}/>}
+      addedHeaderComponent={<ServiceDashboardPopup onServiceStatus={setServiceStatus}/>}
     />);
     await awaitElementById(renderableId);
   },

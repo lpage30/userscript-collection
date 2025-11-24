@@ -12,12 +12,14 @@ export const storeIBMStatus = (status: PersistableStatus) => {
 class IBMClass implements ServiceAPI {
     isLoading: boolean
     statusPage = 'https://cloud.ibm.com/status'
+    private dependentCompanies = []
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
+            dependentCompanies: this.dependentCompanies,
             serviceName: 'IBM Cloud',
             status: null,
             incidents: null

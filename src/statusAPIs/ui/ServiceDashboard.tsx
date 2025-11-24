@@ -8,7 +8,7 @@ import ServiceStatusComponent from './ServiceStatusComponent'
 interface ServiceDashboardProps {
   title: string
   initialStatuses: ServiceStatus[]
-  onServiceStatus?: (serviceStatus: { [service: string]: Status }) => void
+  onServiceStatus?: (serviceStatus: ServiceStatus[]) => void
   registerRefreshFunction?: (refreshFunction: (showDialog: boolean, force: boolean) => Promise<void>) => void
   onVisibleChange?: (visible: boolean) => void
   initiallyVisible?: boolean
@@ -40,11 +40,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
   const refresh = async (showDialog: boolean, force: boolean): Promise<void> => {
     const statuses = await StatusAPIs.load(force)
     if (onServiceStatus) {
-      onServiceStatus(statuses.reduce((result, data) => ({
-          ...result,
-          [data.serviceName]: data.status
-        }), {} as { [service: string]: Status })
-      )
+      onServiceStatus(statuses)
     }
     if (registerRefreshFunction) registerRefreshFunction(refresh)
     if (onVisibleChange) onVisibleChange(showDialog)
@@ -105,7 +101,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
   )
 }
 interface ServiceDashboardPopupProps {
-  onServiceStatus?: (serviceStatus: { [service: string]: Status }) => void
+  onServiceStatus?: (serviceStatus: ServiceStatus[]) => void
 }
 
 interface ServiceDashboardPopupState {
@@ -134,10 +130,7 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
           initialStatuses: statuses
         })
         if(onServiceStatus) {
-          onServiceStatus(statuses.reduce((result, data) => ({
-            ...result,
-            [data.serviceName]: data.status
-          }), {} as { [service: string]: Status }))
+          onServiceStatus(statuses)
         }
     })
   },[])

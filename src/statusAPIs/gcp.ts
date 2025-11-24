@@ -24,12 +24,14 @@ export const storeGCPStatus = (zone: string, status: PersistableStatus) => {
 class GCPClass implements ServiceAPI {
     isLoading: boolean
     statusPage = 'https://status.cloud.google.com/'
+    private dependentCompanies = []
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
+            dependentCompanies: this.dependentCompanies,
             serviceName: 'Google GCP',
             status: null,
             incidents: null
@@ -87,6 +89,7 @@ class GCPClass implements ServiceAPI {
             status: this.data.status,
             incidents: this.data.incidents
         })
+        Object.keys(GCPZonePageUrlMap).forEach(zone => this.persistence.deleteStatus(zone))
         this.isLoading = false
         this.onIsLoadingChange(this.isLoading)
         return [this.data]

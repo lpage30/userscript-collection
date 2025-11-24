@@ -12,12 +12,14 @@ export const storeAWSStatus = (status: PersistableStatus) => {
 class AWSClass implements ServiceAPI {
     isLoading: boolean
     statusPage = 'https://health.aws.com/health/status'
+    private dependentCompanies = []
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
+            dependentCompanies: this.dependentCompanies,
             serviceName: 'Amazon Web Services',
             status: null,
             incidents: null

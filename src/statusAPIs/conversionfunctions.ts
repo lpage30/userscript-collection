@@ -1,7 +1,7 @@
 const healthyStatuses = [
     'no recent issues', 
     'no Reported Event', 
-    'nowvent',
+    'noevent',
     'none',
     'available status',
     'not available',

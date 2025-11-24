@@ -12,12 +12,14 @@ export const storeOCIStatus = (status: PersistableStatus) => {
 class OCIClass implements ServiceAPI {
     isLoading: boolean
     statusPage = 'https://ocistatus.oraclecloud.com/#/'
+    private dependentCompanies = []    
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
+            dependentCompanies: this.dependentCompanies,
             serviceName: 'Oracle OCI',
             status: null,
             incidents: null

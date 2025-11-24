@@ -12,12 +12,14 @@ export const storeAzureStatus = (status: PersistableStatus) => {
 class AzureClass implements ServiceAPI {
     isLoading: boolean
     statusPage = 'https://azure.status.microsoft/en-us/status'
+    private dependentCompanies = []
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
+            dependentCompanies: this.dependentCompanies,
             serviceName: 'Microsoft Azure',
             status: null,
             incidents: null
