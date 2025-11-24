@@ -4,22 +4,23 @@
 // @grant       GM_openInTab
 import { ServiceStatus, ServiceAPI } from "./statustypes"
 import { Persistence, PersistenceClass, PersistableStatus } from "./persistence"
+import { IBMDependentCompanies } from "./servicedependentcompanylists"
 
 const ibmPersistence = Persistence('Azure')
 export const storeIBMStatus = (status: PersistableStatus) => {
     ibmPersistence.storeStatus(status)
 }
+
 class IBMClass implements ServiceAPI {
     isLoading: boolean
     statusPage = 'https://cloud.ibm.com/status'
-    private dependentCompanies = []
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
-            dependentCompanies: this.dependentCompanies,
+            dependentCompanies: IBMDependentCompanies,
             serviceName: 'IBM Cloud',
             status: null,
             incidents: null

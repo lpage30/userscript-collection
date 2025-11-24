@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef} from 'react'
 import { Dialog } from 'primereact/dialog'
 import { Button } from 'primereact/button'
-import { Status, ServiceStatus } from '../statustypes'
+import { ServiceStatus, CompanyHealthStatus } from '../statustypes'
 import { StatusAPIs } from '../statusAPIs'
-import ServiceStatusComponent from './ServiceStatusComponent'
+import ServiceStatusComponent, {statusRankColorMap} from './ServiceStatusComponent'
 
 interface ServiceDashboardProps {
   title: string
   initialStatuses: ServiceStatus[]
+  companyHealthStatuses?: CompanyHealthStatus[]
   onServiceStatus?: (serviceStatus: ServiceStatus[]) => void
   registerRefreshFunction?: (refreshFunction: (showDialog: boolean, force: boolean) => Promise<void>) => void
   onVisibleChange?: (visible: boolean) => void
@@ -18,18 +19,21 @@ interface ServiceDashboardState {
   visible: boolean
   isLoading: boolean
   statuses: ServiceStatus[]
+  companyStatuses: CompanyHealthStatus[]
 }
 const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
   title,
   onServiceStatus,
   registerRefreshFunction,
   onVisibleChange,
-  initialStatuses
+  initialStatuses,
+  companyHealthStatuses
 }) => {
   const [state, setState] = useState<ServiceDashboardState>({
     visible: true,
     isLoading: StatusAPIs.isLoading,
-    statuses: initialStatuses
+    statuses: initialStatuses,
+    companyStatuses: companyHealthStatuses ?? [],
   })
   StatusAPIs.registerOnIsLoadingChange((isLoading: boolean) => {
     setState({
@@ -78,7 +82,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
           }}
         ><tbody>
             <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-              <td className="text-center">
+              <td colSpan={2}className="text-center">
                 <h2>{title}</h2>
               </td>
             </tr>
@@ -88,6 +92,22 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
                     onClick={() => refresh(true, true)}
                     disabled={state.isLoading}>{state.isLoading ? 'Loading' : 'Refresh'} Service Statuses</Button>
               </td>
+              <td>
+                <div style={{display: 'flex'}}>
+                  <span className="text-sm">Company Color Legend:&nbsp;</span>{
+                    Object.keys(statusRankColorMap)
+                      .sort((l: string, r: string) => statusRankColorMap[l].rank = statusRankColorMap[r].rank)
+                      .map(level => (
+                        <span className="text-sm" style={{
+                          backgroundColor: statusRankColorMap[level].bgColor,
+                          color: statusRankColorMap[level].fgColor,
+                          paddingLeft: `5px`,
+                          paddingRight: `5px`
+                        }}>{statusRankColorMap[level].displayName}</span>
+                      ))
+                  }
+                </div>
+              </td>
             </tr>
           </tbody></table>
       }
@@ -95,13 +115,17 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
     >
       {state.statuses.map((serviceStatus, index) => (<>
         {0 < index && <hr/>}
-        <ServiceStatusComponent serviceStatus={serviceStatus}/>
+        <ServiceStatusComponent
+          serviceStatus={serviceStatus}
+          companyHealthStatuses={companyHealthStatuses}
+        />
       </>))}
     </Dialog>
   )
 }
 interface ServiceDashboardPopupProps {
   onServiceStatus?: (serviceStatus: ServiceStatus[]) => void
+  companyHealthStatuses?: CompanyHealthStatus[]
 }
 
 interface ServiceDashboardPopupState {
@@ -111,6 +135,7 @@ interface ServiceDashboardPopupState {
 }
 export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
   onServiceStatus,
+  companyHealthStatuses
 }) => {
   const [state, setState] = useState<ServiceDashboardPopupState>({
     visible: false,
@@ -148,6 +173,7 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
       >{state.isLoading ? 'Loading' : 'View'} Service Dashboard</Button>
       {state.visible && <ServiceDashboard 
         title={'Service Status Dashboard'}
+        companyHealthStatuses={companyHealthStatuses}
         initialStatuses={state.initialStatuses}
         onServiceStatus={onServiceStatus}
       />}

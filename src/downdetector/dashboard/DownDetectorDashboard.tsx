@@ -6,7 +6,6 @@ import {
   awaitQueryAll,
   awaitElementById,
 } from "../../common/await_functions";
-import { toMonthDayYearDateTime } from "../../common/datetime";
 import {
   CompanyPageTypes,
   sortingFields,
@@ -50,7 +49,10 @@ export const DownDetectorDashboard: Userscript = {
       page={'dashboard'}
       cards={cards}
       layout={'grid'}
-      addedHeaderComponent={<ServiceDashboardPopup onServiceStatus={setServiceStatus}/>}
+      addedHeaderComponent={<ServiceDashboardPopup 
+        onServiceStatus={setServiceStatus}
+        companyHealthStatuses={cards.map(({companyName, level}) => ({ companyName, healthStatus: level }))}
+      />}
     />);
     await awaitElementById(renderableId);
   },

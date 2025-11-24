@@ -2,7 +2,6 @@ import { Card, FilterableItems, ItemFilter, toCardIndex } from '../../dashboardc
 import { PersistenceClass, StaleDuration } from '../../dashboardcomponents/persistence';
 import { toTitleCase } from '../../common/functions';
 import { toMonthDayYearDateTime } from '../../common/datetime';
-import { ServiceStatus } from "../../statusAPIs/statustypes";
 import { getServiceStatus, getDependentServiceStatuses } from '../../statusAPIs/servicestatuscache';
 
 export const HealthLevelTypes = ['danger', 'warning', 'success'] as const;

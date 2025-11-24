@@ -4,22 +4,23 @@
 // @grant       GM_openInTab
 import { ServiceStatus, ServiceAPI } from "./statustypes"
 import { Persistence, PersistenceClass, PersistableStatus } from "./persistence"
+import { AzureDependentCompanies } from "./servicedependentcompanylists"
 
 const azurePersistence = Persistence('Azure')
 export const storeAzureStatus = (status: PersistableStatus) => {
     azurePersistence.storeStatus(status)
 }
+
 class AzureClass implements ServiceAPI {
     isLoading: boolean
     statusPage = 'https://azure.status.microsoft/en-us/status'
-    private dependentCompanies = []
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
-            dependentCompanies: this.dependentCompanies,
+            dependentCompanies: AzureDependentCompanies,
             serviceName: 'Microsoft Azure',
             status: null,
             incidents: null

@@ -4,22 +4,24 @@
 // @grant       GM_openInTab
 import { ServiceStatus, Status, Incident, ServiceAPI } from "./statustypes"
 import { Persistence, PersistenceClass, PersistableStatus } from "./persistence"
+import { AWSDependentCompanies } from "./servicedependentcompanylists"
 
 const awsPersistence = Persistence('AWS')
 export const storeAWSStatus = (status: PersistableStatus) => {
     awsPersistence.storeStatus(status)
 }
+
 class AWSClass implements ServiceAPI {
     isLoading: boolean
     statusPage = 'https://health.aws.com/health/status'
-    private dependentCompanies = []
+    
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
-            dependentCompanies: this.dependentCompanies,
+            dependentCompanies: AWSDependentCompanies,
             serviceName: 'Amazon Web Services',
             status: null,
             incidents: null

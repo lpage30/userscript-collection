@@ -4,22 +4,23 @@
 // @grant       GM_openInTab
 import { ServiceStatus, Status, Incident, ServiceAPI } from "./statustypes"
 import { Persistence, PersistenceClass, PersistableStatus } from "./persistence"
+import { OCIDependentCompanies } from "./servicedependentcompanylists"
 
 const ociPersistence = Persistence('OCI')
 export const storeOCIStatus = (status: PersistableStatus) => {
     ociPersistence.storeStatus(status)
 }
+
 class OCIClass implements ServiceAPI {
     isLoading: boolean
     statusPage = 'https://ocistatus.oraclecloud.com/#/'
-    private dependentCompanies = []    
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
-            dependentCompanies: this.dependentCompanies,
+            dependentCompanies: OCIDependentCompanies,
             serviceName: 'Oracle OCI',
             status: null,
             incidents: null

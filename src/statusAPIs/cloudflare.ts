@@ -3,12 +3,12 @@
 import { Status, Incident, ServiceStatus, ServiceAPI } from "./statustypes"
 import { parseDate } from "../common/datetime"
 import { Persistence, PersistenceClass } from "./persistence"
+import { CloudflareDependentCompanies } from "./servicedependentcompanylists"
 
 class CloudflareClass implements ServiceAPI {
   isLoading: boolean
   statusPage = 'https://www.cloudflarestatus.com/'
   private summaryURL = 'https://www.cloudflarestatus.com/api/v2/summary.json'
-  private dependentCompanies = []
   private data: ServiceStatus
   private persistence: PersistenceClass
   private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
@@ -17,7 +17,7 @@ class CloudflareClass implements ServiceAPI {
     this.persistence = Persistence('Cloudflare')
     this.data = {
       statusPage: this.statusPage,
-      dependentCompanies: this.dependentCompanies,
+      dependentCompanies: CloudflareDependentCompanies,
       serviceName: 'Cloudflare',
       status: null,
       incidents: null

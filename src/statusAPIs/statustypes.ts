@@ -34,3 +34,8 @@ export interface ServiceAPI {
     registerOnIsLoadingChange: (onChange: (isLoading: boolean) => void) => void
     load(force: boolean): Promise<ServiceStatus[]>
 }
+
+export interface CompanyHealthStatus {
+    companyName: string,
+    healthStatus: 'danger' | 'warning' | 'success'
+}

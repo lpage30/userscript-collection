@@ -5,6 +5,7 @@
 import { ServiceStatus, ServiceAPI } from "./statustypes"
 import { Persistence, PersistenceClass, PersistableStatus } from "./persistence"
 import { getMaxOccurringValidStatus } from "./conversionfunctions"
+import { GCPDependentCompanies } from "./servicedependentcompanylists"
 
 export const GCPZonePageUrlMap = {
     overview: 'https://status.cloud.google.com/index.html',
@@ -24,14 +25,13 @@ export const storeGCPStatus = (zone: string, status: PersistableStatus) => {
 class GCPClass implements ServiceAPI {
     isLoading: boolean
     statusPage = 'https://status.cloud.google.com/'
-    private dependentCompanies = []
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
-            dependentCompanies: this.dependentCompanies,
+            dependentCompanies: GCPDependentCompanies,
             serviceName: 'Google GCP',
             status: null,
             incidents: null
