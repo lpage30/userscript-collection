@@ -3,6 +3,7 @@ import { AWS } from "./aws";
 import { Azure } from "./azure";
 import { GCP } from "./gcp"
 import { OCI } from "./oci";
+import { IBM } from "./ibm"
 import { ServiceAPI, ServiceStatus } from "./statustypes";
 
 class ServiceAPIsClass implements ServiceAPI {
@@ -14,7 +15,8 @@ class ServiceAPIsClass implements ServiceAPI {
         AWS,
         Azure,
         GCP,
-        OCI
+        OCI,
+        IBM
     ]
     constructor() {
         this.isLoading = false

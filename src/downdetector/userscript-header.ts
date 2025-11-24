@@ -19,6 +19,7 @@
 // @include     https://status.cloud.google.com/regional/africa
 // @include     https://status.cloud.google.com/regional/multiregions
 // @include     https://ocistatus.oraclecloud.com/
+// @include     https://cloud.ibm.com/status
 
 
 // @grant       GM_setValue
