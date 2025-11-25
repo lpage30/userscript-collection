@@ -5,6 +5,7 @@ import StatusComponent from './StatusComponent'
 import IncidentComponent from './IncidentComponent'
 import { CompanyHealthLevelTypeInfoMap } from './IndicatorStatusTypeInfoMaps'
 import { IndicatorTypeInfoMap, toIndicatorTypeInfo } from './IndicatorStatusTypeInfoMaps'
+import { CompanyHealthStatusSpan } from './IndicatorStatusComponents'
 
 interface ServiceStatusComponentComponentProps {
     serviceStatus: ServiceStatus
@@ -30,20 +31,6 @@ function sortAndTablifyCompanyHealthStatuses(statuses: CompanyHealthStatus[], co
         }, [])
 }
 
-
-function companyHealthStatusSpan(
-    companyName: string,
-    status: 'danger' | 'warning' | 'success',
-    paddingLeft: number,
-    paddingRight: number
-): JSX.Element {
-    return <span style={{
-            backgroundColor: CompanyHealthLevelTypeInfoMap[status].bgColor,
-            color: CompanyHealthLevelTypeInfoMap[status].fgColor,
-            paddingLeft: `${paddingLeft}px`,
-            paddingRight: `${paddingRight}px`
-        }}>{companyName}</span>
-}
 const ServiceStatusComponent: React.FC<ServiceStatusComponentComponentProps> = ({
     serviceStatus,
     companyHealthStatuses
@@ -81,7 +68,7 @@ const ServiceStatusComponent: React.FC<ServiceStatusComponentComponentProps> = (
                         {row.map((status, index) => (
                             <div style={{display: 'flex', alignItems: 'center'}}>
                                 {0 < index && <span>&nbsp;&#x2022;&nbsp;</span>}
-                                {companyHealthStatusSpan(
+                                {CompanyHealthStatusSpan(
                                     status.companyName,
                                     status.healthStatus,
                                     0 < index ? 5 : 3,

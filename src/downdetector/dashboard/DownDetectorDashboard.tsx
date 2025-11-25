@@ -20,7 +20,11 @@ import {
 import Dashboard from "../../dashboardcomponents/Dashboard";
 import { Persistence } from "../../dashboardcomponents/persistence";
 import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
-import { setServiceStatus } from "../../statusAPIs/servicestatuscache";
+import { ServiceStatus } from "../../statusAPIs/statustypes";
+import { setServiceStatus, getDependentServiceStatuses } from "../../statusAPIs/servicestatuscache";
+import { reactToHTMLString } from "../../common/ui/reactTrustedHtmlString";
+import { IndicatorTypeInfoMap, toIndicatorTypeInfo } from "../../statusAPIs/ui/IndicatorStatusTypeInfoMaps";
+import { ServiceHealthStatusSpan } from "../../statusAPIs/ui/IndicatorStatusComponents";
 
 const renderableId = "downdetector-dashboard-panel";
 export const DownDetectorDashboard: Userscript = {
@@ -40,6 +44,29 @@ export const DownDetectorDashboard: Userscript = {
       renderableId,
     );
 
+    const onServiceStatus = (serviceStatus: ServiceStatus[]) => {
+      setServiceStatus(serviceStatus)
+
+      cards.forEach(card => {
+        const serviceStatuses = getDependentServiceStatuses(card.companyName)
+        if (serviceStatuses) {
+          const renderable = (
+            <>
+              <div 
+                className="text-sm" 
+                style={{ paddingLeft: `0px`, paddingRight: `3px`}}
+              >Dependent Services</div>
+              {serviceStatuses
+                .sort((l: ServiceStatus, r: ServiceStatus) => IndicatorTypeInfoMap[toIndicatorTypeInfo(l.status.indicator)].rank - IndicatorTypeInfoMap[toIndicatorTypeInfo(r.status.indicator)].rank)
+                .map(status => (ServiceHealthStatusSpan(status,0, 3, true)))
+              }
+            </>
+          )
+          card.renderable.firstElementChild.innerHTML = reactToHTMLString(renderable)
+        }
+      })
+    }
+
     renderInContainer(container, <Dashboard 
       title={`DownDetector Dashboard's Top ${cards.length}`}
       persistence={persistence}
@@ -50,7 +77,7 @@ export const DownDetectorDashboard: Userscript = {
       cards={cards}
       layout={'grid'}
       addedHeaderComponent={<ServiceDashboardPopupAndSummary 
-          onServiceStatus={setServiceStatus}
+          onServiceStatus={onServiceStatus}
           companyHealthStatuses={cards.map(({companyName, level}) => ({ companyName, healthStatus: level }))}
         />}
     />);

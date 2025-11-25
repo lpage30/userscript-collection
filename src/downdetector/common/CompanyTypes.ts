@@ -77,45 +77,19 @@ function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata 
     let result = [
       `${metadata.companyName}`
     ]
-    const foundStatus = getServiceStatus(metadata.companyName)
-    const foundDependentStatuses = getDependentServiceStatuses(metadata.companyName)
-    if (nullIncidentReports && foundStatus === null && foundDependentStatuses === null) {
+    if (nullIncidentReports) {
       console.log(`Warning: ${metadata.companyName} - has null IncidentReports`)
       return [
         ...result,
         'missing incident data'
       ]
     }
-    if (foundStatus === null && foundDependentStatuses === null) {
-      return [
-        ...result,
-        `Incident Spike: ${metadata.incidentReports.pastHr15minAvg}`,
-        `Incident Baseline: ${metadata.incidentReports.baseline15minAvg}`,
-        `IncidentRisk: ${metadata.incidentReports.incidentRiskPercent.toFixed(2)}%`
-      ];
-    }
-
-    if (foundStatus) {
-        result = [
-        ...result,
-        `Service Status: ${toMonthDayYearDateTime(foundStatus.status.timestamp)}`,
-        `Status Indicator: ${foundStatus.status.indicator}`,
-        `Activity: ${foundStatus.status.description}`,
-      ];
-    }
-
-    if (foundDependentStatuses) {
-        result = [
-          ...result,
-          ...(foundDependentStatuses.map(serviceStatus => ([
-            `${serviceStatus.serviceName} Status: ${toMonthDayYearDateTime(serviceStatus.status.timestamp)}`,
-            `  Status Indicator: ${foundStatus.status.indicator}`,
-            `  Activity: ${foundStatus.status.description}`,
-          ])).flat())
-        ];
-
-    }
-    return result
+    return [
+      ...result,
+      `Incident Spike: ${metadata.incidentReports.pastHr15minAvg}`,
+      `Incident Baseline: ${metadata.incidentReports.baseline15minAvg}`,
+      `IncidentRisk: ${metadata.incidentReports.incidentRiskPercent.toFixed(2)}%`
+    ];
   }
   metadata.label = () => `#${metadata.rank} ${metadata.companyName}`
   metadata.color = () => metadata.level === 'danger' ? 'red' : metadata.level === 'warning' ? 'yellow' : 'lightblue'
@@ -150,10 +124,12 @@ function toCompanyInfo(
   } else {
     console.error(`${companyName} has empty dataset hour/day hour(${companyDiv.dataset.hour}) day(${companyDiv.dataset.day})`)
   }
+  const wrappedCompanyDivId = `${companyDiv.id}-wrapped`
+  const wrappedCompanyDivInfoId = `${companyDiv.id}-info`
   const pageInfo: CompanyPageInfo = {
     ['dashboard']: {
       href: 'https://downdetector.com/',
-      elementId: companyDiv.id
+      elementId: wrappedCompanyDivId
     },
     ['status']: {
       href: statusAnchor.href,
@@ -162,6 +138,13 @@ function toCompanyInfo(
       href: `${statusAnchor.href}map/`,
     }
   }
+  const wrappedCompanyDiv = document.createElement('div')
+  const infoDisplayDiv = document.createElement('div')
+  wrappedCompanyDiv.id = wrappedCompanyDivId
+  infoDisplayDiv.id = wrappedCompanyDivInfoId
+  infoDisplayDiv.style.float = 'right'
+  wrappedCompanyDiv.appendChild(infoDisplayDiv)
+  wrappedCompanyDiv.appendChild(companyDiv)
 
   return toCompanyMetadataCard({
     timestamp,
@@ -171,7 +154,7 @@ function toCompanyInfo(
     incidentReports,
     pageInfo,
     incidentRisk: incidentRiskPercent,
-    renderable: companyDiv
+    renderable: wrappedCompanyDiv
   })
 }
 

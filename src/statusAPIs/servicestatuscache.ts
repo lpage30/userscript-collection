@@ -1,31 +1,43 @@
 import { ServiceStatus } from "./statustypes";
 
-let ServiceStatusMap: { [service: string]: ServiceStatus } = {}
-let DependentCompanyServicesMap: { [dependentCompany: string]: string[] } = {}
+let globalServiceStatusMap: { [service: string]: ServiceStatus } = {}
+let globalDependentCompanyServicesMap: { [dependentCompany: string]: string[] } = {}
 
 export function setServiceStatus(serviceStatus: ServiceStatus[]) {
     
-    ServiceStatusMap = serviceStatus.reduce((serviceMap, status) => ({
+    globalServiceStatusMap = serviceStatus.reduce((serviceMap, status) => ({
         ...serviceMap,
         [status.serviceName]: status
 
     }), {} as { [service: string]: ServiceStatus })
     
-    DependentCompanyServicesMap = serviceStatus.reduce((dependentMap, status) => {
+    globalDependentCompanyServicesMap = serviceStatus.reduce((dependentMap, status) => {
         return status.dependentCompanies.reduce((result, companyName) => ({
             ...result,
             [companyName]: [...(result[companyName] ?? []), status.serviceName]
-        }), {} as { [dependentCompany: string]: string[] })
+        }), dependentMap)
     }, {} as { [dependentCompany: string]: string[] })
 }
 
 export function getServiceStatus(serviceOrCompanyName: string): ServiceStatus | null {
-  const serviceNames = Object.keys(ServiceStatusMap)
+  const serviceNames = Object.keys(globalServiceStatusMap)
   const foundServiceName = serviceNames.find(name => serviceOrCompanyName.includes(name))
-  return foundServiceName ? ServiceStatusMap[foundServiceName] : null
+  return foundServiceName ? globalServiceStatusMap[foundServiceName] : null
 }
 export function getDependentServiceStatuses(companyName: string): ServiceStatus[] | null {
-  const companyNames = Object.keys(DependentCompanyServicesMap)
+  const companyNames = Object.keys(globalDependentCompanyServicesMap)
+  const companyAsService = getServiceStatus(companyName)
   const foundCompanyName = companyNames.find(name => companyName.includes(name))
-  return foundCompanyName ? DependentCompanyServicesMap[foundCompanyName].map(serviceName => ServiceStatusMap[serviceName]) : null
+  let result: ServiceStatus[] | null = null
+  if(foundCompanyName || companyAsService) {
+    result = [
+      companyAsService, 
+      ...(globalDependentCompanyServicesMap[foundCompanyName] ?? [])
+        .map(serviceName => globalServiceStatusMap[serviceName])
+    ].filter(e => e != null)
+    if (0 === result.length) {
+      result = null
+    }
+  }
+  return result
 }

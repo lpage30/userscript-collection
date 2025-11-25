@@ -2,6 +2,7 @@ import React, { useState, useEffect, JSX} from 'react'
 import { Dialog } from 'primereact/dialog'
 import { Button } from 'primereact/button'
 import { ServiceStatus, CompanyHealthStatus, IndicatorType } from '../statustypes'
+import { ServiceHealthStatusSpan } from './IndicatorStatusComponents'
 import { StatusAPIs } from '../statusAPIs'
 import ServiceStatusComponent from './ServiceStatusComponent'
 import { CompanyHealthLevelTypeInfoMap, IndicatorTypeInfoMap, toIndicatorTypeInfo } from './IndicatorStatusTypeInfoMaps'
@@ -23,25 +24,6 @@ interface ServiceDashboardState {
   companyStatuses: CompanyHealthStatus[]
 }
 
-
-function serviceHealthStatusSpan(
-    status: ServiceStatus,
-    paddingLeft: number,
-    paddingRight: number
-): JSX.Element {
-  const {bgColor, fgColor} = IndicatorTypeInfoMap[toIndicatorTypeInfo(status.status.indicator)]
-  return (
-    <span
-      className="text-sm" 
-      style={{
-        backgroundColor: bgColor,
-        color: fgColor,
-        paddingLeft: `${paddingLeft}px`,
-        paddingRight: `${paddingRight}px`
-      }}
-    >{status.serviceName}</span>
-  )
-}
 const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
   title,
   onServiceStatus,
@@ -243,7 +225,7 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProp
             .map((status, index) => (  
               <>
                 {0 < index && <span className="text-sm">&nbsp;&#x2022;&nbsp;</span>}
-                {serviceHealthStatusSpan(
+                {ServiceHealthStatusSpan(
                     status,
                     0 < index ? 5 : 3,
                     (index + 1) < statuses.length ? 5 : 3
