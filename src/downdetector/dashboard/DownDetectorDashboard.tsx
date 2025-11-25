@@ -19,7 +19,7 @@ import {
 } from "../../common/ui/renderRenderable";
 import Dashboard from "../../dashboardcomponents/Dashboard";
 import { Persistence } from "../../dashboardcomponents/persistence";
-import { ServiceDashboardPopup } from "../../statusAPIs/ui/ServiceDashboard";
+import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
 import { setServiceStatus } from "../../statusAPIs/servicestatuscache";
 
 const renderableId = "downdetector-dashboard-panel";
@@ -49,10 +49,10 @@ export const DownDetectorDashboard: Userscript = {
       page={'dashboard'}
       cards={cards}
       layout={'grid'}
-      addedHeaderComponent={<ServiceDashboardPopup 
-        onServiceStatus={setServiceStatus}
-        companyHealthStatuses={cards.map(({companyName, level}) => ({ companyName, healthStatus: level }))}
-      />}
+      addedHeaderComponent={<ServiceDashboardPopupAndSummary 
+          onServiceStatus={setServiceStatus}
+          companyHealthStatuses={cards.map(({companyName, level}) => ({ companyName, healthStatus: level }))}
+        />}
     />);
     await awaitElementById(renderableId);
   },

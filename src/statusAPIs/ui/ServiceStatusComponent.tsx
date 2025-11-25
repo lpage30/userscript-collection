@@ -1,21 +1,19 @@
-import React, { CSSProperties, useState, JSX} from 'react'
+import React, { useState, JSX} from 'react'
 import { Button } from 'primereact/button'
 import { ServiceStatus, Incident, CompanyHealthStatus } from '../statustypes'
 import StatusComponent from './StatusComponent'
 import IncidentComponent from './IncidentComponent'
+import { CompanyHealthLevelTypeInfoMap } from './IndicatorStatusTypeInfoMaps'
+import { IndicatorTypeInfoMap, toIndicatorTypeInfo } from './IndicatorStatusTypeInfoMaps'
 
 interface ServiceStatusComponentComponentProps {
     serviceStatus: ServiceStatus
     companyHealthStatuses?: CompanyHealthStatus[]
 }
-export const statusRankColorMap = {
-    danger: { rank: 1, bgColor: 'red', fgColor: 'white', displayName: 'Major Impact'},
-    warning:{ rank: 2, bgColor: 'orange', fgColor: 'black', displayName: 'Minor Impact'},
-    success:{ rank: 3, bgColor: 'green', fgColor: 'white', displayName: 'No Impact'}
-}
+
 function sortAndTablifyCompanyHealthStatuses(statuses: CompanyHealthStatus[], columnsPerRow: number): CompanyHealthStatus[][] {
-    return Object.keys(statusRankColorMap)
-        .sort((l: string, r: string) => statusRankColorMap[l].rank - statusRankColorMap[r].rank)
+    return Object.keys(CompanyHealthLevelTypeInfoMap)
+        .sort((l: string, r: string) => CompanyHealthLevelTypeInfoMap[l].rank - CompanyHealthLevelTypeInfoMap[r].rank)
         .reduce((result, level) => ([
             ...result,
             ...statuses
@@ -40,8 +38,8 @@ function companyHealthStatusSpan(
     paddingRight: number
 ): JSX.Element {
     return <span style={{
-            backgroundColor: statusRankColorMap[status].bgColor,
-            color: statusRankColorMap[status].fgColor,
+            backgroundColor: CompanyHealthLevelTypeInfoMap[status].bgColor,
+            color: CompanyHealthLevelTypeInfoMap[status].fgColor,
             paddingLeft: `${paddingLeft}px`,
             paddingRight: `${paddingRight}px`
         }}>{companyName}</span>
@@ -60,7 +58,11 @@ const ServiceStatusComponent: React.FC<ServiceStatusComponentComponentProps> = (
         setIncidents(0 < incidents.length ? [] : serviceStatus.incidents)
     }
 
-    return (<div style={{ width: '100%', margin: '0 auto'}}>
+    return (<div style={{ 
+        width: '100%', 
+        margin: '0 auto',
+        borderLeft: `5px solid ${IndicatorTypeInfoMap[toIndicatorTypeInfo(serviceStatus.status.indicator)].bgColor}`
+    }}>
         <div>
             <div style={{display: 'flex', padding: '10px', alignItems: 'center'}}>
                 <h3 style={{paddingRight: '10px'}}><a href={serviceStatus.statusPage}>{serviceStatus.serviceName}</a></h3>

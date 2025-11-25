@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef} from 'react'
+import React, { useState, useEffect, JSX} from 'react'
 import { Dialog } from 'primereact/dialog'
 import { Button } from 'primereact/button'
-import { ServiceStatus, CompanyHealthStatus } from '../statustypes'
+import { ServiceStatus, CompanyHealthStatus, IndicatorType } from '../statustypes'
 import { StatusAPIs } from '../statusAPIs'
-import ServiceStatusComponent, {statusRankColorMap} from './ServiceStatusComponent'
+import ServiceStatusComponent from './ServiceStatusComponent'
+import { CompanyHealthLevelTypeInfoMap, IndicatorTypeInfoMap, toIndicatorTypeInfo } from './IndicatorStatusTypeInfoMaps'
 
 interface ServiceDashboardProps {
   title: string
@@ -20,6 +21,26 @@ interface ServiceDashboardState {
   isLoading: boolean
   statuses: ServiceStatus[]
   companyStatuses: CompanyHealthStatus[]
+}
+
+
+function serviceHealthStatusSpan(
+    status: ServiceStatus,
+    paddingLeft: number,
+    paddingRight: number
+): JSX.Element {
+  const {bgColor, fgColor} = IndicatorTypeInfoMap[toIndicatorTypeInfo(status.status.indicator)]
+  return (
+    <span
+      className="text-sm" 
+      style={{
+        backgroundColor: bgColor,
+        color: fgColor,
+        paddingLeft: `${paddingLeft}px`,
+        paddingRight: `${paddingRight}px`
+      }}
+    >{status.serviceName}</span>
+  )
 }
 const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
   title,
@@ -95,15 +116,15 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
               <td>
                 <div style={{display: 'flex'}}>
                   <span className="text-sm">Company Color Legend:&nbsp;</span>{
-                    Object.keys(statusRankColorMap)
-                      .sort((l: string, r: string) => statusRankColorMap[l].rank = statusRankColorMap[r].rank)
+                    Object.keys(CompanyHealthLevelTypeInfoMap)
+                      .sort((l: string, r: string) => CompanyHealthLevelTypeInfoMap[l].rank = CompanyHealthLevelTypeInfoMap[r].rank)
                       .map(level => (
                         <span className="text-sm" style={{
-                          backgroundColor: statusRankColorMap[level].bgColor,
-                          color: statusRankColorMap[level].fgColor,
+                          backgroundColor: CompanyHealthLevelTypeInfoMap[level].bgColor,
+                          color: CompanyHealthLevelTypeInfoMap[level].fgColor,
                           paddingLeft: `5px`,
                           paddingRight: `5px`
-                        }}>{statusRankColorMap[level].displayName}</span>
+                        }}>{CompanyHealthLevelTypeInfoMap[level].displayName}</span>
                       ))
                   }
                 </div>
@@ -167,7 +188,8 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
   }
   return (
     <div>
-      <Button className="app-button"
+      <Button
+        className="app-button"
         onClick={() => onViewDashboard()}
         disabled={state.isLoading}
       >{state.isLoading ? 'Loading' : 'View'} Service Dashboard</Button>
@@ -179,7 +201,59 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
       />}
     </div>
   )
+}
 
+export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProps> = ({
+  onServiceStatus,
+  companyHealthStatuses
 
+}) => {
+  const [statuses, setStatuses] = useState<ServiceStatus[]>([])
+
+  const setServiceStatus = (serviceStatus: ServiceStatus[]) => {
+    setStatuses(serviceStatus)
+    if (onServiceStatus) onServiceStatus(serviceStatus)
+  }
+  return (
+    <div style={{ display: 'flex'}}>
+      <ServiceDashboardPopup 
+        onServiceStatus={setServiceStatus}
+        companyHealthStatuses={companyHealthStatuses}
+      />
+      {0 < statuses.length && (
+        <div>
+          <div style={{display: 'flex', alignItems: 'center'}}>
+            <span className="text-sm" style={{paddingLeft: '5px', paddingRight: '5px'}}>Service Color Legend:</span>
+            {  
+              Object.keys(IndicatorTypeInfoMap).sort((l: string, r: string) => IndicatorTypeInfoMap[l].rank - IndicatorTypeInfoMap[r].rank)
+                .map(level => (
+                  <span className="text-sm" style={{
+                    backgroundColor: IndicatorTypeInfoMap[level].bgColor,
+                    color: IndicatorTypeInfoMap[level].fgColor,
+                    paddingLeft: `5px`,
+                    paddingRight: `5px`
+                  }}>{IndicatorTypeInfoMap[level].displayName}</span>
+                ))
+            }
+          </div>
+          <div style={{display: 'flex', alignItems: 'center'}}>
+            <span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px'}}>Services:</span>
+            {statuses
+            .sort((l: ServiceStatus, r: ServiceStatus) => IndicatorTypeInfoMap[toIndicatorTypeInfo(l.status.indicator)].rank - IndicatorTypeInfoMap[toIndicatorTypeInfo(r.status.indicator)].rank)
+            .map((status, index) => (  
+              <>
+                {0 < index && <span className="text-sm">&nbsp;&#x2022;&nbsp;</span>}
+                {serviceHealthStatusSpan(
+                    status,
+                    0 < index ? 5 : 3,
+                    (index + 1) < statuses.length ? 5 : 3
+                )}
+              </>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 export default ServiceDashboard
