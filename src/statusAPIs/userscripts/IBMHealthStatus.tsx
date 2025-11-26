@@ -1,17 +1,17 @@
 // @grant       GM_setValue
 // @grant       GM_getValue
 // @grant       GM_deleteValue
+// @include     https://cloud.ibm.com/status
 import React from "react";
-import "../common/ui/styles.css";
-import { Userscript } from "../common/userscript";
+import { Userscript } from "../../common/userscript";
 import {
   awaitPageLoadByEvent,
   awaitQuerySelection
-} from "../common/await_functions";
-import { PersistableStatus } from "./persistence";
-import { Status, Incident } from "./statustypes";
-import { storeIBMStatus } from "./ibm";
-import { getMaxOccurringValidStatus, NoStatusStatus} from "./conversionfunctions";
+} from "../../common/await_functions";
+import { PersistableStatus } from "../persistence";
+import { Status, Incident } from "../statustypes";
+import { storeIBMStatus, IBMHealthStatusPage } from "../services/ibm";
+import { getMaxOccurringValidStatus, NoStatusStatus } from "../conversionfunctions";
 
 async function scrapeIncidents(): Promise<Incident[]> {
   const timestamp = Date.now()
@@ -21,23 +21,23 @@ async function scrapeIncidents(): Promise<Incident[]> {
       .map(td => (td as HTMLElement).innerText.trim())
       .filter(t => 0 < t.length)
     )
-    .map(([service, status]) => ({service, status: /\d+ (.*)/g.exec(status)[1] }))
+    .map(([service, status]) => ({ service, status: /\d+ (.*)/g.exec(status)[1] }))
     .reduce((result, serviceStatus) => {
       return [...result, {
-          timestamp,
-          impact: getMaxOccurringValidStatus([serviceStatus.status]) === NoStatusStatus ? 'none' : serviceStatus.status,
-          name: serviceStatus.service,
-          status: getMaxOccurringValidStatus([serviceStatus.status]),
-          updated: timestamp,
-          updates: [],
-        } as Incident          
+        timestamp,
+        impact: getMaxOccurringValidStatus([serviceStatus.status]) === NoStatusStatus ? 'none' : serviceStatus.status,
+        name: serviceStatus.service,
+        status: getMaxOccurringValidStatus([serviceStatus.status]),
+        updated: timestamp,
+        updates: [],
+      } as Incident
       ]
     }, [] as Incident[])
 
 }
 function toPersistableStatus(incidents: Incident[]): PersistableStatus {
   const timestamp = Date.now()
-  const overallStatus = getMaxOccurringValidStatus(incidents.map(({status}) => status))
+  const overallStatus = getMaxOccurringValidStatus(incidents.map(({ status }) => status))
   return {
     status: {
       timestamp,
@@ -48,8 +48,6 @@ function toPersistableStatus(incidents: Incident[]): PersistableStatus {
   }
 }
 
-
-export const IBMHealthStatusPage = 'https://cloud.ibm.com/status'
 export const IBMHealthStatus: Userscript = {
   name: "IBMHealthStatus",
 

@@ -3,10 +3,12 @@ const healthyStatuses = [
     'no Reported Event', 
     'noevent',
     'none',
+    'available',
     'available status',
     'not available',
     'good',
     'active locations',
+    'operational',
 ]
 export const NoStatusStatus = 'healthy'
 export const getMaxOccurringValidStatus = (statuses: string[]) => {

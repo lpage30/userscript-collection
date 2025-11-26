@@ -2,30 +2,31 @@
 // @grant       GM_addValueChangeListener
 // @grant       GM_removeValueChangeListener
 // @grant       GM_openInTab
-import { ServiceStatus, Status, Incident, ServiceAPI } from "./statustypes"
-import { Persistence, PersistenceClass, PersistableStatus } from "./persistence"
-import { OCIDependentCompanies } from "./servicedependentcompanylists"
+// @include     https://azure.status.microsoft/en-us/status
+import { ServiceStatus, ServiceAPI } from "../statustypes"
+import { Persistence, PersistenceClass, PersistableStatus } from "../persistence"
+import { AzureDependentCompanies } from "../servicedependentcompanylists"
 
-const ociPersistence = Persistence('OCI')
-export const storeOCIStatus = (status: PersistableStatus) => {
-    ociPersistence.storeStatus(status)
+const azurePersistence = Persistence('Azure')
+export const storeAzureStatus = (status: PersistableStatus) => {
+    azurePersistence.storeStatus(status)
 }
-
-class OCIClass implements ServiceAPI {
+export const AzureHealthStatusPage = 'https://azure.status.microsoft/en-us/status'
+class AzureClass implements ServiceAPI {
     isLoading: boolean
-    statusPage = 'https://ocistatus.oraclecloud.com/#/'
+    statusPage = AzureHealthStatusPage
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
-            dependentCompanies: OCIDependentCompanies,
-            serviceName: 'Oracle OCI',
+            dependentCompanies: AzureDependentCompanies,
+            serviceName: 'Microsoft Azure',
             status: null,
             incidents: null
         }
-        this.persistence = ociPersistence
+        this.persistence = azurePersistence
         this.isLoading = false
         this.onIsLoadingChangeCallbacks = []
     }
@@ -51,8 +52,8 @@ class OCIClass implements ServiceAPI {
                 return [this.data]
             }
         }
-        const pendingStatus = this.persistence.awaitStatus()        
-        const tab = GM_openInTab(this.statusPage, { active: false})
+        const pendingStatus = this.persistence.awaitStatus()
+        const tab = GM_openInTab(this.statusPage, { active: false })
         const scrapedStatus = await pendingStatus
         if (tab && !tab.closed) {
             tab.close()
@@ -65,4 +66,4 @@ class OCIClass implements ServiceAPI {
     }
 }
 
-export const OCI: ServiceAPI = new OCIClass()
+export const Azure: ServiceAPI = new AzureClass()

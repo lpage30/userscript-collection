@@ -20,7 +20,8 @@
 // @include     https://status.cloud.google.com/regional/multiregions
 // @include     https://ocistatus.oraclecloud.com/
 // @include     https://cloud.ibm.com/status
-
+// @include     https://status.digitalocean.com/
+// @include     https://www.fastlystatus.com/
 
 // @grant       GM_setValue
 // @grant       GM_getValue
@@ -32,4 +33,5 @@
 // @grant       GM_openInTab
 
 // @connect     cloudflarestatus.com
+// @connect     akamaistatus.com
 // ==/UserScript==

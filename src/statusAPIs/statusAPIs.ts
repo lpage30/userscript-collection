@@ -1,9 +1,12 @@
-import { Cloudflare } from "./cloudflare";
-import { AWS } from "./aws";
-import { Azure } from "./azure";
-import { GCP } from "./gcp"
-import { OCI } from "./oci";
-import { IBM } from "./ibm"
+import { Cloudflare } from "./services/cloudflare";
+import { AWS } from "./services/aws";
+import { Azure } from "./services/azure";
+import { GCP } from "./services/gcp"
+import { OCI } from "./services/oci";
+import { IBM } from "./services/ibm"
+import { DigitalOcean } from "./services/digitalocean";
+import { Akamai } from "./services/akamai";
+import { Fastly } from "./services/fastly";
 import { ServiceAPI, ServiceStatus } from "./statustypes";
 
 class ServiceAPIsClass implements ServiceAPI {
@@ -16,7 +19,10 @@ class ServiceAPIsClass implements ServiceAPI {
         Azure,
         GCP,
         OCI,
-        IBM
+        IBM,
+        DigitalOcean,
+        Akamai,
+        Fastly,
     ]
     constructor() {
         this.isLoading = false

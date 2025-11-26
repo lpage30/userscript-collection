@@ -2,31 +2,31 @@
 // @grant       GM_addValueChangeListener
 // @grant       GM_removeValueChangeListener
 // @grant       GM_openInTab
-import { ServiceStatus, Status, Incident, ServiceAPI } from "./statustypes"
-import { Persistence, PersistenceClass, PersistableStatus } from "./persistence"
-import { AWSDependentCompanies } from "./servicedependentcompanylists"
+// @include     https://www.fastlystatus.com/
+import { ServiceStatus, ServiceAPI } from "../statustypes"
+import { Persistence, PersistenceClass, PersistableStatus } from "../persistence"
+import { FastlyDependentCompanies } from "../servicedependentcompanylists"
 
-const awsPersistence = Persistence('AWS')
-export const storeAWSStatus = (status: PersistableStatus) => {
-    awsPersistence.storeStatus(status)
+const fastlyPersistence = Persistence('Fastly')
+export const storeFastlyStatus = (status: PersistableStatus) => {
+    fastlyPersistence.storeStatus(status)
 }
-
-class AWSClass implements ServiceAPI {
+export const FastlyHealthStatusPage = 'https://www.fastlystatus.com/'
+class FastlyClass implements ServiceAPI {
     isLoading: boolean
-    statusPage = 'https://health.aws.com/health/status'
-    
+    statusPage = FastlyHealthStatusPage
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
-            dependentCompanies: AWSDependentCompanies,
-            serviceName: 'Amazon Web Services',
+            dependentCompanies: FastlyDependentCompanies,
+            serviceName: 'Fastly',
             status: null,
             incidents: null
         }
-        this.persistence = awsPersistence
+        this.persistence = fastlyPersistence
         this.isLoading = false
         this.onIsLoadingChangeCallbacks = []
     }
@@ -52,8 +52,8 @@ class AWSClass implements ServiceAPI {
                 return [this.data]
             }
         }
-        const pendingStatus = this.persistence.awaitStatus()        
-        const tab = GM_openInTab(this.statusPage, { active: false})
+        const pendingStatus = this.persistence.awaitStatus()
+        const tab = GM_openInTab(this.statusPage, { active: false })
         const scrapedStatus = await pendingStatus
         if (tab && !tab.closed) {
             tab.close()
@@ -66,4 +66,4 @@ class AWSClass implements ServiceAPI {
     }
 }
 
-export const AWS: ServiceAPI = new AWSClass()
+export const Fastly: ServiceAPI = new FastlyClass()

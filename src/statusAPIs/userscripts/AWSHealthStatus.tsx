@@ -1,21 +1,21 @@
 // @grant       GM_setValue
 // @grant       GM_getValue
 // @grant       GM_deleteValue
+// @include     https://health.aws.com/health/status
 import React from "react";
-import "../common/ui/styles.css";
-import { Userscript } from "../common/userscript";
+import { Userscript } from "../../common/userscript";
 import {
   awaitPageLoadByMutation,
   awaitElementById,
   awaitDelay
-} from "../common/await_functions";
-import { parseDateTime } from "../common/datetime";
-import { Status, Incident, IncidentUpdate } from "./statustypes";
-import { storeAWSStatus } from "./aws";
-import { getMaxOccurringValidStatus, NoStatusStatus } from "./conversionfunctions";
+} from "../../common/await_functions";
+import { parseDateTime } from "../../common/datetime";
+import { Status, Incident, IncidentUpdate } from "../statustypes";
+import { storeAWSStatus, AWSHealthStatusPage } from "../services/aws";
+import { getMaxOccurringValidStatus, NoStatusStatus } from "../conversionfunctions";
 
 const paginationAggregationVariableName = 'aws_paginated_status_aggregation'
-type AWSHealthPageServiceRegion = {service: string, region: string, status: string}
+type AWSHealthPageServiceRegion = { service: string, region: string, status: string }
 type AWSHealthServiceMap = { [service: string]: AWSHealthPageServiceRegion[] }
 function deletePaginatedAggregation() {
   GM_deleteValue(paginationAggregationVariableName)
@@ -30,7 +30,7 @@ function storePaginatedAggregation(aggregate: AWSHealthServiceMap) {
 
 async function scrapeServiceStatusMap(pageNo: number, hasNextPage: boolean): Promise<AWSHealthServiceMap> {
   const serviceTable = await awaitElementById('status-history-service-list-table')
-  const initial: AWSHealthServiceMap = 1 < pageNo 
+  const initial: AWSHealthServiceMap = 1 < pageNo
     ? (getPaginatedAggregation() ?? {})
     : {}
   console.log(`Page ${pageNo}, More Pages: ${hasNextPage}`)
@@ -65,7 +65,6 @@ async function scrapeServiceStatusMap(pageNo: number, hasNextPage: boolean): Pro
   return result
 }
 
-export const AWSHealthStatusPage = 'https://health.aws.com/health/status'
 export const AWSHealthStatus: Userscript = {
   name: "AWSHealthStatus",
 
@@ -77,7 +76,7 @@ export const AWSHealthStatus: Userscript = {
     await awaitDelay(500)
     let hasNextPage = true
     let currentPageNo = 0
-    while(hasNextPage) {
+    while (hasNextPage) {
       const lastPageNo = currentPageNo
       const pages = Array.from(document.querySelector('ul[aria-label="Table pagination"]').querySelectorAll('button'))
       currentPageNo = parseInt(pages.filter(button => button.ariaCurrent === 'true')[0].innerText)
@@ -108,15 +107,15 @@ export const AWSHealthStatus: Userscript = {
                 updated: timestamp.getTime()
               } as IncidentUpdate
             })
-            const status = getMaxOccurringValidStatus(updates.map(({status}) => status))
+            const status = getMaxOccurringValidStatus(updates.map(({ status }) => status))
             return {
               timestamp: timestamp.getTime(),
               name: serviceName,
               updated: timestamp.getTime(),
-              
+
               updates,
               status,
-              impact: status === NoStatusStatus ? 'none' : status 
+              impact: status === NoStatusStatus ? 'none' : status
 
             } as Incident
           }),

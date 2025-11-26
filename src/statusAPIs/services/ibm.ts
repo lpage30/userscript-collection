@@ -2,18 +2,19 @@
 // @grant       GM_addValueChangeListener
 // @grant       GM_removeValueChangeListener
 // @grant       GM_openInTab
-import { ServiceStatus, ServiceAPI } from "./statustypes"
-import { Persistence, PersistenceClass, PersistableStatus } from "./persistence"
-import { IBMDependentCompanies } from "./servicedependentcompanylists"
+// @include     https://cloud.ibm.com/status
+import { ServiceStatus, ServiceAPI } from "../statustypes"
+import { Persistence, PersistenceClass, PersistableStatus } from "../persistence"
+import { IBMDependentCompanies } from "../servicedependentcompanylists"
 
 const ibmPersistence = Persistence('Azure')
 export const storeIBMStatus = (status: PersistableStatus) => {
     ibmPersistence.storeStatus(status)
 }
-
+export const IBMHealthStatusPage = 'https://cloud.ibm.com/status'
 class IBMClass implements ServiceAPI {
     isLoading: boolean
-    statusPage = 'https://cloud.ibm.com/status'
+    statusPage = IBMHealthStatusPage
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
@@ -51,8 +52,8 @@ class IBMClass implements ServiceAPI {
                 return [this.data]
             }
         }
-        const pendingStatus = this.persistence.awaitStatus()        
-        const tab = GM_openInTab(this.statusPage, { active: false})
+        const pendingStatus = this.persistence.awaitStatus()
+        const tab = GM_openInTab(this.statusPage, { active: false })
         const scrapedStatus = await pendingStatus
         if (tab && !tab.closed) {
             tab.close()

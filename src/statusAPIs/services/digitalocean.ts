@@ -1,31 +1,33 @@
+
 // @grant       GM_setValue
 // @grant       GM_addValueChangeListener
 // @grant       GM_removeValueChangeListener
 // @grant       GM_openInTab
-import { ServiceStatus, ServiceAPI } from "./statustypes"
-import { Persistence, PersistenceClass, PersistableStatus } from "./persistence"
-import { AzureDependentCompanies } from "./servicedependentcompanylists"
+// @include     https://status.digitalocean.com/
+import { ServiceStatus, ServiceAPI } from "../statustypes"
+import { Persistence, PersistenceClass, PersistableStatus } from "../persistence"
+import { DigitalOceanDependentCompanies } from "../servicedependentcompanylists"
 
-const azurePersistence = Persistence('Azure')
-export const storeAzureStatus = (status: PersistableStatus) => {
-    azurePersistence.storeStatus(status)
+const digitalOceanPersistence = Persistence('DigitalOcean')
+export const storeDigitalOceanStatus = (status: PersistableStatus) => {
+    digitalOceanPersistence.storeStatus(status)
 }
-
-class AzureClass implements ServiceAPI {
+export const DigitalOceanStatusPage = 'https://status.digitalocean.com/'
+class DigitalOceanClass implements ServiceAPI {
     isLoading: boolean
-    statusPage = 'https://azure.status.microsoft/en-us/status'
+    statusPage = DigitalOceanStatusPage
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
-            dependentCompanies: AzureDependentCompanies,
-            serviceName: 'Microsoft Azure',
+            dependentCompanies: DigitalOceanDependentCompanies,
+            serviceName: 'DigitalOcean',
             status: null,
             incidents: null
         }
-        this.persistence = azurePersistence
+        this.persistence = digitalOceanPersistence
         this.isLoading = false
         this.onIsLoadingChangeCallbacks = []
     }
@@ -51,8 +53,8 @@ class AzureClass implements ServiceAPI {
                 return [this.data]
             }
         }
-        const pendingStatus = this.persistence.awaitStatus()        
-        const tab = GM_openInTab(this.statusPage, { active: false})
+        const pendingStatus = this.persistence.awaitStatus()
+        const tab = GM_openInTab(this.statusPage, { active: false })
         const scrapedStatus = await pendingStatus
         if (tab && !tab.closed) {
             tab.close()
@@ -65,4 +67,4 @@ class AzureClass implements ServiceAPI {
     }
 }
 
-export const Azure: ServiceAPI = new AzureClass()
+export const DigitalOcean: ServiceAPI = new DigitalOceanClass()
