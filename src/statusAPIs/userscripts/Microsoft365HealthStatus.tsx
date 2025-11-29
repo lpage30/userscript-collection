@@ -7,6 +7,7 @@ import { Userscript } from "../../common/userscript";
 import {
     awaitPageLoadByEvent,
     awaitElementById,
+    awaitQuerySelection
 } from "../../common/await_functions";
 import { storeM365Status, M365HealthStatusPage } from "../services/microsoft365";
 import { ScrapedServiceStatusRegionsMap, toPersistableStatus } from "./scrapedStatusTypes";
@@ -16,6 +17,9 @@ async function scrapeServiceStatusRegions(): Promise<ScrapedServiceStatusRegions
     const overallServiceStatus = (topElement
             .querySelector('div[class*="cardFlexHeaderContainer"]') as HTMLElement)
             .innerText.split('\n').map(t => t.trim()).filter(t => 1 < t.length)
+    const showProductsButton = topElement.querySelector('button')
+    showProductsButton.click()
+    await awaitQuerySelection('ul')
     const serviceStatuses = Array.from(topElement.querySelectorAll('li'))
         .map((li: HTMLElement) => {
             const serviceStatus = li.innerText.split('\n').map(t => t.trim()).filter(t => 1 < t.length)
