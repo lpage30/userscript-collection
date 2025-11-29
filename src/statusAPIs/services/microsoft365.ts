@@ -2,31 +2,31 @@
 // @grant       GM_addValueChangeListener
 // @grant       GM_removeValueChangeListener
 // @grant       GM_openInTab
-// @include     https://cloud.ibm.com/status
+// @include     https://status.cloud.microsoft/m365
 import { ServiceStatus, ServiceAPI } from "../statustypes"
 import { Persistence, PersistenceClass, PersistableStatus } from "../persistence"
-import { IBMDependentCompanies } from "../servicedependentcompanylists"
 
-const ibmPersistence = Persistence('Azure')
-export const storeIBMStatus = (status: PersistableStatus) => {
-    ibmPersistence.storeStatus(status)
+const M365Persistence = Persistence('M365')
+export const storeM365Status = (status: PersistableStatus) => {
+    M365Persistence.storeStatus(status)
 }
-export const IBMHealthStatusPage = 'https://cloud.ibm.com/status'
-class IBMClass implements ServiceAPI {
+export const M365HealthStatusPage = 'https://status.cloud.microsoft/m365'
+
+class M365Class implements ServiceAPI {
     isLoading: boolean
-    statusPage = IBMHealthStatusPage
+    statusPage = M365HealthStatusPage
     private data: ServiceStatus
     private persistence: PersistenceClass
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
     constructor() {
         this.data = {
             statusPage: this.statusPage,
-            dependentCompanies: IBMDependentCompanies,
-            serviceName: 'IBM Cloud',
+            dependentCompanies: [],
+            serviceName: 'Microsoft 365',
             status: null,
             incidents: null
         }
-        this.persistence = ibmPersistence
+        this.persistence = M365Persistence
         this.isLoading = false
         this.onIsLoadingChangeCallbacks = []
     }
@@ -69,4 +69,4 @@ class IBMClass implements ServiceAPI {
     }
 }
 
-export const IBM: ServiceAPI = new IBMClass()
+export const Microsoft365: ServiceAPI = new M365Class()

@@ -1,35 +1,37 @@
-import { Cloudflare } from "./services/cloudflare";
 import { AWS } from "./services/aws";
 import { Azure } from "./services/azure";
 import { GCP } from "./services/gcp"
 import { OCI } from "./services/oci";
 import { IBM } from "./services/ibm"
-import { DigitalOcean } from "./services/digitalocean";
-import { Akamai } from "./services/akamai";
 import { Fastly } from "./services/fastly";
+import { CNDStatusServices } from "./services/cdnStatusServices";
+import { Slack } from "./services/slack";
+import { Microsoft365 } from "./services/microsoft365";
 import { ServiceAPI, ServiceStatus } from "./statustypes";
 
 class ServiceAPIsClass implements ServiceAPI {
     isLoading: boolean
+    serviceStatuses: ServiceStatus[]
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
 
     private serviceAPIs: ServiceAPI[] = [
-        Cloudflare,
+        CNDStatusServices,
         AWS,
         Azure,
         GCP,
         OCI,
         IBM,
-        DigitalOcean,
-        Akamai,
         Fastly,
+        Slack,
+        Microsoft365
     ]
     constructor() {
         this.isLoading = false
         this.onIsLoadingChangeCallbacks = []
+        this.serviceStatuses = []
     }
     get serviceStatus(): ServiceStatus[] {
-        return this.serviceAPIs.map(api => api.serviceStatus).flat()
+        return this.serviceStatuses
     }
     registerOnIsLoadingChange(onChange: (isLoading: boolean) => void) {
         this.onIsLoadingChangeCallbacks.push(onChange)
@@ -41,10 +43,13 @@ class ServiceAPIsClass implements ServiceAPI {
     async load(force: boolean = false): Promise<ServiceStatus[]> {
         this.isLoading = true
         this.onIsLoadingChange(this.isLoading)
-        const result: ServiceStatus[] = (await Promise.all(this.serviceAPIs.map(api => api.load(force)))).flat()
-        this.isLoading = false
-        this.onIsLoadingChange(this.isLoading)
-        return result
+        try {
+            this.serviceStatuses = (await Promise.all(this.serviceAPIs.map(api => api.load(force)))).flat()
+        } finally {
+            this.isLoading = false
+            this.onIsLoadingChange(this.isLoading)
+        }
+        return this.serviceStatuses
     }
 }
 export const StatusAPIs: ServiceAPI = new ServiceAPIsClass()

@@ -20,8 +20,8 @@
 // @include     https://status.cloud.google.com/regional/multiregions
 // @include     https://ocistatus.oraclecloud.com/
 // @include     https://cloud.ibm.com/status
-// @include     https://status.digitalocean.com/
 // @include     https://www.fastlystatus.com/
+// @include     https://status.cloud.microsoft/m365
 
 // @grant       GM_setValue
 // @grant       GM_getValue
@@ -32,6 +32,18 @@
 // @grant       GM_removeValueChangeListener
 // @grant       GM_openInTab
 
-// @connect     cloudflarestatus.com
+// @connect     zoomstatus.com
+// @connect     discordstatus.com
+// @connect     githubstatus.com
+// @connect     openai.com
+// @connect     atlassian.com
+// @connect     redhat.com
+// @connect     mongodb.com
+// @connect     influxdata.com
+// @connect     hubspot.com
+// @connect     redditstatus.com
 // @connect     akamaistatus.com
+// @connect     cloudflarestatus.com
+// @connect     digitalocean.com
+// @connect     slack-status.com
 // ==/UserScript==

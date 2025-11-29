@@ -61,45 +61,48 @@ class GCPClass implements ServiceAPI {
     async load(force: boolean): Promise<ServiceStatus[]> {
         this.isLoading = true
         this.onIsLoadingChange(this.isLoading)
-        if (!force) {
-            const existingStatus = this.persistence.getStatus()
-            if (existingStatus) {
-                this.data.status = existingStatus.status
-                this.data.incidents = existingStatus.incidents
-                this.isLoading = false
-                this.onIsLoadingChange(this.isLoading)
-                return [this.data]
-            }
-        }
-        const loadArray = Object.entries(GCPZonePageUrlMap)
-            .map(([zone, url]) => {
-                return async (): Promise<PersistableStatus> => {
-                    const pendingStatus = this.persistence.awaitStatus(zone)
-                    const tab = GM_openInTab(url, { active: false })
-                    const scrapedStatus = await pendingStatus
-                    if (tab && !tab.closed) {
-                        tab.close()
-                    }
-                    return scrapedStatus
+        try {
+            if (!force) {
+                const existingStatus = this.persistence.getStatus()
+                if (existingStatus) {
+                    this.data.status = existingStatus.status
+                    this.data.incidents = existingStatus.incidents
+                    this.isLoading = false
+                    this.onIsLoadingChange(this.isLoading)
+                    return [this.data]
                 }
+            }
+            const loadArray = Object.entries(GCPZonePageUrlMap)
+                .map(([zone, url]) => {
+                    return async (): Promise<PersistableStatus> => {
+                        const pendingStatus = this.persistence.awaitStatus(zone)
+                        const tab = GM_openInTab(url, { active: false })
+                        const scrapedStatus = await pendingStatus
+                        if (tab && !tab.closed) {
+                            tab.close()
+                        }
+                        return scrapedStatus
+                    }
+                })
+            const statuses = await Promise.all(loadArray.map(load => load()))
+            const timestamps = statuses.map(({ status }) => status.timestamp)
+            const descriptions = statuses.map(({ status }) => status.description)
+            const indicators = statuses.map(({ status }) => status.indicator)
+            this.data.status = {
+                timestamp: Math.min(...timestamps),
+                description: getMaxOccurringValidStatus(descriptions),
+                indicator: getMaxOccurringValidStatus(indicators)
+            }
+            this.data.incidents = statuses.map(({ incidents }) => incidents).flat()
+            this.persistence.storeStatus({
+                status: this.data.status,
+                incidents: this.data.incidents
             })
-        const statuses = await Promise.all(loadArray.map(load => load()))
-        const timestamps = statuses.map(({ status }) => status.timestamp)
-        const descriptions = statuses.map(({ status }) => status.description)
-        const indicators = statuses.map(({ status }) => status.indicator)
-        this.data.status = {
-            timestamp: Math.min(...timestamps),
-            description: getMaxOccurringValidStatus(descriptions),
-            indicator: getMaxOccurringValidStatus(indicators)
+            Object.keys(GCPZonePageUrlMap).forEach(zone => this.persistence.deleteStatus(zone))
+        } finally {
+            this.isLoading = false
+            this.onIsLoadingChange(this.isLoading)
         }
-        this.data.incidents = statuses.map(({ incidents }) => incidents).flat()
-        this.persistence.storeStatus({
-            status: this.data.status,
-            incidents: this.data.incidents
-        })
-        Object.keys(GCPZonePageUrlMap).forEach(zone => this.persistence.deleteStatus(zone))
-        this.isLoading = false
-        this.onIsLoadingChange(this.isLoading)
         return [this.data]
     }
 }

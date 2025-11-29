@@ -23,7 +23,7 @@ import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDash
 import { ServiceStatus } from "../../statusAPIs/statustypes";
 import { setServiceStatus, getDependentServiceStatuses } from "../../statusAPIs/servicestatuscache";
 import { reactToHTMLString } from "../../common/ui/reactTrustedHtmlString";
-import { IndicatorTypeInfoMap, toIndicatorTypeInfo } from "../../statusAPIs/ui/IndicatorStatusTypeInfoMaps";
+import { IndicatorTypeInfoMap, sortServiceByIndicatorRank } from "../../statusAPIs/ui/IndicatorStatusTypeInfoMaps";
 import { ServiceHealthStatusSpan } from "../../statusAPIs/ui/IndicatorStatusComponents";
 
 const renderableId = "downdetector-dashboard-panel";
@@ -57,7 +57,7 @@ export const DownDetectorDashboard: Userscript = {
                 style={{ paddingLeft: `0px`, paddingRight: `3px`}}
               >Dependent Services</div>
               {serviceStatuses
-                .sort((l: ServiceStatus, r: ServiceStatus) => IndicatorTypeInfoMap[toIndicatorTypeInfo(l.status.indicator)].rank - IndicatorTypeInfoMap[toIndicatorTypeInfo(r.status.indicator)].rank)
+                .sort(sortServiceByIndicatorRank)
                 .map(status => (ServiceHealthStatusSpan(status,0, 3, true)))
               }
             </>

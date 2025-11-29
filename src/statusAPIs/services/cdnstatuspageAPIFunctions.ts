@@ -1,5 +1,4 @@
 // @grant       GM_xmlhttpRequest
-// @connect     *.akamaistatus.com
 import { Status, Incident } from '../statustypes'
 import { parseDate } from '../../common/datetime'
 
@@ -27,7 +26,7 @@ export function fetchCDNStatus(cdnSummaryUrl: string): Promise<CDNStatusIncident
                     description: content.status.description,
                     indicator: content.status.indicator
                 }
-                const incidents: Incident[] = content.incidents.map(incident => ({
+                const incidents: Incident[] = (content.incidents ?? []).map(incident => ({
                     timestamp: (parseDate(incident.created_at) ?? new Date()).getTime(),
                     impact: incident.impact,
                     status: incident.status,

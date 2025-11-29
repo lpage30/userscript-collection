@@ -1,11 +1,11 @@
 import React, { useState, useEffect, JSX} from 'react'
 import { Dialog } from 'primereact/dialog'
 import { Button } from 'primereact/button'
-import { ServiceStatus, CompanyHealthStatus, IndicatorType } from '../statustypes'
+import { ServiceStatus, CompanyHealthStatus } from '../statustypes'
 import { ServiceHealthStatusSpan } from './IndicatorStatusComponents'
 import { StatusAPIs } from '../statusAPIs'
 import ServiceStatusComponent from './ServiceStatusComponent'
-import { CompanyHealthLevelTypeInfoMap, IndicatorTypeInfoMap, toIndicatorTypeInfo } from './IndicatorStatusTypeInfoMaps'
+import { CompanyHealthLevelTypeInfoMap, IndicatorTypeInfoMap, sortIndicatorByIndicatorRank, sortServiceByIndicatorRank } from './IndicatorStatusTypeInfoMaps'
 
 interface ServiceDashboardProps {
   title: string
@@ -207,7 +207,7 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProp
           <div style={{display: 'flex', alignItems: 'center'}}>
             <span className="text-sm" style={{paddingLeft: '5px', paddingRight: '5px'}}>Service Color Legend:</span>
             {  
-              Object.keys(IndicatorTypeInfoMap).sort((l: string, r: string) => IndicatorTypeInfoMap[l].rank - IndicatorTypeInfoMap[r].rank)
+              Object.keys(IndicatorTypeInfoMap).sort(sortIndicatorByIndicatorRank)
                 .map(level => (
                   <span className="text-sm" style={{
                     backgroundColor: IndicatorTypeInfoMap[level].bgColor,
@@ -221,7 +221,7 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProp
           <div style={{display: 'flex', alignItems: 'center'}}>
             <span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px'}}>Services:</span>
             {statuses
-            .sort((l: ServiceStatus, r: ServiceStatus) => IndicatorTypeInfoMap[toIndicatorTypeInfo(l.status.indicator)].rank - IndicatorTypeInfoMap[toIndicatorTypeInfo(r.status.indicator)].rank)
+            .sort(sortServiceByIndicatorRank)
             .map((status, index) => (  
               <>
                 {0 < index && <span className="text-sm">&nbsp;&#x2022;&nbsp;</span>}

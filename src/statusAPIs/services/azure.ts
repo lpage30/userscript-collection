@@ -42,26 +42,29 @@ class AzureClass implements ServiceAPI {
     async load(force: boolean): Promise<ServiceStatus[]> {
         this.isLoading = true
         this.onIsLoadingChange(this.isLoading)
-        if (!force) {
-            const existingStatus = this.persistence.getStatus()
-            if (existingStatus) {
-                this.data.status = existingStatus.status
-                this.data.incidents = existingStatus.incidents
-                this.isLoading = false
-                this.onIsLoadingChange(this.isLoading)
-                return [this.data]
+        try {
+            if (!force) {
+                const existingStatus = this.persistence.getStatus()
+                if (existingStatus) {
+                    this.data.status = existingStatus.status
+                    this.data.incidents = existingStatus.incidents
+                    this.isLoading = false
+                    this.onIsLoadingChange(this.isLoading)
+                    return [this.data]
+                }
             }
+            const pendingStatus = this.persistence.awaitStatus()
+            const tab = GM_openInTab(this.statusPage, { active: false })
+            const scrapedStatus = await pendingStatus
+            if (tab && !tab.closed) {
+                tab.close()
+            }
+            this.data.status = scrapedStatus.status
+            this.data.incidents = scrapedStatus.incidents
+        } finally {
+            this.isLoading = false
+            this.onIsLoadingChange(this.isLoading)
         }
-        const pendingStatus = this.persistence.awaitStatus()
-        const tab = GM_openInTab(this.statusPage, { active: false })
-        const scrapedStatus = await pendingStatus
-        if (tab && !tab.closed) {
-            tab.close()
-        }
-        this.data.status = scrapedStatus.status
-        this.data.incidents = scrapedStatus.incidents
-        this.isLoading = false
-        this.onIsLoadingChange(this.isLoading)
         return [this.data]
     }
 }
