@@ -38,18 +38,17 @@ class SlackClass implements ServiceAPI {
     async load(force: boolean): Promise<ServiceStatus[]> {
         this.isLoading = true
         this.onIsLoadingChange(this.isLoading)
-        if (!force) {
-            const existingStatus = this.persistence.getStatus()
-            if (existingStatus) {
-                this.data.status = existingStatus.status
-                this.data.incidents = existingStatus.incidents
-                this.isLoading = false
-                this.onIsLoadingChange(this.isLoading)
-                return [this.data]
-            }
-        }
-
         try {
+            if (!force) {
+                const existingStatus = this.persistence.getStatus()
+                if (existingStatus) {
+                    this.data.status = existingStatus.status
+                    this.data.incidents = existingStatus.incidents
+                    this.isLoading = false
+                    this.onIsLoadingChange(this.isLoading)
+                    return [this.data]
+                }
+            }
             const newStatus = await new Promise<{ status: Status, incidents: Incident[] }>((resolve, reject) => {
                 GM_xmlhttpRequest({
                     method: 'GET',
