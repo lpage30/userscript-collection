@@ -24,9 +24,10 @@ interface DashboardProps {
   filterableItems: FilterableItems;
   sortingFields: string[];
   page: string
-  cards: Card[];
+  cards: () => Card[];
   style?: CSSProperties
   layout?: DashboardLayout
+  registerRefreshContent?: (refreshContent: () => void) => void
   addedHeaderComponent?: JSX.Element
 }
 
@@ -40,6 +41,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   cards,
   style,
   layout = 'grid',
+  registerRefreshContent,
   addedHeaderComponent
 }) => {
 
@@ -50,12 +52,13 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [sortedFilteredItems, setSortedFilteredItems] = useState<
     SortedFilteredItems<Card>
   >(
-    sortAndFilterItems(cards, {
+    sortAndFilterItems(cards(), {
       filter: Object.entries(filterableItems).map(([field, itemFilter]) => loadedFilter.find(loaded => loaded.field === field) ?? itemFilter),
       sorting: loadedSorting
     }),
   );
   const focusedElementIdRef = useRef<string>(null)
+  if (registerRefreshContent) registerRefreshContent(() => refreshContent())
 
   const refreshCards = async () => {
     await awaitElementById(toCardElementId(sortedFilteredItems.sortedItems.length - 1))
@@ -75,12 +78,18 @@ const Dashboard: React.FC<DashboardProps> = ({
     refreshCards();
   }, [sortedFilteredItems]);
 
+  const refreshContent = () => {
+    setSortedFilteredItems(
+      sortAndFilterItems(cards(), sortedFilteredItems.sortingFilter)
+    )
+  }
+
   const handlFilterSorting = (
     filter: ItemFilter[],
     sorting: ItemSort[],
   ) => {
     setSortedFilteredItems(
-      sortAndFilterItems(cards, { filter, sorting }),
+      sortAndFilterItems(sortedFilteredItems.rawItems, { filter, sorting }),
     );
     focusedElementIdRef.current = null
   };

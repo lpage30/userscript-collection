@@ -1,8 +1,11 @@
 // @grant       GM_setValue
 // @grant       GM_getValue
 // @grant       GM_deleteValue
+// @grant       GM_addValueChangeListener
+// @grant       GM_removeValueChangeListener
 import { ONE_MINUTE } from '../common/datetime';
 import { ItemSort, ItemFilter, FilterableItems, Dashboard, Card } from './datatypes';
+import { htmlStringToElement } from '../common/ui/reactTrustedHtmlString';
 
 export const StaleDuration = 10 * ONE_MINUTE;
 
@@ -55,12 +58,11 @@ export class PersistenceClass {
   storeDashboard<T extends Card>(timestamp: number, cards: T[]) {
     GM_setValue(this.dashboardVariableName, JSON.stringify({
       timestamp,
-      cards,
+      cards: cards.map((card: T) => ({...card, renderable: card.renderable.innerHTML } as any)),
     }));
   }
-
-  loadDashboard<T extends Card>(tooOldTimestamp: number): Dashboard<T> | null {
-    let dashboard = GM_getValue(this.dashboardVariableName, null);
+  private parseDashboard<T extends Card>(tooOldTimestamp: number, dashboardJSON: string | null): T[] | null {
+    let dashboard = dashboardJSON as any
     if (dashboard) {
       dashboard = JSON.parse(dashboard) as Dashboard<T>
     }
@@ -68,7 +70,27 @@ export class PersistenceClass {
       GM_deleteValue(this.dashboardVariableName);
       dashboard = null;
     }
-    return dashboard;
-}  
+    if (dashboard) {
+      return dashboard.cards.map((card: any) => ({...card, renderable: htmlStringToElement(card.elementId, card.renderable)} as T))
+    }
+    return dashboard.cards;
+  }
+
+  loadDashboard<T extends Card>(tooOldTimestamp: number): T[] | null {
+    return this.parseDashboard(tooOldTimestamp, GM_getValue(this.dashboardVariableName, null))
+  }
+
+  awaitDashboard<T extends Card>(): Promise<T[] | null> {
+    return new Promise<T[] | null>(resolve => {
+        const listenerId = GM_addValueChangeListener(
+            this.dashboardVariableName,
+            (name: string, oldValue: any, newValue: any, remote: boolean) => {
+                GM_removeValueChangeListener(listenerId ?? "");
+                resolve(this.parseDashboard(Date.now() - StaleDuration, newValue))
+            }
+        )
+    })
+  }
+
 }
 export const Persistence = (variablePrefix: string, initialFilter: FilterableItems = {}) => new PersistenceClass(variablePrefix, initialFilter)

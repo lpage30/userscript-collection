@@ -26,7 +26,7 @@ const Picklist: React.FC<PicklistProps> = ({
   onMouseOut
 }) => {
   const toItemIndex = (elementId: string | null, items: PicklistItem[]): number =>
-    elementId === null ? -1 : items.findIndex(item => item.elementId(usingPage) === elementId)
+    elementId === null ? -1 : items.findIndex(item => item.elementId === elementId)
 
   const toExistingElementId = (elementId: string | null, items: PicklistItem[]): string | null => {
     if (toItemIndex(elementId, items) < 0) return null
@@ -48,14 +48,14 @@ const Picklist: React.FC<PicklistProps> = ({
   useEffect(() => {
     const applyMouseOverandOutToItemTemplateParent = async () => {
       for(const item of items) {
-        const optionElement = await awaitElementById(`${item.elementId(usingPage)}-option`)
+        const optionElement = await awaitElementById(`${item.elementId}-option`)
         let parentElement = optionElement.parentElement
         while(parentElement && parentElement.tagName !== 'LI') { parentElement = parentElement.parentElement}
         if (parentElement === null) {
           parentElement = optionElement
         }
-        parentElement.addEventListener('mouseover', () => onMouseOver(item.elementId(usingPage)))
-        parentElement.addEventListener('mouseout', () => onMouseOut(item.elementId(usingPage)))
+        parentElement.addEventListener('mouseover', () => onMouseOver(item.elementId))
+        parentElement.addEventListener('mouseout', () => onMouseOut(item.elementId))
       }
     }
     applyMouseOverandOutToItemTemplateParent()
@@ -96,7 +96,7 @@ const Picklist: React.FC<PicklistProps> = ({
       item: PicklistItem
     }[] = items.map((item) => ({
       label: item.label(),
-      value: item.elementId(usingPage),
+      value: item.elementId,
       color: item.color(),
       item,
     }));

@@ -2,9 +2,11 @@ import React from "react";
 import "../common/ui/styles.css";
 import { Userscript } from "../common/userscript";
 import { TheLayoffDashboard } from "./TheLayoffDashboard";
+import { TheLayoffCompanyScraper } from "./TheLayoffCompanyScraper";
 import { awaitDelay } from "../common/await_functions";
 
 const Scripts: Userscript[] = [
+  TheLayoffCompanyScraper,
   TheLayoffDashboard,
 ];
 

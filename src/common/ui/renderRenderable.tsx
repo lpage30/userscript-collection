@@ -1,4 +1,5 @@
-import React, { CSSProperties, useRef } from "react";
+import React, { CSSProperties, useRef, JSX } from "react";
+import { renderToStaticMarkup } from 'react-dom/server';
 import "./styles.css";
 import { PrimeReactProvider } from "primereact/api";
 import { createRoot } from "react-dom/client";
@@ -43,4 +44,11 @@ export function createRenderableContainerAsChild(
     parentElement.appendChild(containerElement);
   }
   return containerElement;
+}
+
+export function reactToHTMLElement(elementId: string, jsxElement: JSX.Element, wrappingTagName = 'div'): HTMLElement {
+  const wrappingElement = document.createElement(wrappingTagName)
+  wrappingElement.id = elementId
+  wrappingElement.innerHTML = renderToStaticMarkup(jsxElement)
+  return wrappingElement
 }

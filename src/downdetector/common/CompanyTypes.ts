@@ -1,8 +1,6 @@
 import { Card, FilterableItems, ItemFilter, toCardIndex } from '../../dashboardcomponents/datatypes';
 import { PersistenceClass, StaleDuration } from '../../dashboardcomponents/persistence';
 import { toTitleCase } from '../../common/functions';
-import { toMonthDayYearDateTime } from '../../common/datetime';
-import { getServiceStatus, getDependentServiceStatuses } from '../../statusAPIs/servicestatuscache';
 
 export const HealthLevelTypes = ['danger', 'warning', 'success'] as const;
 export type HealthLevelType = (typeof HealthLevelTypes)[number];
@@ -10,7 +8,7 @@ export type HealthLevelType = (typeof HealthLevelTypes)[number];
 export const CompanyPageTypes = ['dashboard', 'status', 'map'] as const;
 export type CompanyPageType = (typeof CompanyPageTypes)[number];
 
-export const sortingFields = ['level', 'companyName', 'incidentRisk' ];
+export const sortingFields = ['level', 'groupName', 'incidentRisk' ];
 export const filterableItems: FilterableItems = { level: { field: 'level', filter: { danger: true, warning: true, success: true }} as ItemFilter}
 
 export type CompanyPageInfo = {
@@ -91,10 +89,10 @@ function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata 
       `IncidentRisk: ${metadata.incidentReports.incidentRiskPercent.toFixed(2)}%`
     ];
   }
+  metadata.groupName = metadata.companyName
   metadata.label = () => `#${metadata.rank} ${metadata.companyName}`
   metadata.color = () => metadata.level === 'danger' ? 'red' : metadata.level === 'warning' ? 'yellow' : 'lightblue'
   metadata.href = (pageName: string) => metadata.pageInfo[pageName].href
-  metadata.elementId = (pageName: string) => metadata.pageInfo.dashboard.elementId
   return metadata as CompanyMetadata
 
 }
@@ -185,12 +183,12 @@ export function processCompanyStatus(
   persistence: PersistenceClass
 ): CompanyStatusCard {
   const timestamp = Date.now();
-  const dashboard = persistence.loadDashboard<CompanyMetadata>(timestamp - StaleDuration);
+  const cards = persistence.loadDashboard<CompanyMetadata>(timestamp - StaleDuration);
   const result: Partial<CompanyStatusCard> = {
     renderable: statusElement,
   };
-  if (dashboard) {
-    result.allCompanies = dashboard.cards.map(toCompanyMetadataCard);
+  if (cards) {
+    result.allCompanies = cards.map(toCompanyMetadataCard);
     const foundCompany = result.allCompanies.find(
       (company) => company.pageInfo[pageType].href === statusHref,
     );

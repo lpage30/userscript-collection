@@ -1,34 +1,35 @@
 import { toString } from "../common/functions"
 export interface InfoDisplayItem {
-    displayLines: () => string[]
+  displayLines: () => string[]
 }
 
 export interface PicklistItem {
-    label: () => string
-    color: () => string
-    href: (pageName: string) => string
-    elementId: (pageName: string) => string
+  groupName: string
+  label: () => string
+  color: () => string
+  href: (pageName: string) => string
+  elementId: string
 }
 
 export interface Card extends InfoDisplayItem, PicklistItem {
-    renderable: HTMLElement;
+  renderable: HTMLElement;
 }
 
-export interface Dashboard<T extends Card>{
+export interface Dashboard<T extends Card> {
   timestamp: number;
   cards: T[];
 }
 
 export interface ItemSort {
-    field: string
-    ascending: boolean
+  field: string
+  ascending: boolean
 }
 
 export interface ItemFilter {
-    field: string
-    filter: { [value: string]: boolean }
+  field: string
+  filter: { [value: string]: boolean }
 }
-export type FilterableItems = { [field: string]: ItemFilter}
+export type FilterableItems = { [field: string]: ItemFilter }
 
 export interface SortingFilter {
   filter: ItemFilter[];
@@ -36,6 +37,7 @@ export interface SortingFilter {
 }
 
 export interface SortedFilteredItems<T extends Card> {
+  rawItems: T[];
   sortingFilter: SortingFilter;
   sortedItems: T[];
   filteredItems: T[];
@@ -57,21 +59,21 @@ function toSortFunction<T extends Card>(sorts: ItemSort[],): (l: T, r: T) => num
   }
 }
 function inFilterFunction<T extends Card>(item: T, filter: ItemFilter[]): boolean {
-    return filter.every(itemFilter => {
-        if (item[itemFilter.field]) {
-            return itemFilter.filter[item[itemFilter.field]] === true
-        }
-        return false
-    })
+  return filter.every(itemFilter => {
+    if (item[itemFilter.field]) {
+      return itemFilter.filter[item[itemFilter.field]] === true
+    }
+    return false
+  })
 }
 export const toCardElementId = (index: number) => `card-shell-${index}`
 export const fromCardElementId = (elementId: string): number => parseInt(elementId.split('-').slice(-1)[0])
 
 export const toCardIndex = (elementId: string, pageName: string, items: Card[] | undefined): number | null => {
-    const index = (items ?? []).findIndex(
-      (item) => item.elementId(pageName) === elementId,
-    );
-    return index < 0 ? null : index
+  const index = (items ?? []).findIndex(
+    (item) => item.elementId === elementId,
+  );
+  return index < 0 ? null : index
 }
 export function sortAndFilterItems<T extends Card>(
   items: T[],
@@ -81,6 +83,7 @@ export function sortAndFilterItems<T extends Card>(
   const sortedItems: T[] = [...items].sort(sortFunction)
   const filteredItems: T[] = sortedItems.filter(item => inFilterFunction<T>(item, sortingFilter.filter));
   return {
+    rawItems: items,
     sortingFilter,
     sortedItems,
     filteredItems,

@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name        TheLayoff-Dashboard-Menu
+// @name        TheLayoff
 // @version     0.1
-// @description render layoff messages as sortable up-front panels
+// @description render layoff messages as sortable up-front panels from favorite Companies
 // @author      lawrence L. Page
 
 // @namespace   lpage30-userscripts
@@ -13,4 +13,5 @@
 // @grant       GM_getValue
 // @grant       GM_deleteValue
 // @grant       window.onurlchange
+// @grant       GM_openInTab
 // ==/UserScript==
