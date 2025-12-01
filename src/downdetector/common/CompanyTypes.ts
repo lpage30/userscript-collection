@@ -9,7 +9,17 @@ export const CompanyPageTypes = ['dashboard', 'status', 'map'] as const;
 export type CompanyPageType = (typeof CompanyPageTypes)[number];
 
 export const sortingFields = ['level', 'groupName', 'incidentRisk' ];
-export const filterableItems: FilterableItems = { level: { field: 'level', filter: { danger: true, warning: true, success: true }} as ItemFilter}
+export const filterableItems: FilterableItems = { 
+  level: { 
+    field: 'level', 
+    type: 'ValueExistence',
+    filter: { 
+      danger: true,
+      warning: true,
+      success: true 
+    }
+  } as ItemFilter
+}
 
 export type CompanyPageInfo = {
   dashboard: {

@@ -1,4 +1,4 @@
-import { toMonthDayYearDateTime } from '../common/datetime'
+import { toMonthDayYearDateTime, ONE_WEEK, ONE_MONTH } from '../common/datetime'
 import { Card, FilterableItems, ItemFilter } from '../dashboardcomponents/datatypes'
 import { FavoriteCompanyList } from './FavoriteCompanyLayoffs'
 
@@ -45,11 +45,28 @@ export const sortingFields = ['groupName', 'company', 'date', 'lastReply', 'repl
 export const filterableItems: FilterableItems = {
     groupName: {
         field: 'groupName',
+        type: 'ValueExistence',
         filter: FavoriteCompanyList
             .reduce((result, { name }) => ({
                 ...result,
                 [name]: true
             }), {} as { [value: string]: boolean })
-    } as ItemFilter
+    } as ItemFilter,
+    lastReply: {
+        field: 'lastReply',
+        type: 'DateBetween',
+        filter: {
+            beginDate: Date.now() - ONE_WEEK,
+            endDate: Date.now()
+        }
+    } as ItemFilter,
+    date: {
+        field: 'date',
+        type: 'DateBetween',
+        filter: {
+            beginDate: Date.now() - ONE_MONTH,
+            endDate: Date.now()
+        }
+    }
 }
 

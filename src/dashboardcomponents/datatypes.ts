@@ -25,10 +25,21 @@ export interface ItemSort {
   ascending: boolean
 }
 
-export interface ItemFilter {
+interface ItemFilterBase {
   field: string
+  type: 'ValueExistence' | 'DateBetween'
+}
+
+interface ItemValueExistenceFilter extends ItemFilterBase {
+  type: 'ValueExistence'
   filter: { [value: string]: boolean }
 }
+interface ItemDateBetweenFilter extends ItemFilterBase {
+  type: 'DateBetween'
+  filter: { beginDate: number, endDate: number }
+}
+export type ItemFilter = ItemValueExistenceFilter | ItemDateBetweenFilter
+
 export type FilterableItems = { [field: string]: ItemFilter }
 
 export interface SortingFilter {
@@ -61,9 +72,10 @@ function toSortFunction<T extends Card>(sorts: ItemSort[],): (l: T, r: T) => num
 function inFilterFunction<T extends Card>(item: T, filter: ItemFilter[]): boolean {
   return filter.every(itemFilter => {
     if (item[itemFilter.field]) {
-      return itemFilter.filter[item[itemFilter.field]] === true
+      if(itemFilter.type === 'ValueExistence') return itemFilter.filter[item[itemFilter.field]] === true
+      return (itemFilter.filter.beginDate <= item[itemFilter.field] && item[itemFilter.field] <= itemFilter.filter.endDate)
     }
-    return false
+    return true
   })
 }
 export const toCardElementId = (index: number) => `card-shell-${index}`
