@@ -53,7 +53,9 @@ export const TheLayoffDashboard: Userscript = {
       cards = await loadFavoritesDashboard(true)
       if (refreshCards) refreshCards()
     }
-
+    const getCards = () => {
+      return cards
+    }
     renderInContainer(container, <Dashboard
       title={`Company Favorites`}
       persistence={persistence}
@@ -61,14 +63,13 @@ export const TheLayoffDashboard: Userscript = {
       filterableItems={filterableItems}
       sortingFields={sortingFields}
       page={'dashboard'}
-      cards={() => cards}
+      getCards={getCards}
       layout={'vertical'}
       registerRefreshContent={(refreshContent) => { refreshCards = refreshContent }}
       addedHeaderComponent={
         <Button
           className="app-button"
           onClick={() => loadAndRefreshContent()}
-          disabled={null == refreshCards}
         >Refresh Cards</Button>
       }
 

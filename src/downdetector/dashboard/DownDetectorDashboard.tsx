@@ -74,7 +74,7 @@ export const DownDetectorDashboard: Userscript = {
       filterableItems={filterableItems}
       sortingFields={sortingFields}
       page={'dashboard'}
-      cards={() => cards}
+      getCards={() => cards}
       layout={'grid'}
       addedHeaderComponent={<ServiceDashboardPopupAndSummary 
           onServiceStatus={onServiceStatus}

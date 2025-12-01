@@ -20,6 +20,7 @@ function parseRepliesText(replyText: string): { replyCount: number, lastReply: D
   }
 }
 function scrapePosts(companyInfo: CompanyLayoffInfo): Post[] {
+  const isTop25 = companyInfo.name === 'Top25'
   return Array.from(document.getElementById('posts').querySelectorAll('article')).map(postElement => {
     const firstChild = postElement.firstElementChild as HTMLElement
     if (firstChild.tagName !== 'HEADER') {
@@ -28,7 +29,9 @@ function scrapePosts(companyInfo: CompanyLayoffInfo): Post[] {
     const header = postElement.querySelector('header')
     const footer = postElement.querySelector('footer')
     const footerParts = footer.innerText.split('|').map(t => t.trim())
-    const companyHref = window.location.href
+    const companyHref = isTop25
+        ? Array.from(footer.querySelectorAll('a')).slice(-1)[0].href
+        : window.location.href
     const company = toTitleCase((new URL(companyHref)).pathname.replace(/\//g, '').replace(/-/g, ' '))
 
     const date = parseDateTime(footerParts[0]) ?? new Date()
@@ -36,7 +39,24 @@ function scrapePosts(companyInfo: CompanyLayoffInfo): Post[] {
     const replyAnchor = Array.from(footer.querySelectorAll('a')).slice(-2).filter(a => !a.innerText.startsWith('@OP'))[0]
     const title = header.innerText
     const text = (header.nextElementSibling as HTMLElement).innerText
-
+    const groupH3 = document.createElement('h3')
+    const groupAnchor = document.createElement('a')
+    groupH3.className = 'post-title'
+    groupH3.className = 'thread-link'
+    groupAnchor.href = companyInfo.url
+    groupAnchor.innerHTML = `<sub>${companyInfo.name}</sub>`
+    groupH3.appendChild(groupAnchor)
+    if (isTop25) {
+      const divider = document.createElement('span')
+      divider.innerHTML = `&nbsp;|&nbsp;`
+      groupH3.appendChild(divider)
+      const companyAnchor = document.createElement('a')
+      companyAnchor.href = companyHref
+      companyAnchor.innerHTML = `<sub>${company}</sub>`
+      groupH3.appendChild(companyAnchor)
+    }
+    header.appendChild(groupH3)
+        
     return toPostCard({
       groupName: companyInfo.name,
       company,

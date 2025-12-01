@@ -73,7 +73,7 @@ export class PersistenceClass {
     if (dashboard) {
       return dashboard.cards.map((card: any) => ({...card, renderable: htmlStringToElement(card.elementId, card.renderable)} as T))
     }
-    return dashboard.cards;
+    return dashboard === null ? null : dashboard.cards;
   }
 
   loadDashboard<T extends Card>(tooOldTimestamp: number): T[] | null {

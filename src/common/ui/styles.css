@@ -1319,6 +1319,7 @@ select,
 }
 .vertical-scroll-content {
   display: inline-block;
+  padding-bottom: 1rem
 }
 .grid-scroll-container {
   display: grid;

@@ -37,7 +37,7 @@ const FavoriteCompanyInfoList = [
     },
     {
         name: 'Microsoft',
-        urlpath: 'cisco-systems'
+        urlpath: 'microsoft'
     },
     {
         name: 'Dell',
@@ -62,6 +62,10 @@ export const FavoriteCompanyList: CompanyLayoffInfo[] = FavoriteCompanyInfoList.
         activeUrl
     }
 })
+export const FavoriteCompanyMap = FavoriteCompanyList.reduce((result, company) => ({
+    ...result,
+    [company.name]: company
+}), {} as { [favoriteName: string]: CompanyLayoffInfo})
 
 export async function loadPosts(favoriteName: string, force: boolean): Promise<{ [favoriteName: string]: Post[] }> {
     const persistence = Persistence(favoriteName)
@@ -72,7 +76,7 @@ export async function loadPosts(favoriteName: string, force: boolean): Promise<{
         }
     }
     const pendingCards = persistence.awaitDashboard<Post>()        
-    const tab = GM_openInTab(FavoriteCompanyList[favoriteName].activeUrl, { active: false})
+    const tab = GM_openInTab(FavoriteCompanyMap[favoriteName].activeUrl, { active: false})
     const scrapedCards = await pendingCards
     if (tab && !tab.closed) {
         tab.close()

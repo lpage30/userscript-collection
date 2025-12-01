@@ -31,6 +31,7 @@ export function toPostCard(data: Partial<Post>): Post {
         `Date: ${toMonthDayYearDateTime(post.date)}`,
         `LastReply: ${post.lastReply ? toMonthDayYearDateTime(post.lastReply) : 'none'}`
     ]
+    post.groupName = data.groupName
     post.label = () => `${post.company}|${post.title}`
     post.color = () => 'blue'
     post.href = (pageName: string) => pageName === 'last25'
