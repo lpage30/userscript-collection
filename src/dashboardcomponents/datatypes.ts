@@ -30,11 +30,11 @@ interface ItemFilterBase {
   type: 'ValueExistence' | 'DateBetween'
 }
 
-interface ItemValueExistenceFilter extends ItemFilterBase {
+export interface ItemValueExistenceFilter extends ItemFilterBase {
   type: 'ValueExistence'
   filter: { [value: string]: boolean }
 }
-interface ItemDateBetweenFilter extends ItemFilterBase {
+export interface ItemDateBetweenFilter extends ItemFilterBase {
   type: 'DateBetween'
   filter: { beginDate: number, endDate: number }
 }
@@ -49,6 +49,7 @@ export interface SortingFilter {
 
 export interface SortedFilteredItems<T extends Card> {
   rawItems: T[];
+  rawFilterableItems: FilterableItems;
   sortingFilter: SortingFilter;
   sortedItems: T[];
   filteredItems: T[];
@@ -89,6 +90,7 @@ export const toCardIndex = (elementId: string, pageName: string, items: Card[] |
 }
 export function sortAndFilterItems<T extends Card>(
   items: T[],
+  filterableItems: FilterableItems,
   sortingFilter: SortingFilter,
 ): SortedFilteredItems<T> {
   const sortFunction = toSortFunction<T>(sortingFilter.sorting)
@@ -96,6 +98,7 @@ export function sortAndFilterItems<T extends Card>(
   const filteredItems: T[] = sortedItems.filter(item => inFilterFunction<T>(item, sortingFilter.filter));
   return {
     rawItems: items,
+    rawFilterableItems: filterableItems,
     sortingFilter,
     sortedItems,
     filteredItems,

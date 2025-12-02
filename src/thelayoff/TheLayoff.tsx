@@ -3,40 +3,44 @@ import "../common/ui/styles.css";
 import { Userscript } from "../common/userscript";
 import { TheLayoffDashboard } from "./TheLayoffDashboard";
 import { TheLayoffCompanyScraper } from "./TheLayoffCompanyScraper";
+import { TheLayoffCompanyBookmark } from "./TheLayoffCompanyBookmark";
 import { awaitDelay } from "../common/await_functions";
 
 const Scripts: Userscript[] = [
   TheLayoffCompanyScraper,
   TheLayoffDashboard,
+  TheLayoffCompanyBookmark,
 ];
 
 export async function main(lastLocationHref = "") {
   const currentLocationHref = window.location.href.toString();
-  const script: Userscript | undefined = Scripts.find((script) =>
+  const scripts: Userscript[] = Scripts.filter((script) =>
     script.isSupported(currentLocationHref),
   );
-  if (undefined == script) {
+  if (0 === scripts.length) {
     return;
   }
+  const scriptName = scripts.map(({name}) => name).join(',')
   console.log(
-    `############## ${script.name} - ${currentLocationHref} ###############`,
+    `############## ${scriptName} - ${currentLocationHref} ###############`,
   );
   if (currentLocationHref == lastLocationHref) {
     return;
   }
   window.onerror = (e) => {
-    console.error(`Error ${script.name}`, e);
+    console.error(`Error ${scriptName}`, e);
   };
   if (lastLocationHref != "") {
     await awaitDelay(500);
   }
+  const renderPromises = scripts.map(script => script.render(currentLocationHref))
   try {
-    await script.render(currentLocationHref);
+    Promise.all(renderPromises)
     window.addEventListener("urlchange", (e) => {
       main(currentLocationHref);
     });
   } catch (e) {
-    console.error(`Failed to load. ${script.name}`, e);
+    console.error(`Failed to load. ${scriptName}`, e);
   }
 }
 

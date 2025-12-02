@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, JSX } from "react";
 import { ItemSort } from "./datatypes";
 import { Checkbox } from "primereact/checkbox";
 import { Dropdown } from "primereact/dropdown";
@@ -10,6 +10,7 @@ interface SortComponentProps {
   initialSorting: ItemSort[];
   onSortChange: (sorting: ItemSort[]) => void;
   style?: React.CSSProperties
+  trailingComponent?: JSX.Element
 }
 
 const SortComponent: React.FC<SortComponentProps> = ({
@@ -17,6 +18,7 @@ const SortComponent: React.FC<SortComponentProps> = ({
   initialSorting,
   onSortChange,
   style,
+  trailingComponent,
 }) => {
   const [sorting, setSorting] = useState<ItemSort[]>(initialSorting);
   const [selectedSortField, setSelectedSortField] = useState<string>(null);
@@ -86,7 +88,7 @@ const SortComponent: React.FC<SortComponentProps> = ({
         }}
       >
         <tbody>
-          <tr style={{ alignItems: "center", verticalAlign: "center" }}>
+          <tr style={{ alignItems: "center", verticalAlign: "top" }}>
             <td className="text-center">
               <Dropdown
                 options={sortFieldOptions}
@@ -113,7 +115,7 @@ const SortComponent: React.FC<SortComponentProps> = ({
               />
             </td>
             <td>
-              <div style={{ display: "flex", padding: "5px" }}>
+              <div style={{ display: "flex", padding: "2px", marginTop: '10px'}}>
                 <Checkbox
                   inputId="ascending-choice"
                   variant="filled"
@@ -129,10 +131,7 @@ const SortComponent: React.FC<SortComponentProps> = ({
                 <label htmlFor={"ascending-choice"} className="text-sm">
                   Ascending
                 </label>
-              </div>
-            </td>
-            <td>
-              <div style={{ display: "flex", padding: "5px" }}>
+                &nbsp;&nbsp;
                 <Checkbox
                   inputId="descending-choice"
                   variant="filled"
@@ -148,7 +147,9 @@ const SortComponent: React.FC<SortComponentProps> = ({
                 <label htmlFor={"descending-choice"} className="text-sm">
                   Descending
                 </label>
+                {trailingComponent && <div style={{ display: 'flex', float: 'right', marginTop: '-10px'}}>&nbsp;&nbsp;{trailingComponent}</div>}
               </div>
+              
             </td>
           </tr>
         </tbody>

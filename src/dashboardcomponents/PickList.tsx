@@ -112,7 +112,7 @@ const Picklist: React.FC<PicklistProps> = ({
         }}
       >
         <tbody>
-          <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+          <tr style={{ alignItems: 'center', verticalAlign: 'top' }}>
             <td className='text-center'>
               <Dropdown
                 options={picklistLabelValue}
@@ -138,7 +138,7 @@ const Picklist: React.FC<PicklistProps> = ({
                 placeholder='Pick Item for Dashboard / Status Focus'
               />
             </td>
-          </tr><tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+          </tr><tr style={{ alignItems: 'center', verticalAlign: 'top' }}>
             <td style={{display: 'flex'}}>
             {pageTypes.filter(page => page !== 'dashboard' || usingPage !== 'dashboard').map((name, index) => 
                 <Button 

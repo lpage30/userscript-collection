@@ -22,10 +22,11 @@ export function createRenderableContainerAsChild(
   containerId: string,
   options?: {
     atFront?: boolean,
+    after?: HTMLElement,
     containerStyle?: CSSProperties
   }
 ): HTMLElement {
-  const { atFront, containerStyle } = options ?? {}
+  const { atFront, after, containerStyle } = options ?? {}
   const containerElement = document.getElementById(containerId) ?? document.createElement("div");
   containerElement.id = containerId;
   if (containerStyle) {
@@ -40,6 +41,8 @@ export function createRenderableContainerAsChild(
   }
   if (atFront === true) {
     parentElement.insertBefore(containerElement, parentElement.firstChild)
+  } else if (after) {
+    parentElement.insertBefore(containerElement, after)
   } else {
     parentElement.appendChild(containerElement);
   }

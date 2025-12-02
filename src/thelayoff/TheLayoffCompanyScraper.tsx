@@ -1,5 +1,5 @@
 import React from "react";
-import { CompanyLayoffInfo, FavoriteCompanyList } from "./FavoriteCompanyLayoffs";
+import { CompanyBookmark, getCompanyBookmarks } from "./bookmarkedCompanies";
 import "../common/ui/styles.css";
 import { Userscript } from "../common/userscript";
 import { Persistence } from "../dashboardcomponents/persistence";
@@ -19,8 +19,8 @@ function parseRepliesText(replyText: string): { replyCount: number, lastReply: D
     lastReply: parseDateTime(result[2])
   }
 }
-function scrapePosts(companyInfo: CompanyLayoffInfo): Post[] {
-  const isTop25 = companyInfo.name === 'Top25'
+function scrapePosts(companyBookmark: CompanyBookmark): Post[] {
+  const isTop25 = companyBookmark.name === 'Top25'
   return Array.from(document.getElementById('posts').querySelectorAll('article')).map(postElement => {
     const firstChild = postElement.firstElementChild as HTMLElement
     if (firstChild.tagName !== 'HEADER') {
@@ -43,8 +43,8 @@ function scrapePosts(companyInfo: CompanyLayoffInfo): Post[] {
     const groupAnchor = document.createElement('a')
     groupH3.className = 'post-title'
     groupH3.className = 'thread-link'
-    groupAnchor.href = companyInfo.url
-    groupAnchor.innerHTML = `<sub>${companyInfo.name}</sub>`
+    groupAnchor.href = companyBookmark.url
+    groupAnchor.innerHTML = `<sub>${companyBookmark.name}</sub>`
     groupH3.appendChild(groupAnchor)
     if (isTop25) {
       const divider = document.createElement('span')
@@ -58,7 +58,7 @@ function scrapePosts(companyInfo: CompanyLayoffInfo): Post[] {
     header.appendChild(groupH3)
         
     return toPostCard({
-      groupName: companyInfo.name,
+      groupName: companyBookmark.name,
       company,
       companyHref,
       title,
@@ -71,14 +71,14 @@ function scrapePosts(companyInfo: CompanyLayoffInfo): Post[] {
     })
   })
 }
-
+const CompanyBookmarks = getCompanyBookmarks()
 export const TheLayoffCompanyScraper: Userscript = {
   name: "TheLayoffCompanyScraper",
 
-  isSupported: (href: string): boolean => FavoriteCompanyList.some(({ url }) => href.startsWith(url)),
+  isSupported: (href: string): boolean => CompanyBookmarks.some(({ url }) => href.startsWith(url)),
 
   render: async (href: string): Promise<void> => {
-    const foundInfo = FavoriteCompanyList.find(info => href.startsWith(info.url))
+    const foundInfo = CompanyBookmarks.find(info => href.startsWith(info.url))
     if (foundInfo === undefined) return
 
     await awaitPageLoadByMutation();

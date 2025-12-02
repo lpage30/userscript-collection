@@ -4,7 +4,7 @@ import { Button } from "primereact/button";
 import "../common/ui/styles.css";
 import { Userscript } from "../common/userscript";
 import { Persistence } from "../dashboardcomponents/persistence";
-import { Post, sortingFields, filterableItems, toPostCard } from "./posts";
+import { sortingFields, getFilterableItems } from "./posts";
 import {
   awaitPageLoadByMutation,
   awaitElementById,
@@ -14,19 +14,10 @@ import {
   renderInContainer,
 } from "../common/ui/renderRenderable";
 import Dashboard from "../dashboardcomponents/Dashboard";
-import { layoffBaseUrl } from "./FavoriteCompanyLayoffs";
-import { FavoriteCompanyList, loadPosts } from "./FavoriteCompanyLayoffs";
+import { layoffBaseUrl } from "./bookmarkedCompanies";
+import { loadPosts } from "./bookmarkedCompanies";
 
 const renderableId = "the-layoff-dashboard-panel";
-
-async function loadFavoritesDashboard(force: boolean): Promise<Post[]> {
-  const favoriteMaps = await Promise.all(FavoriteCompanyList.map(({ name }) => loadPosts(name, force)))
-  return Object.values(favoriteMaps.reduce((result, favoriteMap) => ({
-    ...result,
-    ...favoriteMap,
-  }), {})).flat().map(toPostCard)
-
-}
 
 export const TheLayoffDashboard: Userscript = {
   name: "TheLayoffDashboard",
@@ -40,8 +31,8 @@ export const TheLayoffDashboard: Userscript = {
       navBarElement.style.display = 'none'
     }
 
-    const persistence = Persistence('TheLayoff', filterableItems)
-    let cards = await loadFavoritesDashboard(false)
+    let persistence = Persistence('TheLayoff', getFilterableItems())
+    let cards = await loadPosts(false)
 
     const container = createRenderableContainerAsChild(
       document.body,
@@ -50,17 +41,21 @@ export const TheLayoffDashboard: Userscript = {
     let refreshCards: () => void | null = null
 
     const loadAndRefreshContent = async () => {
-      cards = await loadFavoritesDashboard(true)
+      cards = await loadPosts(true)
+      persistence = Persistence('TheLayoff', getFilterableItems())
       if (refreshCards) refreshCards()
     }
     const getCards = () => {
       return cards
     }
+    const getPersistence = () => {
+      return persistence
+    }
     renderInContainer(container, <Dashboard
-      title={`Company Favorites`}
-      persistence={persistence}
+      title={`Company Bookmarks`}
+      getPersistence={getPersistence}
       pageTypes={['dashboard']}
-      filterableItems={filterableItems}
+      getFilterableItems={getFilterableItems}
       sortingFields={sortingFields}
       page={'dashboard'}
       getCards={getCards}

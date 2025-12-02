@@ -1,6 +1,6 @@
 import { toMonthDayYearDateTime, ONE_WEEK, ONE_MONTH } from '../common/datetime'
 import { Card, FilterableItems, ItemFilter } from '../dashboardcomponents/datatypes'
-import { FavoriteCompanyList } from './FavoriteCompanyLayoffs'
+import { getCompanyBookmarks } from './bookmarkedCompanies'
 
 export const theLayoffBaseUrl = 'https://www.thelayoff.com/'
 
@@ -42,11 +42,11 @@ export function toPostCard(data: Partial<Post>): Post {
 }
 
 export const sortingFields = ['groupName', 'company', 'date', 'lastReply', 'replyCount'];
-export const filterableItems: FilterableItems = {
+export const getFilterableItems= (): FilterableItems => ({
     groupName: {
         field: 'groupName',
         type: 'ValueExistence',
-        filter: FavoriteCompanyList
+        filter: getCompanyBookmarks()
             .reduce((result, { name }) => ({
                 ...result,
                 [name]: true
@@ -68,5 +68,5 @@ export const filterableItems: FilterableItems = {
             endDate: Date.now()
         }
     }
-}
+})
 

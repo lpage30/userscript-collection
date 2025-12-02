@@ -35,7 +35,6 @@ const FilterSort: React.FC<FilterSortProps> = ({
   };
   const render = () => {
     return (
-      <div style={{ display: "flex", height: "auto" }}>
         <div>
           <FilterComponent
             filterableItems={filterableItems}
@@ -47,13 +46,14 @@ const FilterSort: React.FC<FilterSortProps> = ({
             initialSorting={sorting}
             onSortChange={setSorting}
             style={{marginTop: '3px'}}
+            trailingComponent={
+              <Button 
+                className="app-button"
+                onClick={applyChange}
+              >Apply Filter & Sort</Button>
+            }
           />
-        </div>
-        <div>
-          <Button className="app-button" onClick={applyChange}>
-            Apply Filter & Sort
-          </Button>
-        </div>
+          
       </div>
     );
   };

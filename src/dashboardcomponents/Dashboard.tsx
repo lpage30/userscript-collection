@@ -19,9 +19,9 @@ import CardShell from './CardShell';
 export type DashboardLayout = 'vertical' | 'horizontal' | 'grid'
 interface DashboardProps {
   title: string
-  persistence: PersistenceClass
+  getPersistence: () => PersistenceClass
   pageTypes: string[]
-  filterableItems: FilterableItems;
+  getFilterableItems: () => FilterableItems;
   sortingFields: string[];
   page: string
   getCards: () => Card[];
@@ -33,9 +33,9 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({
   title,
-  persistence,
+  getPersistence,
   pageTypes,
-  filterableItems,
+  getFilterableItems,
   sortingFields,
   page, 
   getCards,
@@ -44,17 +44,16 @@ const Dashboard: React.FC<DashboardProps> = ({
   registerRefreshContent,
   addedHeaderComponent
 }) => {
+  const persistence = useRef<PersistenceClass>(getPersistence())
 
-  const loadedFilter = persistence.loadFilter()
-  const loadedSorting= persistence.loadSorting()
   const triggerInfoDisplayRef = useRef<(displayItem: InfoDisplayItem | null) => void>(null)
   const [visible, setVisible] = useState(true);
   const [sortedFilteredItems, setSortedFilteredItems] = useState<
     SortedFilteredItems<Card>
   >(
-    sortAndFilterItems(getCards(), {
-      filter: Object.entries(filterableItems).map(([field, itemFilter]) => loadedFilter.find(loaded => loaded.field === field) ?? itemFilter),
-      sorting: loadedSorting
+    sortAndFilterItems(getCards(), getFilterableItems(), {
+      filter: Object.entries(getFilterableItems()).map(([field, itemFilter]) => persistence.current.loadFilter().find(loaded => loaded.field === field) ?? itemFilter),
+      sorting: persistence.current.loadSorting()
     }),
   );
   const focusedElementIdRef = useRef<string>(null)
@@ -79,8 +78,16 @@ const Dashboard: React.FC<DashboardProps> = ({
   }, [sortedFilteredItems]);
 
   const refreshContent = () => {
+    const cards = getCards()
+    const filterableItems = getFilterableItems()
+    persistence.current = getPersistence()
+    sortAndFilterItems(cards, filterableItems, {
+      filter: Object.entries(filterableItems).map(([field, itemFilter]) => persistence.current.loadFilter().find(loaded => loaded.field === field) ?? itemFilter),
+      sorting: persistence.current.loadSorting()
+    }),
+
     setSortedFilteredItems(
-      sortAndFilterItems(getCards(), sortedFilteredItems.sortingFilter)
+      sortAndFilterItems(getCards(), filterableItems, sortedFilteredItems.sortingFilter)
     )
   }
 
@@ -89,7 +96,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     sorting: ItemSort[],
   ) => {
     setSortedFilteredItems(
-      sortAndFilterItems(sortedFilteredItems.rawItems, { filter, sorting }),
+      sortAndFilterItems(sortedFilteredItems.rawItems, sortedFilteredItems.rawFilterableItems, { filter, sorting }),
     );
     focusedElementIdRef.current = null
   };
@@ -198,10 +205,10 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <h2>{title}</h2>
                 </td>
               </tr>
-              <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+              <tr style={{ alignItems: 'center', verticalAlign: 'top' }}>
                 <td>
                   <Picklist
-                    persistence={persistence}
+                    persistence={persistence.current}
                     pageTypes={pageTypes}
                     usingPage={page}
                     items={sortedFilteredItems.filteredItems}
@@ -209,25 +216,21 @@ const Dashboard: React.FC<DashboardProps> = ({
                     onMouseOver={onMouseOverElement}
                     onMouseOut={onMouseOutElement}
                   />
+                  {addedHeaderComponent && <div style={{ float: 'left' }}>
+                    {addedHeaderComponent}
+                  </div>}
                 </td><td style={{ width: '200px' }}>
                   <InfoDisplay registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay }} />
                 </td><td>
                   <FilterSort
-                    persistence={persistence}
-                    filterableItems={filterableItems}
+                    persistence={persistence.current}
+                    filterableItems={sortedFilteredItems.rawFilterableItems}
                     sortingFields={sortingFields}
                     initialFilterSort={sortedFilteredItems.sortingFilter}
                     onChange={handlFilterSorting}
                   />
                 </td>
               </tr>
-              {addedHeaderComponent && 
-                <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                  <td colSpan={3}>
-                    {addedHeaderComponent}
-                  </td>
-                </tr>
-              }
             </tbody></table>
         }
         className='p-dialog-maximized'
