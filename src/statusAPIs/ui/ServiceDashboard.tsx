@@ -35,7 +35,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
   const [state, setState] = useState<ServiceDashboardState>({
     visible: true,
     isLoading: StatusAPIs.isLoading,
-    statuses: initialStatuses,
+    statuses: initialStatuses.sort(sortServiceByIndicatorRank),
     companyStatuses: companyHealthStatuses ?? [],
   })
   StatusAPIs.registerOnIsLoadingChange((isLoading: boolean) => {
@@ -45,7 +45,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
     })
   })
   const refresh = async (showDialog: boolean, force: boolean): Promise<void> => {
-    const statuses = await StatusAPIs.load(force)
+    const statuses = (await StatusAPIs.load(force)).sort(sortServiceByIndicatorRank)
     if (onServiceStatus) {
       onServiceStatus(statuses)
     }
@@ -54,7 +54,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
     setState({
       ...state,
       visible: showDialog,
-      statuses
+      statuses,
     })
   }
 

@@ -26,9 +26,22 @@ export function fetchCDNStatus(cdnSummaryUrl: string): Promise<CDNStatusIncident
                     description: content.status.description,
                     indicator: content.status.indicator
                 }
+                const components: Incident[] = (content.components ?? []).map(component => ({
+                    timestamp: (parseDate(component.created_at) ?? new Date()).getTime(),
+                    impact: component.status,
+                    name: component.name,
+                    status: component.status,
+                    updated: (parseDate(component.updated_at) ?? new Date()).getTime(),
+                    updates: component.description === null ? [] : [{
+                        name: component.description,
+                        status: component.status,
+                        updated: (parseDate(component.updated_at) ?? new Date()).getTime(),
+                    }]
+                }))
                 const incidents: Incident[] = (content.incidents ?? []).map(incident => ({
                     timestamp: (parseDate(incident.created_at) ?? new Date()).getTime(),
                     impact: incident.impact,
+                    name: incident.name,
                     status: incident.status,
                     updated: (parseDate(incident.updated_at) ?? new Date()).getTime(),
                     updates: incident.incident_updates.map((update: any) => ({
@@ -39,7 +52,7 @@ export function fetchCDNStatus(cdnSummaryUrl: string): Promise<CDNStatusIncident
                 }))
                 resolve({
                     status,
-                    incidents
+                    incidents: [...incidents, ...components]
                 })
             },
             onerror: (response) => {

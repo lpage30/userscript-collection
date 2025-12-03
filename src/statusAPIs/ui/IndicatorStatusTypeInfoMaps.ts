@@ -11,6 +11,8 @@ export function toIndicatorTypeInfo(indicator: IndicatorType) {
     if (result !== undefined) return indicator
     switch(indicator) {
       case 'Operational':
+      case 'All Systems Operational':
+      case 'none':
         return 'healthy'
       default:
         return 'other'
