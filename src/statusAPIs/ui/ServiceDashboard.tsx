@@ -1,4 +1,4 @@
-import React, { useState, useEffect, JSX} from 'react'
+import React, { useState, useEffect, JSX } from 'react'
 import { Dialog } from 'primereact/dialog'
 import { Button } from 'primereact/button'
 import { ServiceStatus, CompanyHealthStatus } from '../statustypes'
@@ -72,7 +72,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
       position={'center'}
       visible={state.visible}
       onHide={() => hideDialog()}
-      style={{ width: '90vw', height: '90vh'}}
+      style={{ width: '90vw', height: '90vh' }}
       header={
         <table
           style={{
@@ -85,18 +85,18 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
           }}
         ><tbody>
             <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-              <td colSpan={2}className="text-center">
+              <td colSpan={2} className="text-center">
                 <h2>{title}</h2>
               </td>
             </tr>
             <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
               <td>
-                  <Button
-                    onClick={() => refresh(true, true)}
-                    disabled={state.isLoading}>{state.isLoading ? 'Loading' : 'Refresh'} Service Statuses</Button>
+                <Button
+                  onClick={() => refresh(true, true)}
+                  disabled={state.isLoading}>{state.isLoading ? 'Loading' : 'Refresh'} Service Statuses</Button>
               </td>
               <td>
-                <div style={{display: 'flex'}}>
+                <div style={{ display: 'flex' }}>
                   <span className="text-sm">Company Color Legend:&nbsp;</span>{
                     Object.keys(CompanyHealthLevelTypeInfoMap)
                       .sort((l: string, r: string) => CompanyHealthLevelTypeInfoMap[l].rank = CompanyHealthLevelTypeInfoMap[r].rank)
@@ -117,7 +117,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
       className='p-dialog-maximized'
     >
       {state.statuses.map((serviceStatus, index) => (<>
-        {0 < index && <hr/>}
+        {0 < index && <hr />}
         <ServiceStatusComponent
           serviceStatus={serviceStatus}
           companyHealthStatuses={companyHealthStatuses}
@@ -129,6 +129,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
 interface ServiceDashboardPopupProps {
   onServiceStatus?: (serviceStatus: ServiceStatus[]) => void
   companyHealthStatuses?: CompanyHealthStatus[]
+  statusesPerRow?: number
 }
 
 interface ServiceDashboardPopupState {
@@ -153,15 +154,15 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
   })
   useEffect(() => {
     StatusAPIs.load(false).then(statuses => {
-        setState({
-          ...state,
-          initialStatuses: statuses
-        })
-        if(onServiceStatus) {
-          onServiceStatus(statuses)
-        }
+      setState({
+        ...state,
+        initialStatuses: statuses
+      })
+      if (onServiceStatus) {
+        onServiceStatus(statuses)
+      }
     })
-  },[])
+  }, [])
   const onViewDashboard = () => {
     setState({
       ...state,
@@ -175,7 +176,7 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
         onClick={() => onViewDashboard()}
         disabled={state.isLoading}
       >{state.isLoading ? 'Loading' : 'View'} Service Dashboard</Button>
-      {state.visible && <ServiceDashboard 
+      {state.visible && <ServiceDashboard
         title={'Service Status Dashboard'}
         companyHealthStatuses={companyHealthStatuses}
         initialStatuses={state.initialStatuses}
@@ -187,55 +188,88 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
 
 export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProps> = ({
   onServiceStatus,
-  companyHealthStatuses
-
+  companyHealthStatuses,
+  statusesPerRow = 15
 }) => {
-  const [statuses, setStatuses] = useState<ServiceStatus[]>([])
+  const [statuses, setStatuses] = useState<ServiceStatus[][]>([])
 
   const setServiceStatus = (serviceStatus: ServiceStatus[]) => {
-    setStatuses(serviceStatus)
+    const displayStatus = [...serviceStatus]
+      .sort(sortServiceByIndicatorRank)
+      .reduce((rows, status, index) => {
+        if (0 === (index % statusesPerRow)) {
+          rows.push([])
+        }
+        rows[rows.length - 1].push(status)
+        return rows
+      }, [] as ServiceStatus[][])
+
+    setStatuses(displayStatus)
     if (onServiceStatus) onServiceStatus(serviceStatus)
   }
-  return (
-    <div style={{ display: 'flex'}}>
-      <ServiceDashboardPopup 
-        onServiceStatus={setServiceStatus}
-        companyHealthStatuses={companyHealthStatuses}
-      />
-      {0 < statuses.length && (
-        <div>
-          <div style={{display: 'flex', alignItems: 'center'}}>
-            <span className="text-sm" style={{paddingLeft: '5px', paddingRight: '5px'}}>Service Color Legend:</span>
-            {  
-              Object.keys(IndicatorTypeInfoMap).sort(sortIndicatorByIndicatorRank)
-                .map(level => (
-                  <span className="text-sm" style={{
-                    backgroundColor: IndicatorTypeInfoMap[level].bgColor,
-                    color: IndicatorTypeInfoMap[level].fgColor,
-                    paddingLeft: `5px`,
-                    paddingRight: `5px`
-                  }}>{IndicatorTypeInfoMap[level].displayName}</span>
-                ))
-            }
-          </div>
-          <div style={{display: 'flex', alignItems: 'center'}}>
-            <span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px'}}>Services:</span>
-            {statuses
-            .sort(sortServiceByIndicatorRank)
-            .map((status, index) => (  
-              <>
-                {0 < index && <span className="text-sm">&nbsp;&#x2022;&nbsp;</span>}
-                {ServiceHealthStatusSpan(
-                    status,
-                    0 < index ? 5 : 3,
-                    (index + 1) < statuses.length ? 5 : 3
-                )}
-              </>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
+  const render = () => {
+    const statusRows = statuses.map(statusRow => (
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        {statusRow.map((status, index) => (
+          <>
+            {0 < index && <span className="text-sm">&nbsp;&#x2022;&nbsp;</span>}
+            {ServiceHealthStatusSpan(
+              status,
+              0 < index ? 5 : 3,
+              (index + 1) < statuses.length ? 5 : 3
+            )}
+          </>
+        ))}
+      </div>
+    ))
+    return (
+      <div style={{ display: 'flex' }}>
+        <ServiceDashboardPopup
+          onServiceStatus={setServiceStatus}
+          companyHealthStatuses={companyHealthStatuses}
+        />
+        {0 < statuses.length && (
+          <table
+            style={{
+              tableLayout: 'auto',
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              marginTop: '0',
+              marginBottom: 'auto',
+              width: '100%',
+            }}
+          ><tbody>
+              <tr style={{ alignItems: 'center', verticalAlign: 'bottom'}}>
+                <td style={{textAlign: 'right'}}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Service Color Legend:</span></td>
+                <td><div style={{ display: 'flex', alignItems: 'center' }}>
+                  {
+                    Object.keys(IndicatorTypeInfoMap).sort(sortIndicatorByIndicatorRank)
+                      .map(level => (
+                        <span className="text-sm" style={{
+                          backgroundColor: IndicatorTypeInfoMap[level].bgColor,
+                          color: IndicatorTypeInfoMap[level].fgColor,
+                          paddingLeft: `5px`,
+                          paddingRight: `5px`
+                        }}>{IndicatorTypeInfoMap[level].displayName}</span>
+                      ))
+                  }
+                </div></td>
+              </tr>
+              <tr style={{ alignItems: 'center', verticalAlign: 'bottom'}}>
+                <td style={{textAlign: 'right'}}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Services:</span></td>
+                <td>{statusRows[0]}</td>
+              </tr>
+              {statusRows.slice(1).map(row => (
+                <tr style={{ alignItems: 'center', verticalAlign: 'bottom' }}>
+                  <td></td><td>{row}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    )
+  }
+  return render()
 }
 export default ServiceDashboard

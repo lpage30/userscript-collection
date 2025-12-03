@@ -28,7 +28,10 @@ interface DashboardProps {
   style?: CSSProperties
   layout?: DashboardLayout
   registerRefreshContent?: (refreshContent: () => void) => void
-  addedHeaderComponent?: JSX.Element
+  addedHeaderComponent?: { 
+    after: 'picklist' | 'infodisplay' | 'filtersort' | 'lastrow',
+    element:JSX.Element,
+  }
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -201,7 +204,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             }}
           ><tbody>
               <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                <td colSpan={3} className="text-center">
+                <td colSpan={1000} className="text-center">
                   <h2>{title}</h2>
                 </td>
               </tr>
@@ -216,11 +219,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                     onMouseOver={onMouseOverElement}
                     onMouseOut={onMouseOutElement}
                   />
-                  {addedHeaderComponent && <div style={{ float: 'left' }}>
-                    {addedHeaderComponent}
+                  {addedHeaderComponent && addedHeaderComponent.after === 'picklist' && <div style={{ float: 'left' }}>
+                    {addedHeaderComponent.element}
                   </div>}
                 </td><td style={{ width: '200px' }}>
                   <InfoDisplay registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay }} />
+                  {addedHeaderComponent && addedHeaderComponent.after === 'infodisplay' && <div>
+                    {addedHeaderComponent.element}
+                  </div>}
                 </td><td>
                   <FilterSort
                     persistence={persistence.current}
@@ -229,8 +235,19 @@ const Dashboard: React.FC<DashboardProps> = ({
                     initialFilterSort={sortedFilteredItems.sortingFilter}
                     onChange={handlFilterSorting}
                   />
+                  {addedHeaderComponent && addedHeaderComponent.after === 'filtersort' && <div style={{ float: 'right' }}>
+                    {addedHeaderComponent.element}
+                  </div>}
                 </td>
               </tr>
+              {addedHeaderComponent && addedHeaderComponent.after === 'lastrow' &&
+                <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+                  <td colSpan={3}>
+                    {addedHeaderComponent.element}
+                  </td>
+                </tr>
+              }
+
             </tbody></table>
         }
         className='p-dialog-maximized'

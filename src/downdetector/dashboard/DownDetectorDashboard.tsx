@@ -69,17 +69,20 @@ export const DownDetectorDashboard: Userscript = {
 
     renderInContainer(container, <Dashboard 
       title={`DownDetector Dashboard's Top ${cards.length}`}
-      persistence={persistence}
+      getPersistence={() => persistence}
       pageTypes={[...CompanyPageTypes]}
-      filterableItems={filterableItems}
+      getFilterableItems={() => filterableItems}
       sortingFields={sortingFields}
       page={'dashboard'}
       getCards={() => cards}
       layout={'grid'}
-      addedHeaderComponent={<ServiceDashboardPopupAndSummary 
+      addedHeaderComponent={{
+        after: 'lastrow',
+        element: <ServiceDashboardPopupAndSummary 
           onServiceStatus={onServiceStatus}
           companyHealthStatuses={cards.map(({companyName, level}) => ({ companyName, healthStatus: level }))}
-        />}
+        />
+      }}
     />);
     await awaitElementById(renderableId);
   },

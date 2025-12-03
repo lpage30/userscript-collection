@@ -61,12 +61,13 @@ export const TheLayoffDashboard: Userscript = {
       getCards={getCards}
       layout={'vertical'}
       registerRefreshContent={(refreshContent) => { refreshCards = refreshContent }}
-      addedHeaderComponent={
-        <Button
+      addedHeaderComponent={{
+        after: 'picklist',
+        element: <Button
           className="app-button"
           onClick={() => loadAndRefreshContent()}
         >Refresh Cards</Button>
-      }
+      }}
 
     />);
     await awaitElementById(renderableId);
