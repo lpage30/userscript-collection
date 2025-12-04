@@ -7,31 +7,31 @@ import { toDate } from "../common/datetime";
 import "../common/ui/styles.css";
 
 interface FilterComponentProps {
-  filterableItems: FilterableItems;
+  getFilterableItems: () => FilterableItems;
   initialFilter: ItemFilter[];
   onFilterChange: (filter: ItemFilter[]) => void;
   style?: React.CSSProperties
   trailingComponent?: JSX.Element
-
 }
+const toFilterableItems = (filter: ItemFilter[]): FilterableItems => filter.reduce((fieldFilter, filter) => ({
+      ...fieldFilter,
+      [filter.field]: { ...filter }
+    }), {} as { [field: string]: ItemFilter })
 
 const FilterComponent: React.FC<FilterComponentProps> = ({
-  filterableItems,
+  getFilterableItems,
   initialFilter,
   onFilterChange,
   style,
   trailingComponent,
+
 }) => {
-  const [filter, setFilter] = useState<FilterableItems>(initialFilter
-    .reduce((fieldFilter, filter) => ({
-      ...fieldFilter,
-      [filter.field]: { ...filter }
-    }), {} as { [field: string]: ItemFilter })
-  );
+  const [filter, setFilter] = useState<FilterableItems>(toFilterableItems(initialFilter));
+
   const handleDateBetweenFilterChange = (field: string, beginDate: number, endDate: number) => {
     const newFilter = { ...filter }
     if (newFilter[field] === undefined) {
-      newFilter[field] = { ...filterableItems[field] }
+      newFilter[field] = { ...getFilterableItems()[field] }
     }
     newFilter[field].filter.beginDate = beginDate
     newFilter[field].filter.endDate = endDate
@@ -41,7 +41,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
   const handleValueExistenceFilterChange = (field: string, value: string, checked: boolean) => {
     const newFilter = { ...filter }
     if (newFilter[field] === undefined) {
-      newFilter[field] = { ...filterableItems[field] }
+      newFilter[field] = { ...getFilterableItems()[field] }
     }
     newFilter[field].filter[value] = checked
     setFilter(newFilter);
@@ -51,7 +51,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     const newItemFilter: ItemFilter = {
       field,
       type: 'ValueExistence',
-      filter: Object.entries(filterableItems[field].filter).reduce((newFilter, [value]) => ({
+      filter: Object.entries(getFilterableItems()[field].filter).reduce((newFilter, [value]) => ({
         ...newFilter,
         [value]: checkedValues.includes(value)
       }), {})

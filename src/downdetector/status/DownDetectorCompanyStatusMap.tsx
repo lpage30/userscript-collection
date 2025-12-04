@@ -22,7 +22,7 @@ export const DownDetectorCompanyStatusMap: Userscript = {
 
   render: async (href: string): Promise<void> => {
     await awaitPageLoadByMutation();
-    const persistence = Persistence('DownDetector', filterableItems)
+    const persistence = Persistence('DownDetector', () => filterableItems)
     const status = processCompanyStatus('map',
       await awaitElementById(statusMapElementId),
       href,

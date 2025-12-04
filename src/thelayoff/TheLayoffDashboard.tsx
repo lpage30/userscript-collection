@@ -13,6 +13,7 @@ import {
   createRenderableContainerAsChild,
   renderInContainer,
 } from "../common/ui/renderRenderable";
+import { LoadingPopup } from "../common/ui/LoadingPopup";
 import Dashboard from "../dashboardcomponents/Dashboard";
 import { layoffBaseUrl } from "./bookmarkedCompanies";
 import { loadPosts } from "./bookmarkedCompanies";
@@ -31,18 +32,16 @@ export const TheLayoffDashboard: Userscript = {
       navBarElement.style.display = 'none'
     }
 
-    let persistence = Persistence('TheLayoff', getFilterableItems())
-    let cards = await loadPosts(false)
-
     const container = createRenderableContainerAsChild(
       document.body,
       renderableId
     )
     let refreshCards: () => void | null = null
+    let persistence = Persistence('TheLayoff', getFilterableItems)
 
     const loadAndRefreshContent = async () => {
       cards = await loadPosts(true)
-      persistence = Persistence('TheLayoff', getFilterableItems())
+      persistence = Persistence('TheLayoff', getFilterableItems)
       if (refreshCards) refreshCards()
     }
     const getCards = () => {
@@ -51,6 +50,12 @@ export const TheLayoffDashboard: Userscript = {
     const getPersistence = () => {
       return persistence
     }
+
+    renderInContainer(container, <LoadingPopup
+      isOpen={true}
+    />);
+    let cards = await loadPosts(false)
+    container.innerHTML = ""
     renderInContainer(container, <Dashboard
       title={`Company Bookmarks`}
       getPersistence={getPersistence}

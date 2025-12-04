@@ -17,6 +17,7 @@ import {
   createRenderableContainerAsChild,
   renderInContainer,
 } from "../../common/ui/renderRenderable";
+import { LoadingPopup } from "../../common/ui/LoadingPopup";
 import Dashboard from "../../dashboardcomponents/Dashboard";
 import { Persistence } from "../../dashboardcomponents/persistence";
 import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
@@ -34,11 +35,6 @@ export const DownDetectorDashboard: Userscript = {
 
   render: async (href: string): Promise<void> => {
     await awaitPageLoadByMutation();
-    const persistence = Persistence('DownDetector', filterableItems)
-    const cards = processCompanyDashboardCards(
-      await awaitQueryAll(dashboardCardsQueryAllSelector),
-      persistence
-    );
     const container = createRenderableContainerAsChild(
       document.body,
       renderableId,
@@ -67,6 +63,15 @@ export const DownDetectorDashboard: Userscript = {
       })
     }
 
+    const persistence = Persistence('DownDetector', () => filterableItems)
+    renderInContainer(container, <LoadingPopup 
+      isOpen={true}
+    />);
+    const cards = processCompanyDashboardCards(
+      await awaitQueryAll(dashboardCardsQueryAllSelector),
+      persistence
+    );
+    container.innerHTML = ""
     renderInContainer(container, <Dashboard 
       title={`DownDetector Dashboard's Top ${cards.length}`}
       getPersistence={() => persistence}

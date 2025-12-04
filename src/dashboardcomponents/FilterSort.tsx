@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "primereact/button";
 import "../common/ui/styles.css";
 import { FilterableItems, ItemFilter, ItemSort, SortingFilter } from "./datatypes";
@@ -8,7 +8,7 @@ import SortComponent from "./SortComponent";
 
 interface FilterSortProps {
   persistence: PersistenceClass
-  filterableItems: FilterableItems;
+  getFilterableItems: () => FilterableItems;
   sortingFields: string[];
   initialFilterSort: SortingFilter;
   onChange: (filter: ItemFilter[], sorting: ItemSort[]) => void;
@@ -17,7 +17,7 @@ interface FilterSortProps {
 const FilterSort: React.FC<FilterSortProps> = ({
   persistence,
   initialFilterSort,
-  filterableItems,
+  getFilterableItems,
   sortingFields,
   onChange,
 }) => {
@@ -33,27 +33,41 @@ const FilterSort: React.FC<FilterSortProps> = ({
     persistence.storeSorting(sorting);
     onChange(filter, sorting);
   };
+  const clearFilterAndSort = () => {
+    persistence.deleteFilter();
+    persistence.deleteSorting();
+    setFilter(persistence.loadFilter())
+    setSorting(persistence.loadSorting())
+    onChange(filter, sorting);
+  };
   const render = () => {
     return (
-        <div>
-          <FilterComponent
-            filterableItems={filterableItems}
-            initialFilter={filter}
-            onFilterChange={setFilter}
-          />
-          <SortComponent
-            sortFields={sortingFields}
-            initialSorting={sorting}
-            onSortChange={setSorting}
-            style={{marginTop: '3px'}}
-            trailingComponent={
-              <Button 
+      <div>
+        <FilterComponent
+          getFilterableItems={getFilterableItems}
+          initialFilter={filter}
+          onFilterChange={setFilter}
+        />
+        <SortComponent
+          sortFields={sortingFields}
+          initialSorting={sorting}
+          onSortChange={setSorting}
+          style={{ marginTop: '3px' }}
+          trailingComponent={
+            <>
+              <Button
                 className="app-button"
                 onClick={applyChange}
-              >Apply Filter & Sort</Button>
-            }
-          />
-          
+              >Apply Filter & Sort</Button>&nbsp;
+              <Button
+                className="app-button"
+                onClick={clearFilterAndSort}
+              >Reset Filter & Sort</Button>
+            </>
+
+          }
+        />
+
       </div>
     );
   };

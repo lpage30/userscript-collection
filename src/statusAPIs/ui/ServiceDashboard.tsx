@@ -1,4 +1,4 @@
-import React, { useState, useEffect, JSX } from 'react'
+import React, { useState, useRef, useEffect, JSX } from 'react'
 import { Dialog } from 'primereact/dialog'
 import { Button } from 'primereact/button'
 import { ServiceStatus, CompanyHealthStatus } from '../statustypes'
@@ -15,7 +15,6 @@ interface ServiceDashboardProps {
   registerRefreshFunction?: (refreshFunction: (showDialog: boolean, force: boolean) => Promise<void>) => void
   onVisibleChange?: (visible: boolean) => void
   initiallyVisible?: boolean
-
 }
 interface ServiceDashboardState {
   visible: boolean
@@ -30,7 +29,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
   registerRefreshFunction,
   onVisibleChange,
   initialStatuses,
-  companyHealthStatuses
+  companyHealthStatuses,
 }) => {
   const [state, setState] = useState<ServiceDashboardState>({
     visible: true,
@@ -49,7 +48,6 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
     if (onServiceStatus) {
       onServiceStatus(statuses)
     }
-    if (registerRefreshFunction) registerRefreshFunction(refresh)
     if (onVisibleChange) onVisibleChange(showDialog)
     setState({
       ...state,
@@ -57,6 +55,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
       statuses,
     })
   }
+  if (registerRefreshFunction) registerRefreshFunction(refresh)
 
   const hideDialog = () => {
     setState({
@@ -136,6 +135,7 @@ interface ServiceDashboardPopupState {
   visible: boolean
   initialStatuses: ServiceStatus[]
   isLoading: boolean
+  dashboardVisible: boolean
 }
 export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
   onServiceStatus,
@@ -144,8 +144,10 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
   const [state, setState] = useState<ServiceDashboardPopupState>({
     visible: false,
     initialStatuses: [],
-    isLoading: StatusAPIs.isLoading
+    isLoading: StatusAPIs.isLoading,
+    dashboardVisible: false
   })
+  const refreshDashboardRef = useRef<(showDialog: boolean, force: boolean) => Promise<void>>(null)
   StatusAPIs.registerOnIsLoadingChange((isLoading: boolean) => {
     setState({
       ...state,
@@ -163,11 +165,12 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
       }
     })
   }, [])
-  const onViewDashboard = () => {
+  const onViewDashboard = async () => {
     setState({
       ...state,
       visible: true
     })
+    if (refreshDashboardRef.current) await refreshDashboardRef.current(true, false)
   }
   return (
     <div>
@@ -181,6 +184,15 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
         companyHealthStatuses={companyHealthStatuses}
         initialStatuses={state.initialStatuses}
         onServiceStatus={onServiceStatus}
+        onVisibleChange={(visible: boolean) => {
+          setState({
+            ...state,
+            visible
+          })
+        }}
+        registerRefreshFunction={(refreshDashboard: (showDialog: boolean, force: boolean) => Promise<void>) => {
+          refreshDashboardRef.current = refreshDashboard
+        }}
       />}
     </div>
   )
@@ -239,8 +251,8 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProp
               width: '100%',
             }}
           ><tbody>
-              <tr style={{ alignItems: 'center', verticalAlign: 'bottom'}}>
-                <td style={{textAlign: 'right'}}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Service Color Legend:</span></td>
+              <tr style={{ alignItems: 'center', verticalAlign: 'bottom' }}>
+                <td style={{ textAlign: 'right' }}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Service Color Legend:</span></td>
                 <td><div style={{ display: 'flex', alignItems: 'center' }}>
                   {
                     Object.keys(IndicatorTypeInfoMap).sort(sortIndicatorByIndicatorRank)
@@ -255,8 +267,8 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProp
                   }
                 </div></td>
               </tr>
-              <tr style={{ alignItems: 'center', verticalAlign: 'bottom'}}>
-                <td style={{textAlign: 'right'}}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Services:</span></td>
+              <tr style={{ alignItems: 'center', verticalAlign: 'bottom' }}>
+                <td style={{ textAlign: 'right' }}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Services:</span></td>
                 <td>{statusRows[0]}</td>
               </tr>
               {statusRows.slice(1).map(row => (

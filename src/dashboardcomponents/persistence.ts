@@ -14,13 +14,13 @@ export class PersistenceClass {
   private sortVariableName: string
   private filterVariableName: string
   private dashboardVariableName: string
-  private initialFilter: FilterableItems
-  constructor(variableNamePrefix: string, initialFilter: FilterableItems) {
+  private getInitialFilter: () => FilterableItems
+  constructor(variableNamePrefix: string, getInitialFilter: () => FilterableItems) {
       this.selectedElementIdVariableName = `${variableNamePrefix}_selected_element_id`
       this.sortVariableName = `${variableNamePrefix}_sortings`
       this.filterVariableName = `${variableNamePrefix}_filters`
       this.dashboardVariableName = `${variableNamePrefix}_dashboard`
-      this.initialFilter = {...initialFilter}
+      this.getInitialFilter = getInitialFilter
   }
   storeSelectedElementId(elementId: string) {
     GM_setValue(this.selectedElementIdVariableName, JSON.stringify({
@@ -47,14 +47,22 @@ export class PersistenceClass {
     const result = GM_getValue(this.sortVariableName)
     return result ? JSON.parse(result) : []
   }
+  deleteSorting() {
+    GM_deleteValue(this.sortVariableName);
+  }
+
   storeFilter(filter: ItemFilter[]) {
     GM_setValue(this.filterVariableName, JSON.stringify(filter));
   }
 
   loadFilter(): ItemFilter[] {
     const result = GM_getValue(this.filterVariableName)
-    return result ? JSON.parse(result) : Object.values(this.initialFilter);
+    return result ? JSON.parse(result) : Object.values(this.getInitialFilter());
   }
+  deleteFilter() {
+    GM_deleteValue(this.filterVariableName);
+  }
+
   storeDashboard<T extends Card>(timestamp: number, cards: T[]) {
     GM_setValue(this.dashboardVariableName, JSON.stringify({
       timestamp,
@@ -93,4 +101,4 @@ export class PersistenceClass {
   }
 
 }
-export const Persistence = (variablePrefix: string, initialFilter: FilterableItems = {}) => new PersistenceClass(variablePrefix, initialFilter)
+export const Persistence = (variablePrefix: string, getInitialFilter: () => FilterableItems = () => ({})) => new PersistenceClass(variablePrefix, getInitialFilter)
