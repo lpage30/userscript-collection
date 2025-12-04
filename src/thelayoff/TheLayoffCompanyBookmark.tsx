@@ -49,7 +49,7 @@ const renderableId = "the-layoff-bookmark-button";
 export const TheLayoffCompanyBookmark: Userscript = {
   name: "TheLayoffCompanyBookmark",
 
-  isSupported: (href: string): boolean => href.startsWith(`${layoffBaseUrl}/`) && !href.includes('#') && (layoffBaseUrl.length + 1) < href.length,
+  isSupported: (href: string): boolean => href.startsWith(`${layoffBaseUrl}/`) && !href.includes(`${layoffBaseUrl}/t/`)&& !href.includes('#') && (layoffBaseUrl.length + 1) < href.length,
 
   render: async (href: string): Promise<void> => {
     const urlpath = (new URL(href)).pathname.slice(1)
