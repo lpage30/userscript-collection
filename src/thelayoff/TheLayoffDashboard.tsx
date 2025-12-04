@@ -16,7 +16,7 @@ import {
 import { LoadingPopup } from "../common/ui/LoadingPopup";
 import Dashboard from "../dashboardcomponents/Dashboard";
 import { layoffBaseUrl } from "./bookmarkedCompanies";
-import { loadPosts } from "./bookmarkedCompanies";
+import { loadPosts, getCompanyBookmarks } from "./bookmarkedCompanies";
 
 const renderableId = "the-layoff-dashboard-panel";
 
@@ -53,6 +53,7 @@ export const TheLayoffDashboard: Userscript = {
 
     renderInContainer(container, <LoadingPopup
       isOpen={true}
+      message={`Loading ${getCompanyBookmarks().length} Company Bookmarks...`}
     />);
     let cards = await loadPosts(false)
     container.innerHTML = ""
