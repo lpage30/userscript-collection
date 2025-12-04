@@ -59,9 +59,19 @@ async function loadCompanyPosts(favorite: CompanyBookmark, force: boolean): Prom
     }
     return scrapedCards ?? []    
 }
+const comparePosts = (l: Post, r: Post) => {
+    let result = l.company.localeCompare(r.company)
+    if (0 === result) {
+        result = l.title.localeCompare(r.title)
+    }
+    return result
+}
 export async function loadPosts(force: boolean): Promise<Post[]> {
   return (await Promise.all(getCompanyBookmarks().map(company => loadCompanyPosts(company, force))))
-    .flat().map(toPostCard)
+    .flat()
+    .map(toPostCard)
+    .sort(comparePosts)
+    .filter((post, index, array) => 0 === index || (0 !== comparePosts(array[index - 1], post)))
 
 }
 
