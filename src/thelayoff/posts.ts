@@ -52,21 +52,5 @@ export const getFilterableItems= (): FilterableItems => ({
                 [name]: true
             }), {} as { [value: string]: boolean })
     } as ItemFilter,
-    lastReply: {
-        field: 'lastReply',
-        type: 'DateBetween',
-        filter: {
-            beginDate: Date.now() - ONE_WEEK,
-            endDate: Date.now()
-        }
-    } as ItemFilter,
-    date: {
-        field: 'date',
-        type: 'DateBetween',
-        filter: {
-            beginDate: Date.now() - ONE_MONTH,
-            endDate: Date.now()
-        }
-    }
 })
 
