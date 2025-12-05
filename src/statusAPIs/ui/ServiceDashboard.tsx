@@ -1,11 +1,17 @@
-import React, { useState, useRef, useEffect, JSX } from 'react'
+import React, { useState, useRef, useEffect, JSX, CSSProperties } from 'react'
 import { Dialog } from 'primereact/dialog'
 import { Button } from 'primereact/button'
 import { ServiceStatus, CompanyHealthStatus } from '../statustypes'
 import { ServiceHealthStatusSpan } from './IndicatorStatusComponents'
 import { StatusAPIs } from '../statusAPIs'
 import ServiceStatusComponent from './ServiceStatusComponent'
-import { CompanyHealthLevelTypeInfoMap, IndicatorTypeInfoMap, sortIndicatorByIndicatorRank, sortServiceByIndicatorRank } from './IndicatorStatusTypeInfoMaps'
+import {
+  CompanyHealthLevelTypeInfoMap,
+  IndicatorTypeInfoMap,
+  sortIndicatorByIndicatorRank,
+  sortServiceByIndicatorRank
+} from './IndicatorStatusTypeInfoMaps'
+import { createSpinningContentElement } from '../../common/ui/style_functions'
 
 interface ServiceDashboardProps {
   title: string
@@ -64,66 +70,81 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
     })
     if (onVisibleChange) onVisibleChange(false)
   }
-  return (
-    <Dialog
-      showHeader={true}
-      closable={true}
-      position={'center'}
-      visible={state.visible}
-      onHide={() => hideDialog()}
-      style={{ width: '90vw', height: '90vh' }}
-      header={
-        <table
-          style={{
-            tableLayout: 'auto',
-            marginLeft: 'auto',
-            marginRight: 'auto',
-            marginTop: '0',
-            marginBottom: 'auto',
-            width: '100%',
-          }}
-        ><tbody>
-            <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-              <td colSpan={2} className="text-center">
-                <h2>{title}</h2>
-              </td>
-            </tr>
-            <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-              <td>
-                <Button
-                  onClick={() => refresh(true, true)}
-                  disabled={state.isLoading}>{state.isLoading ? 'Loading' : 'Refresh'} Service Statuses</Button>
-              </td>
-              <td>
-                <div style={{ display: 'flex' }}>
-                  <span className="text-sm">Company Color Legend:&nbsp;</span>{
-                    Object.keys(CompanyHealthLevelTypeInfoMap)
-                      .sort((l: string, r: string) => CompanyHealthLevelTypeInfoMap[l].rank = CompanyHealthLevelTypeInfoMap[r].rank)
-                      .map(level => (
-                        <span className="text-sm" style={{
-                          backgroundColor: CompanyHealthLevelTypeInfoMap[level].bgColor,
-                          color: CompanyHealthLevelTypeInfoMap[level].fgColor,
-                          paddingLeft: `5px`,
-                          paddingRight: `5px`
-                        }}>{CompanyHealthLevelTypeInfoMap[level].displayName}</span>
-                      ))
-                  }
-                </div>
-              </td>
-            </tr>
-          </tbody></table>
-      }
-      className='p-dialog-maximized'
-    >
-      {state.statuses.map((serviceStatus, index) => (<>
-        {0 < index && <hr />}
-        <ServiceStatusComponent
-          serviceStatus={serviceStatus}
-          companyHealthStatuses={companyHealthStatuses}
-        />
-      </>))}
-    </Dialog>
-  )
+  const render = () => {
+    let buttonContent: string | JSX.Element = 'Refresh Service Statuses'
+    if (state.isLoading) {
+
+      buttonContent = createSpinningContentElement({
+        popupElementType: 'NoPopup',
+        spinnerSize: 'small',
+        content: {
+          content: 'Refreshing Service Statuses'
+        }
+      })
+    }
+
+    return (
+      <Dialog
+        showHeader={true}
+        closable={true}
+        position={'center'}
+        visible={state.visible}
+        onHide={() => hideDialog()}
+        style={{ width: '90vw', height: '90vh' }}
+        header={
+          <table
+            style={{
+              tableLayout: 'auto',
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              marginTop: '0',
+              marginBottom: 'auto',
+              width: '100%',
+            }}
+          ><tbody>
+              <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+                <td colSpan={2} className="text-center">
+                  <h2>{title}</h2>
+                </td>
+              </tr>
+              <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+                <td>
+                  <Button
+                    onClick={() => refresh(true, true)}
+                    disabled={state.isLoading}>{buttonContent}</Button>
+                </td>
+                <td>
+                  <div style={{ display: 'flex' }}>
+                    <span className="text-sm">Company Color Legend:&nbsp;</span>{
+                      Object.keys(CompanyHealthLevelTypeInfoMap)
+                        .sort((l: string, r: string) => CompanyHealthLevelTypeInfoMap[l].rank = CompanyHealthLevelTypeInfoMap[r].rank)
+                        .map(level => (
+                          <span className="text-sm" style={{
+                            backgroundColor: CompanyHealthLevelTypeInfoMap[level].bgColor,
+                            color: CompanyHealthLevelTypeInfoMap[level].fgColor,
+                            paddingLeft: `5px`,
+                            paddingRight: `5px`
+                          }}>{CompanyHealthLevelTypeInfoMap[level].displayName}</span>
+                        ))
+                    }
+                  </div>
+                </td>
+              </tr>
+            </tbody></table>
+        }
+        className='p-dialog-maximized'
+      >
+        {state.statuses.map((serviceStatus, index) => (<>
+          {0 < index && <hr />}
+          <ServiceStatusComponent
+            serviceStatus={serviceStatus}
+            companyHealthStatuses={companyHealthStatuses}
+          />
+        </>))}
+      </Dialog>
+    )
+  }
+  return render()
 }
 interface ServiceDashboardPopupProps {
   onServiceStatus?: (serviceStatus: ServiceStatus[]) => void
@@ -172,30 +193,44 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
     })
     if (refreshDashboardRef.current) await refreshDashboardRef.current(true, false)
   }
-  return (
-    <div>
-      <Button
-        className="app-button"
-        onClick={() => onViewDashboard()}
-        disabled={state.isLoading}
-      >{state.isLoading ? 'Loading' : 'View'} Service Dashboard</Button>
-      {state.visible && <ServiceDashboard
-        title={'Service Status Dashboard'}
-        companyHealthStatuses={companyHealthStatuses}
-        initialStatuses={state.initialStatuses}
-        onServiceStatus={onServiceStatus}
-        onVisibleChange={(visible: boolean) => {
-          setState({
-            ...state,
-            visible
-          })
-        }}
-        registerRefreshFunction={(refreshDashboard: (showDialog: boolean, force: boolean) => Promise<void>) => {
-          refreshDashboardRef.current = refreshDashboard
-        }}
-      />}
-    </div>
-  )
+  const render = () => {
+    let buttonContent: string | JSX.Element = 'View Service Dashboard'
+    if (state.isLoading) {
+
+      buttonContent = createSpinningContentElement({
+        popupElementType: 'NoPopup',
+        spinnerSize: 'small',
+        content: {
+          content: 'Loading Service Dashboard'
+        }
+      })
+    }
+    return (
+      <div>
+        <Button
+          className="app-button"
+          onClick={() => onViewDashboard()}
+          disabled={state.isLoading}
+        >{buttonContent}</Button>
+        {state.visible && <ServiceDashboard
+          title={'Service Status Dashboard'}
+          companyHealthStatuses={companyHealthStatuses}
+          initialStatuses={state.initialStatuses}
+          onServiceStatus={onServiceStatus}
+          onVisibleChange={(visible: boolean) => {
+            setState({
+              ...state,
+              visible
+            })
+          }}
+          registerRefreshFunction={(refreshDashboard: (showDialog: boolean, force: boolean) => Promise<void>) => {
+            refreshDashboardRef.current = refreshDashboard
+          }}
+        />}
+      </div>
+    )
+  }
+  return render()
 }
 
 export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProps> = ({
