@@ -36,7 +36,7 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
   const [sortedFilteredItems, setSortedFilteredItems] = useState<
     SortedFilteredItems<CompanyMetadata>
   >(
-    sortAndFilterItems(company.allCompanies ?? [], {
+    sortAndFilterItems(company.allCompanies ?? [], filterableItems, {
       filter: persistence.loadFilter(),
       sorting: persistence.loadSorting(),
     }),
@@ -61,7 +61,7 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
     sorting: ItemSort[],
   ) => {
     setSortedFilteredItems(
-      sortAndFilterItems(company.allCompanies ?? [], { filter, sorting }),
+      sortAndFilterItems(company.allCompanies ?? [], filterableItems, { filter, sorting }),
     );
   };
 
