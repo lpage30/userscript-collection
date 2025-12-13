@@ -9,24 +9,28 @@ import {
 import { awaitElementById, awaitQueryAll } from "../../common/await_functions";
 import { collectJob, uncollectJob, isJobCollected } from "../jobCollections";
 
-const renderableId = "job-saver-button";
 export const JobCollector: Userscript = {
   name: "JobCollector",
-
+  containerId: 'job-saver-button',
   isSupported: (href: string): boolean =>
     JobSites.some((site) => site.isJobSite(href)),
-
-  render: async (href: string): Promise<void> => {
+  preparePage: async (href: string): Promise<void> => {
     const jobSite = JobSites.find((site) => site.isJobSite(href));
     if (jobSite == undefined) {
       throw new Error(`${href} has no supported JobCollector Userscript`);
     }
     await jobSite.awaitPageLoad();
 
-    const renderable = document.createElement("div");
-    renderable.id = renderableId;
-    renderable.style.alignContent = "center";
-  
+  },
+  createContainer: async (href: string): Promise<HTMLElement> => {
+    const container = document.createElement("div");
+    container.id = JobCollector.containerId;
+    container.style.alignContent = "center";
+    return container
+  },
+  renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
+    const jobSite = JobSites.find((site) => site.isJobSite(href));
+
     const getTextSettings = async (): Promise<TextSettings> => {
       const job = await jobSite.scrapeJob(window.location.href);
       const jobName = `${job?.position}@${job?.company}`;
@@ -51,13 +55,13 @@ export const JobCollector: Userscript = {
     };
 
     const renderRenderable = async () => {
-      await jobSite.removeRenderable(renderable);
+      await jobSite.removeRenderable(container);
       setAsClickableTextComponent({
-        element: renderable,
+        element: container,
         getTextSettings,
         onClick,
       });
-      await jobSite.addRenderable(renderable!);
+      await jobSite.addRenderable(container!);
     };
     const onClick = async (): Promise<void> => {
       const clickedJob = await jobSite.scrapeJob(window.location.href);
@@ -69,7 +73,7 @@ export const JobCollector: Userscript = {
       return Promise.resolve();
     };
     await renderRenderable();
-    await awaitElementById(renderable.id, {
+    await awaitElementById(container.id, {
       minChildCount: 1,
       maxRetries: 60,
       intervalMs: 250,

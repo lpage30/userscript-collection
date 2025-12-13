@@ -26,23 +26,32 @@ async function handleAggregations(aggregation: JobApplication[]) {
   }
   return 0
 }
-const renderableId = 'jobs-dashboard'
 export const JobAggregator: Userscript = {
   name: "JobAggregator",
+  containerId: 'jobs-dashboard',
 
   isSupported: (href: string): boolean => href.includes(JobCollectorDashboardPageUrl),
-
-  render: async (href: string): Promise<void> => {
+  preparePage: async (href: string): Promise<void> => {
     if (!href.includes(JobCollectorDashboardPageUrl)) {
       throw new Error(`${href} has no supported JobAggregator Userscript`);
     }
     await awaitPageLoadByEvent();
+  },
+  createContainer: async (href: string,): Promise<HTMLElement> => {
+    const hrefParams = new URLSearchParams((new URL(href)).search.toLowerCase())
+    const headless = ['true', ''].includes(hrefParams.get('headless'))
+    return !headless ? createRenderableContainerAsChild(
+      document.body,
+      JobAggregator.containerId,
+    ) : null
+  },
+  renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
     const initialJobs = aggregateJobs()
     let updateDashboard: (aggregatedJobs: JobApplication[]) => void | null = null
-    
+
     const hrefParams = new URLSearchParams((new URL(href)).search.toLowerCase())
     const autoMerge = ['true', ''].includes(hrefParams.get('automerge'))
-    const headless =  ['true', ''].includes(hrefParams.get('headless'))
+    const headless = ['true', ''].includes(hrefParams.get('headless'))
 
     if (autoMerge) {
       handleAggregations(initialJobs)
@@ -61,17 +70,11 @@ export const JobAggregator: Userscript = {
       return
     }
 
-    const container = createRenderableContainerAsChild(
-      document.body,
-      renderableId,
-    );
-    
-    renderInContainer(container, <JobCollectorDashboard 
+    renderInContainer(container, <JobCollectorDashboard
       initialAggregation={initialJobs}
-      registerJobAggregation={(update) => { updateDashboard = update}}
+      registerJobAggregation={(update) => { updateDashboard = update }}
       mergeAggregation={handleAggregations}
     />);
-    await awaitElementById(renderableId);
-    
+    await awaitElementById(container.id);
   },
 };

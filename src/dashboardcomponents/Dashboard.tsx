@@ -230,7 +230,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </td><td>
                   <FilterSort
                     persistence={persistence.current}
-                    filterableItems={sortedFilteredItems.rawFilterableItems}
+                    getFilterableItems={() => sortedFilteredItems.rawFilterableItems}
                     sortingFields={sortingFields}
                     initialFilterSort={sortedFilteredItems.sortingFilter}
                     onChange={handlFilterSorting}

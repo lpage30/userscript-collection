@@ -30,8 +30,8 @@ function scrapePosts(companyBookmark: CompanyBookmark): Post[] {
     const footer = postElement.querySelector('footer')
     const footerParts = footer.innerText.split('|').map(t => t.trim())
     const companyHref = isTop25
-        ? Array.from(footer.querySelectorAll('a')).slice(-1)[0].href
-        : window.location.href
+      ? Array.from(footer.querySelectorAll('a')).slice(-1)[0].href
+      : window.location.href
     const company = toTitleCase((new URL(companyHref)).pathname.replace(/\//g, '').replace(/-/g, ' '))
 
     const date = parseDateTime(footerParts[0]) ?? new Date()
@@ -56,7 +56,7 @@ function scrapePosts(companyBookmark: CompanyBookmark): Post[] {
       groupH3.appendChild(companyAnchor)
     }
     header.appendChild(groupH3)
-        
+
     return toPostCard({
       groupName: companyBookmark.name,
       company,
@@ -74,17 +74,24 @@ function scrapePosts(companyBookmark: CompanyBookmark): Post[] {
 const CompanyBookmarks = getCompanyBookmarks()
 export const TheLayoffCompanyScraper: Userscript = {
   name: "TheLayoffCompanyScraper",
-
+  containerId: 'the-layoff-company-scraper',
   isSupported: (href: string): boolean => CompanyBookmarks.some(({ url }) => href.startsWith(url)),
-
-  render: async (href: string): Promise<void> => {
+  preparePage: async (href: string): Promise<void> => {
+    const foundInfo = CompanyBookmarks.find(info => href.startsWith(info.url))
+    if (foundInfo === undefined) return
+    await awaitPageLoadByMutation();
+  },
+  createContainer: async (href: string): Promise<HTMLElement> => {
+    return null
+  },
+  renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
     const foundInfo = CompanyBookmarks.find(info => href.startsWith(info.url))
     if (foundInfo === undefined) return
 
-    await awaitPageLoadByMutation();
     const timestamp = Date.now()
     const persistence = Persistence(foundInfo.name)
     const cards = scrapePosts(foundInfo)
     persistence.storeDashboard(timestamp, cards)
+
   },
 }

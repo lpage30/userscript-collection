@@ -119,7 +119,7 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
               </td><td>
                 <FilterSort
                   persistence={persistence}
-                  filterableItems={filterableItems}
+                  getFilterableItems={() => filterableItems}
                   sortingFields={sortingFields}
                   initialFilterSort={sortedFilteredItems.sortingFilter}
                   onChange={handlFilterSorting}

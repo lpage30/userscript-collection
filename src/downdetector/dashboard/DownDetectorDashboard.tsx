@@ -12,7 +12,7 @@ import {
   filterableItems,
   dashboardCardsQueryAllSelector,
   processCompanyDashboardCards,
- } from "../common/CompanyTypes";
+} from "../common/CompanyTypes";
 import {
   createRenderableContainerAsChild,
   renderInContainer,
@@ -27,19 +27,19 @@ import { reactToHTMLString } from "../../common/ui/reactTrustedHtmlString";
 import { sortServiceByIndicatorRank } from "../../statusAPIs/ui/IndicatorStatusTypeInfoMaps";
 import { ServiceHealthStatusSpan } from "../../statusAPIs/ui/IndicatorStatusComponents";
 
-const renderableId = "downdetector-dashboard-panel";
 export const DownDetectorDashboard: Userscript = {
   name: "DownDetectorDashboard",
+  containerId: 'downdetector-dashboard-panel',
 
   isSupported: (href: string): boolean => href.endsWith("downdetector.com/"),
-
-  render: async (href: string): Promise<void> => {
-    await awaitPageLoadByMutation();
-    const container = createRenderableContainerAsChild(
+  preparePage: (href: string): Promise<void> => awaitPageLoadByMutation(),
+  createContainer: async (href: string): Promise<HTMLElement> => {
+    return createRenderableContainerAsChild(
       document.body,
-      renderableId,
+      DownDetectorDashboard.containerId,
     );
-
+  },
+  renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
     const onServiceStatus = (serviceStatus: ServiceStatus[]) => {
       setServiceStatus(serviceStatus)
 
@@ -48,13 +48,13 @@ export const DownDetectorDashboard: Userscript = {
         if (serviceStatuses) {
           const renderable = (
             <>
-              <div 
-                className="text-sm" 
-                style={{ paddingLeft: `0px`, paddingRight: `3px`}}
+              <div
+                className="text-sm"
+                style={{ paddingLeft: `0px`, paddingRight: `3px` }}
               >Dependent Services</div>
               {serviceStatuses
                 .sort(sortServiceByIndicatorRank)
-                .map(status => (ServiceHealthStatusSpan(status,0, 3, true)))
+                .map(status => (ServiceHealthStatusSpan(status, 0, 3, true)))
               }
             </>
           )
@@ -64,7 +64,7 @@ export const DownDetectorDashboard: Userscript = {
     }
 
     const persistence = Persistence('DownDetector', () => filterableItems)
-    renderInContainer(container, <LoadingPopup 
+    renderInContainer(container, <LoadingPopup
       isOpen={true}
     />);
     const cards = processCompanyDashboardCards(
@@ -72,7 +72,7 @@ export const DownDetectorDashboard: Userscript = {
       persistence
     );
     container.innerHTML = ""
-    renderInContainer(container, <Dashboard 
+    renderInContainer(container, <Dashboard
       title={`DownDetector Dashboard's Top ${cards.length}`}
       getPersistence={() => persistence}
       pageTypes={[...CompanyPageTypes]}
@@ -83,12 +83,12 @@ export const DownDetectorDashboard: Userscript = {
       layout={'grid'}
       addedHeaderComponent={{
         after: 'lastrow',
-        element: <ServiceDashboardPopupAndSummary 
+        element: <ServiceDashboardPopupAndSummary
           onServiceStatus={onServiceStatus}
-          companyHealthStatuses={cards.map(({companyName, level}) => ({ companyName, healthStatus: level }))}
+          companyHealthStatuses={cards.map(({ companyName, level }) => ({ companyName, healthStatus: level }))}
         />
       }}
     />);
-    await awaitElementById(renderableId);
+    await awaitElementById(container.id);
   },
 };

@@ -54,14 +54,16 @@ async function scrapeServiceStatusRegions(): Promise<ScrapedServiceStatusRegions
 
 export const GCPHealthStatus: Userscript = {
     name: "GCPHealthStatus",
-
+    containerId: 'gcp-health-status',
     isSupported: (href: string): boolean => gcpUrls.includes(href),
-
-    render: async (href: string): Promise<void> => {
-        await awaitPageLoadByEvent();
+    preparePage: (href: string): Promise<void> => awaitPageLoadByEvent(),
+    createContainer: async (href: string): Promise<HTMLElement> => {
+        return null
+    },
+    renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
         const zone = getZone(href)
         const scrapedServiceStatusRegions = await scrapeServiceStatusRegions()
         storeGCPStatus(zone, toPersistableStatus(scrapedServiceStatusRegions))
-    }
+    },
 }
 

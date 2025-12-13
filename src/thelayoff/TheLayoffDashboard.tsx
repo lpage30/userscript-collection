@@ -18,24 +18,26 @@ import Dashboard from "../dashboardcomponents/Dashboard";
 import { layoffBaseUrl } from "./bookmarkedCompanies";
 import { loadPosts, getCompanyBookmarks } from "./bookmarkedCompanies";
 
-const renderableId = "the-layoff-dashboard-panel";
-
 export const TheLayoffDashboard: Userscript = {
   name: "TheLayoffDashboard",
-
-  isSupported: (href: string): boolean => href === `${layoffBaseUrl}/`,
-
-  render: async (href: string): Promise<void> => {
+  containerId: 'the-layoff-dashboard-panel',
+  isSupported: (href: string): boolean => href === `${layoffBaseUrl}/` || href.startsWith(`${layoffBaseUrl}/#`),
+  preparePage: async (href: string): Promise<void> => {
     await awaitPageLoadByMutation();
     const navBarElement = document.getElementById('navbar')
     if (navBarElement) {
       navBarElement.style.display = 'none'
     }
 
-    const container = createRenderableContainerAsChild(
+  },
+  createContainer: async (href: string): Promise<HTMLElement> => {
+    return createRenderableContainerAsChild(
       document.body,
-      renderableId
+      TheLayoffDashboard.containerId
     )
+
+  },
+  renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
     let refreshCards: () => void | null = null
     let persistence = Persistence('TheLayoff', getFilterableItems)
 
@@ -76,7 +78,6 @@ export const TheLayoffDashboard: Userscript = {
       }}
 
     />);
-    await awaitElementById(renderableId);
-
+    await awaitElementById(container.id);
   },
 }

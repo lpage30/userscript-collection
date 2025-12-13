@@ -13,33 +13,35 @@ import {
 } from "../../common/ui/renderRenderable";
 import CompanyStatus from "./CompanyStatus";
 
-const renderableId = "downdetector-company-status-map-panel";
+
 export const DownDetectorCompanyStatusMap: Userscript = {
   name: "DownDetectorCompanyStatusMap",
+  containerId: 'downdetector-company-status-map-panel',
 
   isSupported: (href: string): boolean =>
     href.includes("downdetector.com/status/") && href.endsWith('/map/'),
-
-  render: async (href: string): Promise<void> => {
-    await awaitPageLoadByMutation();
+  preparePage: (href: string): Promise<void> => awaitPageLoadByMutation(),
+  createContainer: async (href: string): Promise<HTMLElement> => {
+    return createRenderableContainerAsChild(
+      document.body,
+      DownDetectorCompanyStatusMap.containerId,
+    );
+  },
+  renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
     const persistence = Persistence('DownDetector', () => filterableItems)
     const status = processCompanyStatus('map',
       await awaitElementById(statusMapElementId),
       href,
       persistence
     );
-    const container = createRenderableContainerAsChild(
-      document.body,
-      renderableId,
-    );
     renderInContainer(container, <CompanyStatus
       persistence={persistence}
       pageTypes={[...CompanyPageTypes]}
       filterableItems={filterableItems}
       sortingFields={sortingFields}
-      company={status} 
-      page={'map'} 
+      company={status}
+      page={'map'}
     />);
-    await awaitElementById(renderableId);
+    await awaitElementById(container.id);
   },
 };

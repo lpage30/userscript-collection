@@ -15,8 +15,8 @@ import { ScrapedServiceStatusRegionsMap, toPersistableStatus } from "./scrapedSt
 async function scrapeServiceStatusRegions(): Promise<ScrapedServiceStatusRegionsMap> {
     const topElement = await awaitElementById('consumerCard')
     const overallServiceStatus = (topElement
-            .querySelector('div[class*="cardFlexHeaderContainer"]') as HTMLElement)
-            .innerText.split('\n').map(t => t.trim()).filter(t => 1 < t.length)
+        .querySelector('div[class*="cardFlexHeaderContainer"]') as HTMLElement)
+        .innerText.split('\n').map(t => t.trim()).filter(t => 1 < t.length)
     const showProductsButton = topElement.querySelector('button')
     showProductsButton.click()
     await awaitQuerySelection('ul')
@@ -40,13 +40,15 @@ async function scrapeServiceStatusRegions(): Promise<ScrapedServiceStatusRegions
 
 export const Microsoft365HealthStatus: Userscript = {
     name: "M365HealthStatus",
-
+    containerId: 'm365-health-status',
     isSupported: (href: string): boolean =>
         href.startsWith(M365HealthStatusPage),
-
-    render: async (href: string): Promise<void> => {
-        await awaitPageLoadByEvent();
+    preparePage: (href: string): Promise<void> => awaitPageLoadByEvent(),
+    createContainer: async (href: string): Promise<HTMLElement> => {
+        return null
+    },
+    renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
         const scrapedServiceStatusRegions = await scrapeServiceStatusRegions()
         storeM365Status(toPersistableStatus(scrapedServiceStatusRegions))
-    }
+    },
 }

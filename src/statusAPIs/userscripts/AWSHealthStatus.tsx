@@ -67,13 +67,18 @@ async function scrapeServiceStatusMap(pageNo: number, hasNextPage: boolean): Pro
 
 export const AWSHealthStatus: Userscript = {
   name: "AWSHealthStatus",
-
+  containerId: 'aws-health-status',
   isSupported: (href: string): boolean =>
     href.startsWith(AWSHealthStatusPage),
-
-  render: async (href: string): Promise<void> => {
+  preparePage: async (href: string): Promise<void> => {
     await awaitPageLoadByMutation();
     await awaitDelay(500)
+
+  },
+  createContainer: async (href: string): Promise<HTMLElement> => {
+    return null
+  },
+  renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
     let hasNextPage = true
     let currentPageNo = 0
     while (hasNextPage) {
