@@ -8,7 +8,7 @@ import {
 } from "../common/await_functions";
 import { Post, toPostCard } from "./posts";
 import { toTitleCase } from "../common/functions";
-import { parseDateTime } from "../common/datetime";
+import { parseDate, parseDateTime } from "../common/datetime";
 
 function parseRepliesText(replyText: string): { replyCount: number, lastReply: Date } | undefined {
   const regex = new RegExp(/^(\d+)[^\(]*\(([^\)]*)\).*$/g)
@@ -34,8 +34,10 @@ function scrapePosts(companyBookmark: CompanyBookmark): Post[] {
       : window.location.href
     const company = toTitleCase((new URL(companyHref)).pathname.replace(/\//g, '').replace(/-/g, ' '))
 
-    const date = parseDateTime(footerParts[0]) ?? new Date()
-    const { replyCount, lastReply } = parseRepliesText(footerParts[3]) ?? {}
+    const date = parseDate(footer.querySelector('time').dateTime) ?? new Date()
+    const replyElement = footer.querySelector('span[class*="nreplies"]')
+    const lastReply = 0 < replyElement.childElementCount ? parseDate((replyElement.lastElementChild as HTMLElement).title) : null
+    const { replyCount } = parseRepliesText(footerParts[3]) ?? {}
     const replyAnchor = Array.from(footer.querySelectorAll('a')).slice(-2).filter(a => !a.innerText.startsWith('@OP'))[0]
     const title = header.innerText
     const text = (header.nextElementSibling as HTMLElement).innerText
