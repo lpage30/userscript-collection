@@ -1,10 +1,10 @@
 // @grant       GM_openInTab
 import React from "react";
 import { Button } from "primereact/button";
-import "../common/ui/styles.css";
+import "../common/ui/styles.scss";
 import { Userscript } from "../common/userscript";
 import { Persistence } from "../dashboardcomponents/persistence";
-import { sortingFields, getFilterableItems } from "./posts";
+import { sortingFields, Post, getFilterableItems } from "./posts";
 import {
   awaitPageLoadByMutation,
   awaitElementById,
@@ -38,32 +38,38 @@ export const TheLayoffDashboard: Userscript = {
 
   },
   renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
+    let cards: Post[] = []
     let refreshCards: () => void | null = null
-    let persistence = Persistence('TheLayoff', getFilterableItems)
+
+    const getCompanyNames = () => {
+      const bookmarkedNames = getCompanyBookmarks().map(({name}) => name)
+      const currentCardNames = getCards().map(({company}) => company)
+      return [...bookmarkedNames, ...currentCardNames]
+        .sort()
+        .filter((name, index, array) => index === 0 || array[index - 1] !== name)
+    }
 
     const loadAndRefreshContent = async () => {
       cards = await loadPosts(true)
-      persistence = Persistence('TheLayoff', getFilterableItems)
       if (refreshCards) refreshCards()
     }
     const getCards = () => {
       return cards
     }
     const getPersistence = () => {
-      return persistence
+      return Persistence('TheLayoff', () => getFilterableItems(getCompanyNames))
     }
-
     renderInContainer(container, <LoadingPopup
       isOpen={true}
       message={`Loading ${getCompanyBookmarks().length} Company Bookmarks...`}
     />);
-    let cards = await loadPosts(false)
+    cards = await loadPosts(false)
     container.innerHTML = ""
     renderInContainer(container, <Dashboard
       title={`Company Bookmarks`}
       getPersistence={getPersistence}
       pageTypes={['dashboard']}
-      getFilterableItems={getFilterableItems}
+      getFilterableItems={() => getFilterableItems(getCompanyNames)}
       sortingFields={sortingFields}
       page={'dashboard'}
       getCards={getCards}

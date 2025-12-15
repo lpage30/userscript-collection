@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import '../../common/ui/styles.css';
+import '../../common/ui/styles.scss';
 import { Dialog } from 'primereact/dialog';
 import { Button } from 'primereact/button';
 import { AIStatusReport, isDifferentAIStatusReport } from '../ai_service_types';

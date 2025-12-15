@@ -1,5 +1,5 @@
 import React, { useRef, JSX } from "react";
-import "./styles.css";
+import "./styles.scss";
 import ReactDomServer from "react-dom/server";
 import DOMPurify from "dompurify";
 import ParseHTMLToReact from 'html-react-parser'

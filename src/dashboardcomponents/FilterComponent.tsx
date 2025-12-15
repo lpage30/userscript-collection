@@ -1,10 +1,10 @@
-import React, { useState, JSX } from "react";
-import { ItemFilter, ItemDateBetweenFilter, ItemValueExistenceFilter, FilterableItems } from "./datatypes";
+import React, { useState, JSX, useEffect } from "react";
+import { ItemFilter, ItemDateBetweenFilter, ItemValueExistenceFilter, FilterableItems, findIndexOfFilterField, mergeFilters } from "./datatypes";
 import { Checkbox } from "primereact/checkbox";
-import { MultiSelect } from "primereact/multiselect";
+import { PickList, PickOption } from "../common/ui/picklist"
 import { Calendar } from "primereact/calendar";
 import { toDate } from "../common/datetime";
-import "../common/ui/styles.css";
+import "../common/ui/styles.scss";
 
 interface FilterComponentProps {
   getFilterableItems: () => FilterableItems;
@@ -13,10 +13,6 @@ interface FilterComponentProps {
   style?: React.CSSProperties
   trailingComponent?: JSX.Element
 }
-const toFilterableItems = (filter: ItemFilter[]): FilterableItems => filter.reduce((fieldFilter, filter) => ({
-      ...fieldFilter,
-      [filter.field]: { ...filter }
-    }), {} as { [field: string]: ItemFilter })
 
 const FilterComponent: React.FC<FilterComponentProps> = ({
   getFilterableItems,
@@ -26,47 +22,55 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
   trailingComponent,
 
 }) => {
-  const [filter, setFilter] = useState<FilterableItems>(toFilterableItems(initialFilter));
+  const [filter, setFilter] = useState<ItemFilter[]>(mergeFilters(initialFilter, Object.values(getFilterableItems())));
+  const [valueExistenceFilters, setValueExistenceFilters] = useState<{itemFilter: ItemValueExistenceFilter, index: number}[]>([])
+  const [dateBetweenFilters, setDateBetweenFilters] = useState<{itemFilter: ItemDateBetweenFilter, index: number}[]>([])
 
-  const handleDateBetweenFilterChange = (field: string, beginDate: number, endDate: number) => {
-    const newFilter = { ...filter }
-    if (newFilter[field] === undefined) {
-      newFilter[field] = { ...getFilterableItems()[field] }
-    }
-    newFilter[field].filter.beginDate = beginDate
-    newFilter[field].filter.endDate = endDate
-    setFilter(newFilter);
-    onFilterChange(Object.values(newFilter));
-  };
-  const handleValueExistenceFilterChange = (field: string, value: string, checked: boolean) => {
-    const newFilter = { ...filter }
-    if (newFilter[field] === undefined) {
-      newFilter[field] = { ...getFilterableItems()[field] }
-    }
-    newFilter[field].filter[value] = checked
-    setFilter(newFilter);
-    onFilterChange(Object.values(newFilter));
-  };
-  const handleValueExistenceFilterChanges = (field: string, checkedValues: string[]) => {
-    const newItemFilter: ItemFilter = {
-      field,
-      type: 'ValueExistence',
-      filter: Object.entries(getFilterableItems()[field].filter).reduce((newFilter, [value]) => ({
-        ...newFilter,
-        [value]: checkedValues.includes(value)
-      }), {})
-    }
-    const newFilter = { ...filter }
-    newFilter[field] = newItemFilter
-    setFilter(newFilter);
-    onFilterChange(Object.values(newFilter));
+  useEffect(() => {
+    
+    setValueExistenceFilters(filter.map((itemFilter, index) => {
+      if (itemFilter.type === 'ValueExistence') return { itemFilter, index }
+      return null
+    }).filter(v => v !== null))
 
+    setDateBetweenFilters(filter.map((itemFilter, index) => {
+      if (itemFilter.type === 'DateBetween') return { itemFilter, index }
+      return null
+    }).filter(v => v !== null))
+
+  },[filter])
+
+  const handleDateBetweenFilterChange = (fieldName: string, beginDate: number, endDate: number) => {
+    const newFilter = mergeFilters(filter, Object.values(getFilterableItems()))
+    const fieldIndex = findIndexOfFilterField(fieldName, newFilter)
+    newFilter[fieldIndex].filter.beginDate = beginDate
+    newFilter[fieldIndex].filter.endDate = endDate
+    setFilter(newFilter);
+    onFilterChange(newFilter);
+  };
+  const handleValueExistenceFilterChange = (fieldName: string, value: string, checked: boolean) => {
+    const newFilter = mergeFilters(filter, Object.values(getFilterableItems()))
+    const fieldIndex = findIndexOfFilterField(fieldName, newFilter)
+    newFilter[fieldIndex].filter[value] = checked
+    setFilter(newFilter);
+    onFilterChange(newFilter);
+  };
+  const handleValueExistenceFilterChanges = (fieldName: string, checkedValues: string[]) => {
+    const newFilter = mergeFilters(filter, Object.values(getFilterableItems()))
+    const fieldIndex = findIndexOfFilterField(fieldName, newFilter)
+
+    Object.keys(newFilter[fieldIndex].filter).forEach(key => {
+      newFilter[fieldIndex].filter[key] = checkedValues.includes(key)
+    })
+    setFilter(newFilter);
+    onFilterChange(newFilter)
   }
+
   const renderValueExistenceFilters = (
-    filters: { itemFilter: ItemValueExistenceFilter, index: number}[],
     endComponent: JSX.Element | null
   ) => {
-    if (0 === filters.length) return null
+    if (0 === valueExistenceFilters.length) return null
+    
     return (
       <table
         style={{
@@ -80,12 +84,12 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
         }}
       ><tbody>
           <tr style={{ alignItems: "center", verticalAlign: "top" }}>
-            {filters.map(({ itemFilter, index }, position) => {
+            {valueExistenceFilters.map(({ itemFilter, index }, position) => {
               const valueCheckedArray = Object.entries(itemFilter.filter)
               if (valueCheckedArray.length <= 5) {
                 return (
                   <td>
-                    <div style={{ display: "flex", padding: '2px' }}>
+                    <div style={{ display: "flex" }}>
                       {valueCheckedArray.map(([value, checked], index2) => (
                         <>
                           {0 < index2 && <>&nbsp;&nbsp;</>}
@@ -104,23 +108,26 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
                           >{`${itemFilter.field}: ${value}`}</label>
                         </>
                       ))}
-                      {endComponent && (position+1) == filters.length && <div style={{ display: 'flex', float: 'right'}}>&nbsp;&nbsp;{endComponent}</div>}
+                      {endComponent && (position+1) == valueExistenceFilters.length && <div style={{ display: 'flex', float: 'right'}}>&nbsp;&nbsp;{endComponent}</div>}
                     </div>
                   </td>
                 )
               }
-              const maxValueLen = valueCheckedArray.reduce((maxTextLen, [value]) => value.length > maxTextLen ? value.length : maxTextLen, 0)
+              const options: PickOption<string>[] = valueCheckedArray.map(([name]) => ({label: name, value: name}))
+              const selectedOptions: PickOption<string>[] = valueCheckedArray.filter(([_name, checked]) => checked).map(([name]) => ({label: name, value: name}))
               return (
                 <td>
-                  <div style={{ display: "flex", padding: '2px' }}>
-                    <MultiSelect
-                      value={valueCheckedArray.filter(([value, checked]) => checked).map(([value]) => value)}
-                      options={valueCheckedArray.map(([value]) => value)}
-                      placeholder={`FilterBy Selected ${itemFilter.field}`}
-                      onChange={(e) => handleValueExistenceFilterChanges(itemFilter.field, e.value)}
-                      style={{ width: `${maxValueLen * 10}px` }}
+                  <div style={{ display: "flex" }}>
+                    <PickList
+                      multiple
+                      options={options}
+                      value={selectedOptions}
+                      onChange={(selectedValues: string[]) => handleValueExistenceFilterChanges(itemFilter.field, selectedValues)}
+                      placeholder={`Filter by Selected ${itemFilter.field}`}
+                      selectedDisplayMax={5}
+                      maxWidthPx={770}
                     />
-                    {endComponent && (position+1) == filters.length && <div style={{ display: 'flex', float: 'right'}}>&nbsp;&nbsp;{endComponent}</div>}
+                    {endComponent && (position+1) == valueExistenceFilters.length && <div style={{ display: 'flex', float: 'right'}}>&nbsp;&nbsp;{endComponent}</div>}
                   </div>
                 </td>
               )
@@ -132,10 +139,9 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     )
   }
   const renderDateBetweenFilters = (
-    filters: { itemFilter: ItemDateBetweenFilter, index: number}[],
     endComponent: JSX.Element | null
   ) => {
-    if (0 === filters.length) return null
+    if (0 === dateBetweenFilters.length) return null
     return (
       <table
         style={{
@@ -151,7 +157,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
           <tr style={{ alignItems: "center", verticalAlign: "top" }}>
             <td>
               <div style={{ display: "flex", padding: '2px' }}>
-                {filters.map(({ itemFilter, index }, position) => {
+                {dateBetweenFilters.map(({ itemFilter, index }, position) => {
                   return (
                     <>
                       {0 < position && <>&nbsp;&nbsp;</>}
@@ -172,7 +178,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
                       />
                     </>
                   )
-                }).flat().filter(e => e !== null)
+                 }).flat().filter(e => e !== null)
                 }
                 {endComponent && <div style={{ display: 'flex', float: 'right'}}>&nbsp;&nbsp;{endComponent}</div>}
               </div>
@@ -182,19 +188,10 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     )
   }
   const render = () => {
-    const valueExistenceFilters = Object.values(filter).map((itemFilter, index) => {
-      if (itemFilter.type === 'ValueExistence') return { itemFilter, index }
-      return null
-    }).filter(v => v !== null)
-
-    const dateBetweenFilters = Object.values(filter).map((itemFilter, index) => {
-      if (itemFilter.type === 'DateBetween') return { itemFilter, index }
-      return null
-    }).filter(v => v !== null)
 
     const filterBody = [
-      renderValueExistenceFilters(valueExistenceFilters, 0 < dateBetweenFilters.length ?  null : trailingComponent ?? null),
-      renderDateBetweenFilters(dateBetweenFilters, trailingComponent ?? null)
+      renderValueExistenceFilters(trailingComponent ?? null),
+      renderDateBetweenFilters(trailingComponent ?? null)
     ]
     return (
       <>

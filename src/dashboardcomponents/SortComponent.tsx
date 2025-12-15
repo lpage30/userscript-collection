@@ -1,9 +1,10 @@
 import React, { useState, JSX } from "react";
 import { ItemSort } from "./datatypes";
 import { Checkbox } from "primereact/checkbox";
-import { Dropdown } from "primereact/dropdown";
+import { PickList, PickOption } from "../common/ui/picklist"
 import { toTitleCase } from "../common/functions";
-import "../common/ui/styles.css";
+import "../common/ui/styles.scss";
+import { Dropdown } from "primereact/dropdown";
 
 interface SortComponentProps {
   sortFields: string[]
@@ -12,7 +13,10 @@ interface SortComponentProps {
   style?: React.CSSProperties
   trailingComponent?: JSX.Element
 }
-
+const toFieldOption = (field: string): PickOption<string> => ({
+    label: toTitleCase(field.split('_').join(' ')),
+    value: field,
+  })
 const SortComponent: React.FC<SortComponentProps> = ({
   sortFields,
   initialSorting,
@@ -22,10 +26,7 @@ const SortComponent: React.FC<SortComponentProps> = ({
 }) => {
   const [sorting, setSorting] = useState<ItemSort[]>(initialSorting);
   const [selectedSortField, setSelectedSortField] = useState<string>(null);
-  const sortFieldOptions = sortFields.map((field) => ({
-    label: toTitleCase(field.split('_').join(' ')),
-    value: field,
-  }));
+  const sortFieldOptions: PickOption<string>[] = sortFields.map(toFieldOption);
 
   const handleSortingChange = (
     field: string,
@@ -89,20 +90,16 @@ const SortComponent: React.FC<SortComponentProps> = ({
       >
         <tbody>
           <tr style={{ alignItems: "center", verticalAlign: "top" }}>
-            <td className="text-center">
-              <Dropdown
+            <td>
+              <PickList
                 options={sortFieldOptions}
-                optionLabel={"label"}
-                optionValue={"value"}
-                value={selectedSortField}
-                onChange={(e) => setSelectedSortField(e.value)}
+                value={selectedSortField ? toFieldOption(selectedSortField) : undefined}
+                onChange={(field: string) => setSelectedSortField(field)}
                 placeholder="Sortable Fields"
-                highlightOnSelect={false}
-                style={{ width: "100%" }}
                 itemTemplate={(option) => {
                   const sorting = getSorting(option.value);
                   return (
-                    <div className={sorting === null ? "" : "highlight"}>
+                    <div style={{display: 'flex'}} className={sorting === null ? "" : "highlight"}>
                       {option.label}
                       {sorting === null
                         ? ""

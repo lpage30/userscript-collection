@@ -1,6 +1,6 @@
 import React, { CSSProperties, useRef, JSX } from "react";
 import { renderToStaticMarkup } from 'react-dom/server';
-import "./styles.css";
+import "./styles.scss";
 import { PrimeReactProvider } from "primereact/api";
 import { createRoot } from "react-dom/client";
 

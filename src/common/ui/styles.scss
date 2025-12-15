@@ -1335,3 +1335,18 @@ select,
   text-align: center;
   padding: 1rem;
 }
+.picklist-list-item {
+  @extend .p-dropdown-item
+}
+.picklist-list-item:disabled {
+    opacity: 0.38;
+}
+.picklist-list-item[aria-selected="true"] {
+    color: #3F51B5;
+    background: rgba(63, 81, 181, 0.12);
+}
+.picklist-list-item:focus, .picklist-list-item:focus-within {
+    color: rgba(0, 0, 0, 0.87);
+    background: rgba(0, 0, 0, 0.04);
+}
+

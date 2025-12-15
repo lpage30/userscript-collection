@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { PicklistItem } from './datatypes';
 import { PersistenceClass } from './persistence';
 import { Button } from 'primereact/button';
-import { Dropdown } from 'primereact/dropdown';
-import '../common/ui/styles.css';
+import { PickList, PickOption } from '../common/ui/picklist'
+import '../common/ui/styles.scss';
 import { toTitleCase } from '../common/functions';
 import { awaitElementById } from '../common/await_functions';
 
@@ -88,17 +88,19 @@ const Picklist: React.FC<PicklistProps> = ({
       onFocusInDashboard(elementId)
     }
   }
-  function render() {
-    const picklistLabelValue: {
-      label: string;
-      value: string;
+  interface PickOptionValue {
+      elementId: string;
       color: string;
       item: PicklistItem
-    }[] = items.map((item) => ({
+  }
+  function render() {
+    const picklistLabelValue: PickOption<PickOptionValue>[] = items.map((item) => ({
       label: item.label(),
-      value: item.elementId,
-      color: item.color(),
-      item,
+      value: {
+        elementId: item.elementId,
+        color: item.color(),
+        item,
+      }
     }));
     return (
       <table
@@ -113,22 +115,20 @@ const Picklist: React.FC<PicklistProps> = ({
       >
         <tbody>
           <tr style={{ alignItems: 'center', verticalAlign: 'top' }}>
-            <td className='text-center'>
-              <Dropdown
+            <td>
+              <PickList
                 options={picklistLabelValue}
-                optionLabel={'label'}
-                optionValue={'value'}
-                value={selectedElementId}
-                onChange={(e) => onItemSelect(e.value)}
-                highlightOnSelect={false}
+                value={picklistLabelValue.find(({value}) => value.elementId === selectedElementId)}
+                onChange={(value: PickOptionValue) => onItemSelect((value ?? {elementId: null}).elementId)}
+                maxWidthPx={475}
                 style={{ width: '100%' }}
                 itemTemplate={(option) => (
                   <div
-                    id={`${option.value}-option`}
+                    id={`${option.value.elementId}-option`}
                     className='item-picklist-option'
                     style={
                       {
-                        '--border-color-left': `3px solid ${option.color}`,
+                        '--border-color-left': `3px solid ${option.value.color}`,
                       } as React.CSSProperties
                     }
                   >

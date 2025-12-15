@@ -1,6 +1,6 @@
 import React, { useState, CSSProperties } from "react";
 import { createSpinningContentElement, SpinningContentParameters } from "./style_functions";
-import "./styles.css";
+import "./styles.scss";
 
 export interface LoadingPopupProps {
     isOpen: boolean;

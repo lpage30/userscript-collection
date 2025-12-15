@@ -1,6 +1,6 @@
 import React from "react";
 import { CompanyBookmark, getCompanyBookmarks } from "./bookmarkedCompanies";
-import "../common/ui/styles.css";
+import "../common/ui/styles.scss";
 import { Userscript } from "../common/userscript";
 import { Persistence } from "../dashboardcomponents/persistence";
 import {

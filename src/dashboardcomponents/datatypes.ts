@@ -40,6 +40,42 @@ export interface ItemDateBetweenFilter extends ItemFilterBase {
 }
 export type ItemFilter = ItemValueExistenceFilter | ItemDateBetweenFilter
 
+export const sortFiltersByField = (filter: ItemFilter[]) => filter.sort((l: ItemFilter, r: ItemFilter) => l.field.localeCompare(r.field))
+export const findIndexOfFilterField = (fieldName: string, filter: ItemFilter[]) => filter.findIndex(({field}) => field === fieldName)
+
+export const mergeFilters = (existing: ItemFilter[], updated: ItemFilter[]) => {
+  const result: ItemFilter[] = []
+  const e = sortFiltersByField(existing)
+  const u = sortFiltersByField(updated)
+  let ei = 0
+  let ui = 0
+  while (ei < e.length || ui < u.length) {
+    if (e.length <= ei) {
+      result.push(...u.slice(ui))
+      break
+    }
+    if (u.length <= ui) {
+      result.push(...e.slice(ei))
+      break
+    }
+    const cmp = e[ei].field.localeCompare(u[ui].field)
+    if (cmp < 0) {
+      result.push(e[ei])
+      ei++
+    }
+    if (0 == cmp) {
+      result.push(u[ui])
+      ei++
+      ui++
+    }
+    if (0 < cmp) {
+      result.push(u[ui])
+      ui++
+    }
+  }
+  return result
+}
+
 export type FilterableItems = { [field: string]: ItemFilter }
 
 export interface SortingFilter {

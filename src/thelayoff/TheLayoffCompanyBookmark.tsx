@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "primereact/button";
 import { layoffBaseUrl, Bookmark, getCompanyBookmarks, setBookmarkList } from "./bookmarkedCompanies";
-import "../common/ui/styles.css";
+import "../common/ui/styles.scss";
 import { Userscript } from "../common/userscript";
 import {
   awaitPageLoadByMutation,

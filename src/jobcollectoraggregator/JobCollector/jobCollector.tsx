@@ -1,5 +1,5 @@
 import React from "react";
-import "../../common/ui/styles.css";
+import "../../common/ui/styles.scss";
 import { JobSites } from "./sites/sites";
 import { Userscript } from "../../common/userscript";
 import {

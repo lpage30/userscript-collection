@@ -1,6 +1,6 @@
 // @grant       GM_addValueChangeListener
 import React from "react";
-import "../../common/ui/styles.css";
+import "../../common/ui/styles.scss";
 import { Userscript } from "../../common/userscript";
 import {
   awaitPageLoadByEvent,

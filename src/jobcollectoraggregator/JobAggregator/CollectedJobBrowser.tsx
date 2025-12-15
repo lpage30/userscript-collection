@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import '../../common/ui/styles.css';
+import '../../common/ui/styles.scss';
 import {
   aggregateJobs,
   storeJobs,
 } from "../jobCollections";
-import { Dropdown } from 'primereact/dropdown';
+import { PickList, PickOption } from '../../common/ui/picklist';
 import { Button } from 'primereact/button';
 import { JobApplication } from '../jobApplication';
 import { Dialog } from 'primereact/dialog';
@@ -58,12 +58,18 @@ const CollectedJobBrowser: React.FC<CollectedJobBrowserProps> = ({
         refresh()
     }
     const popupBrowser = () => setVisible(true)
+    interface PickOptionValue {
+        index: number;
+        markedForDeletion: boolean;
+        descriptionUrl: string;        
+    }
     const render = () => {
-        const picklistOptions = jobApplications.map((job, index) => ({
+        const picklistOptions: PickOption<PickOptionValue>[] = jobApplications.map((job, index) => ({
             label: `${job.source}: ${job.position}@${job.company}`,
-            value: index,
-            markedForDeletion: deletedApplicationIndices.includes(index),
-            descriptionUrl: job.jobDescriptionUrl
+            value: { index,
+                     markedForDeletion: deletedApplicationIndices.includes(index),
+                     descriptionUrl: job.jobDescriptionUrl
+            }
         }))
         return (
         <div style={style ?? {}}>
@@ -85,7 +91,7 @@ const CollectedJobBrowser: React.FC<CollectedJobBrowserProps> = ({
                                 onClick={() => toggleDelete()} 
                                 disabled={null === selectedApplicationIndex}
                             >{selectedApplicationIndex !== null
-                                ? `${picklistOptions[selectedApplicationIndex].markedForDeletion ? 'Restore' : 'Delete'}`
+                                ? `${picklistOptions[selectedApplicationIndex].value.markedForDeletion ? 'Restore' : 'Delete'}`
                                 : 'disabled'
                             }
                             </Button>
@@ -126,16 +132,13 @@ const CollectedJobBrowser: React.FC<CollectedJobBrowserProps> = ({
                     }}><tbody>
                     <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
                         <td style={{padding: '3px'}}>
-                            <Dropdown 
+                            <PickList 
                                 options={picklistOptions}
-                                optionLabel={'label'}
-                                optionValue={'value'}
-                                value={selectedApplicationIndex}
-                                onChange={(e) => handleJobSelect(e.value)}
-                                highlightOnSelect={false}
+                                value={picklistOptions.find(opt => opt.value.index === selectedApplicationIndex)}
+                                onChange={(selected: PickOptionValue)=> handleJobSelect(selected.index)}
                                 style={{ width: '100%' }}
                                 itemTemplate={(option) => (<span>{
-                                    option.markedForDeletion
+                                    option.value.markedForDeletion
                                     ? <s>{option.label}</s>
                                     : option.label
                                     }</span>

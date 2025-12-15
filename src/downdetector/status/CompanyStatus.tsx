@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import "../../common/ui/styles.css";
+import "../../common/ui/styles.scss";
 import { Dialog } from "primereact/dialog";
 import {
   CompanyStatusCard,

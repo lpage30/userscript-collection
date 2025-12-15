@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Button } from "primereact/button";
-import "../common/ui/styles.css";
+import "../common/ui/styles.scss";
 import { FilterableItems, ItemFilter, ItemSort, SortingFilter } from "./datatypes";
 import { PersistenceClass } from "./persistence";
 import FilterComponent from "./FilterComponent";
@@ -42,17 +42,28 @@ const FilterSort: React.FC<FilterSortProps> = ({
   };
   const render = () => {
     return (
-      <div>
+      <table 
+        style={{
+            tableLayout: "auto",
+            marginLeft: "auto",
+            marginRight: "auto",
+            marginTop: "0",
+            marginBottom: "auto",
+            width: "100%",
+          }}
+      ><tbody>
+        <tr><td>
         <FilterComponent
           getFilterableItems={getFilterableItems}
           initialFilter={filter}
           onFilterChange={setFilter}
         />
+        </td></tr>
+        <tr><td>
         <SortComponent
           sortFields={sortingFields}
           initialSorting={sorting}
           onSortChange={setSorting}
-          style={{ marginTop: '3px' }}
           trailingComponent={
             <>
               <Button
@@ -67,8 +78,8 @@ const FilterSort: React.FC<FilterSortProps> = ({
 
           }
         />
-
-      </div>
+        </td></tr>
+      </tbody></table>
     );
   };
   return render();

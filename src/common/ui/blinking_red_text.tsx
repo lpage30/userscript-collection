@@ -1,6 +1,6 @@
 import React from "react";
 import { createBlinkingContentElement } from "./style_functions";
-import "./styles.css";
+import "./styles.scss";
 
 export interface BlinkingRedTextProps {
   text: string;

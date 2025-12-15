@@ -1,5 +1,5 @@
 import React from "react";
-import "../../common/ui/styles.css";
+import "../../common/ui/styles.scss";
 import { Userscript } from "../../common/userscript";
 import { getSite } from "./sites/sites";
 import { BlinkingRedText } from "../../common/ui/blinking_red_text";

@@ -42,12 +42,12 @@ export function toPostCard(data: Partial<Post>): Post {
 }
 
 export const sortingFields = ['groupName', 'company', 'date', 'lastReply', 'replyCount'];
-export const getFilterableItems= (): FilterableItems => ({
-    groupName: {
-        field: 'groupName',
+export const getFilterableItems= (getCompanyNames: () => string[]): FilterableItems => ({
+    company: {
+        field: 'company',
         type: 'ValueExistence',
-        filter: getCompanyBookmarks()
-            .reduce((result, { name }) => ({
+        filter: getCompanyNames()
+            .reduce((result, name) => ({
                 ...result,
                 [name]: true
             }), {} as { [value: string]: boolean })

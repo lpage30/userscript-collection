@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, CSSProperties, JSX } from 'react';
-import '../common/ui/styles.css';
+import '../common/ui/styles.scss';
 import { Dialog } from 'primereact/dialog';
 import { awaitElementById } from '../common/await_functions';
 import { 

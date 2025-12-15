@@ -1,6 +1,6 @@
 import React, { useState} from "react";
 import { InfoDisplayItem } from './datatypes'
-import "../common/ui/styles.css";
+import "../common/ui/styles.scss";
 
 interface InfoDisplayProps {
   registerDisplayTrigger: (displayTrigger: (data: InfoDisplayItem | null ) => void) => void
