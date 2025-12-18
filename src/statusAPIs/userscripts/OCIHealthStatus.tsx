@@ -84,15 +84,13 @@ async function scrapeServiceStatusMap(pageNo: number, hasNextPage: boolean): Pro
 export const OCIHealthStatus: Userscript = {
   name: "OCIHealthStatus",
   containerId: 'oci-health-status',
-  isSupported: (href: string): boolean =>
-    href.startsWith(OCIHealthStatusPage),
+  isSupported: (href: string): boolean => href.startsWith(OCIHealthStatusPage),
   preparePage: async (href: string): Promise<void> => {
     await awaitPageLoadByEvent();
     await awaitDelay(500)
   },
-  createContainer: async (href: string): Promise<HTMLElement> => {
-    return null
-  },
+  cleanupContainers: async (href: string): Promise<boolean> => false,
+  createContainer: async (href: string): Promise<HTMLElement> => null,
   renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
     let hasNextPage = true
     let currentPageNo = -1

@@ -56,6 +56,19 @@ export const TheLayoffCompanyBookmark: Userscript = {
       navBarElement.style.display = 'none'
     }
   },
+  cleanupContainers: async (href: string): Promise<boolean> => {
+    let result = false
+    const ids: string[] = [TheLayoffCompanyBookmark.containerId]
+    ids.forEach(id => {
+      Array.from(document.querySelectorAll(`div[id="${id}"]`)).forEach((element: HTMLElement) => {
+        element.style.display = 'none'
+        element.innerHTML = ''
+        element.remove()
+        result = true
+      })
+    })
+    return result
+  },
   createContainer: async (href: string): Promise<HTMLElement> => {
     const parentElement = document.getElementById('page-body')
     const afterElement = document.getElementById('searchbox')

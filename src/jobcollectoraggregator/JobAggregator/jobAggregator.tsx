@@ -29,13 +29,25 @@ async function handleAggregations(aggregation: JobApplication[]) {
 export const JobAggregator: Userscript = {
   name: "JobAggregator",
   containerId: 'jobs-dashboard',
-
   isSupported: (href: string): boolean => href.includes(JobCollectorDashboardPageUrl),
   preparePage: async (href: string): Promise<void> => {
     if (!href.includes(JobCollectorDashboardPageUrl)) {
       throw new Error(`${href} has no supported JobAggregator Userscript`);
     }
     await awaitPageLoadByEvent();
+  },
+  cleanupContainers: async (href: string): Promise<boolean> => {
+    let result = false
+    const ids: string[] = [JobAggregator.containerId]
+    ids.forEach(id => {
+      Array.from(document.querySelectorAll(`div[id="${id}"]`)).forEach((element: HTMLElement) => {
+        element.style.display = 'none'
+        element.innerHTML = ''
+        element.remove()
+        result = true
+      })
+    })
+    return result
   },
   createContainer: async (href: string,): Promise<HTMLElement> => {
     const hrefParams = new URLSearchParams((new URL(href)).search.toLowerCase())

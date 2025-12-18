@@ -57,9 +57,8 @@ export const GCPHealthStatus: Userscript = {
     containerId: 'gcp-health-status',
     isSupported: (href: string): boolean => gcpUrls.includes(href),
     preparePage: (href: string): Promise<void> => awaitPageLoadByEvent(),
-    createContainer: async (href: string): Promise<HTMLElement> => {
-        return null
-    },
+    cleanupContainers: async (href: string): Promise<boolean> => false,
+    createContainer: async (href: string): Promise<HTMLElement> => null,
     renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
         const zone = getZone(href)
         const scrapedServiceStatusRegions = await scrapeServiceStatusRegions()

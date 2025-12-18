@@ -21,9 +21,8 @@ export const AIAssistantSiteAgent: Userscript = {
     }
     await aiSite.awaitPageLoad();
   },
-  createContainer: async (href: string): Promise<HTMLElement> => {
-    return null
-  },
+  cleanupContainers: async (href: string): Promise<boolean> => false,
+  createContainer: async (href: string): Promise<HTMLElement> => null,
   renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
     const aiSite = getSite(href);
     siteAgent.start(aiSite);

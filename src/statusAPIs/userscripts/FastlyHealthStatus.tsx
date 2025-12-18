@@ -33,13 +33,10 @@ async function scrapeServiceStatusRegions(): Promise<ScrapedServiceStatusRegions
 export const FastlyHealthStatus: Userscript = {
   name: "FastlyHealthStatus",
   containerId: 'fastly-health-status',
-
-  isSupported: (href: string): boolean =>
-    href.startsWith(FastlyHealthStatusPage),
+  isSupported: (href: string): boolean => href.startsWith(FastlyHealthStatusPage),
   preparePage: (href: string): Promise<void> => awaitPageLoadByEvent(),
-  createContainer: async (href: string): Promise<HTMLElement> => {
-    return null
-  },
+  cleanupContainers: async (href: string): Promise<boolean> => false,
+  createContainer: async (href: string): Promise<HTMLElement> => null,
   renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
     const scrapedServiceStatusRegions = await scrapeServiceStatusRegions()
     storeFastlyStatus(toPersistableStatus(scrapedServiceStatusRegions))

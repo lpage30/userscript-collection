@@ -46,4 +46,15 @@ Collection of userscripts for various purposes
     - https://downdetector.com/
     - https://downdetector.com/status/<company-name>/
     - https://downdetector.com/status/<company-name>/map
+- Also added functions to fetch health status of major cloud resources with a mapping to companies that rely on them so perhaps you could say 'oh this site depends on cloudflare, and it is having a major outage'
+
+## TheLayoff
+- userscript for pages on TheLayoff.com
+- Aggregates them into an easier to read dashboard with sorting, wanted to see only certain sites, and get to the guts of things without too many clicks.. meh
+
+## Realestate
+- userscript for redfin/realtor
+- looking for realestate along ocean, so wanted to toggle map on different pages
+- also scrapes info when on single property page so you don't have to dig for it
+
    

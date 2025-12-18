@@ -41,12 +41,10 @@ async function scrapeServiceStatusRegions(): Promise<ScrapedServiceStatusRegions
 export const Microsoft365HealthStatus: Userscript = {
     name: "M365HealthStatus",
     containerId: 'm365-health-status',
-    isSupported: (href: string): boolean =>
-        href.startsWith(M365HealthStatusPage),
+    isSupported: (href: string): boolean => href.startsWith(M365HealthStatusPage),
     preparePage: (href: string): Promise<void> => awaitPageLoadByEvent(),
-    createContainer: async (href: string): Promise<HTMLElement> => {
-        return null
-    },
+    cleanupContainers: async (href: string): Promise<boolean> => false,
+    createContainer: async (href: string): Promise<HTMLElement> => null,
     renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
         const scrapedServiceStatusRegions = await scrapeServiceStatusRegions()
         storeM365Status(toPersistableStatus(scrapedServiceStatusRegions))

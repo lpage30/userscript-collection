@@ -83,9 +83,8 @@ export const TheLayoffCompanyScraper: Userscript = {
     if (foundInfo === undefined) return
     await awaitPageLoadByMutation();
   },
-  createContainer: async (href: string): Promise<HTMLElement> => {
-    return null
-  },
+  cleanupContainers: async (href: string): Promise<boolean> => false,
+  createContainer: async (href: string): Promise<HTMLElement> => null,
   renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
     const foundInfo = CompanyBookmarks.find(info => href.startsWith(info.url))
     if (foundInfo === undefined) return

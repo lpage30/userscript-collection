@@ -30,9 +30,21 @@ import { ServiceHealthStatusSpan } from "../../statusAPIs/ui/IndicatorStatusComp
 export const DownDetectorDashboard: Userscript = {
   name: "DownDetectorDashboard",
   containerId: 'downdetector-dashboard-panel',
-
   isSupported: (href: string): boolean => href.endsWith("downdetector.com/"),
   preparePage: (href: string): Promise<void> => awaitPageLoadByMutation(),
+  cleanupContainers: async (href: string): Promise<boolean> => {
+    let result = false
+    const ids: string[] = [DownDetectorDashboard.containerId]
+    ids.forEach(id => {
+      Array.from(document.querySelectorAll(`div[id="${id}"]`)).forEach((element: HTMLElement) => {
+        element.style.display = 'none'
+        element.innerHTML = ''
+        element.remove()
+        result = true
+      })
+    })
+    return result
+  },
   createContainer: async (href: string): Promise<HTMLElement> => {
     return createRenderableContainerAsChild(
       document.body,

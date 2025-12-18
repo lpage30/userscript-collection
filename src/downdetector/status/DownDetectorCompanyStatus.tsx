@@ -16,9 +16,21 @@ import CompanyStatus from "./CompanyStatus";
 export const DownDetectorCompanyStatus: Userscript = {
   name: "DownDetectorCompanyStatus",
   containerId: 'downdetector-company-status-panel',
-  isSupported: (href: string): boolean =>
-    href.includes("downdetector.com/status/") && !href.endsWith('/map/'),
+  isSupported: (href: string): boolean => href.includes("downdetector.com/status/") && !href.endsWith('/map/'),
   preparePage: (href: string): Promise<void> => awaitPageLoadByMutation(),
+  cleanupContainers: async (href: string): Promise<boolean> => {
+    let result = false
+    const ids: string[] = [DownDetectorCompanyStatus.containerId]
+    ids.forEach(id => {
+      Array.from(document.querySelectorAll(`div[id="${id}"]`)).forEach((element: HTMLElement) => {
+        element.style.display = 'none'
+        element.innerHTML = ''
+        element.remove()
+        result = true
+      })
+    })
+    return result
+  },
   createContainer: async (href: string): Promise<HTMLElement> => {
     return createRenderableContainerAsChild(
       document.body,

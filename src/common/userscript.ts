@@ -4,9 +4,9 @@ export interface Userscript {
   containerId: string;
   isSupported: (href: string) => boolean;
   preparePage: (href: string) => Promise<void>
+  cleanupContainers: (href: string) => Promise<boolean>
   createContainer: (href: string) => Promise<HTMLElement>
   renderInContainer: (href: string, container: HTMLElement) => Promise<void>
-
 }
 
 export interface UserscriptHeaderInfo {
@@ -25,48 +25,62 @@ export interface UserscriptInfo {
   headerInfo?: UserscriptHeaderInfo;
 }
 export type UserscriptInfoListing = { [name: string]: UserscriptInfo };
+const isEqual = (left: URL | null, right: URL | null): boolean => {
+  if ([left, right].includes(null)) return false
+  if (left.origin === right.origin && left.pathname === right.pathname) return true
+  return false
+}
+export async function RunUserscripts(userscripts: Userscript[], previousLocationHref = "") {
+  const currentLocationURL = new URL(window.location.href.toString());
+  const previousLocationURL = 0 === previousLocationHref.length ? null : new URL(previousLocationHref)
 
-export async function RunUserscripts(userscripts: Userscript[], lastLocationHref = "") {
-  const currentLocationHref = window.location.href.toString();
-  const scripts: Userscript[] = userscripts.filter(script => script.isSupported(currentLocationHref))
-  if (0 == scripts.length) {
+  const scripts: Userscript[] = userscripts.filter(script => script.isSupported(currentLocationURL.href))
+  if (0 == scripts.length || isEqual(previousLocationURL, currentLocationURL)) {
     return;
   }
   const scriptName = `[${scripts.map(script => script.name).join(',')}]`
   console.log(
-    `############## ${scriptName} - ${currentLocationHref} ###############`,
+    `############## ${scriptName} - ${currentLocationURL.href} ###############`,
   );
-  if (currentLocationHref == lastLocationHref) {
-    return;
-  }
   window.onerror = (e) => {
     console.error(`Error ${scriptName}`, e);
   };
-  if (lastLocationHref != "") {
+  if (null === previousLocationURL) {
     await awaitDelay(500);
   }
-  let action = 'preparePage'
-  let name = scriptName
+  let action = ''
+  let name = ''
   const containers: HTMLElement[] = []
   try {
+    action = 'preparePage'
+    name = scriptName
     for (const script of scripts) {
       name = script.name
-      await script.preparePage(currentLocationHref)
+      await script.preparePage(currentLocationURL.href)
+    }
+    action = 'cleanupContainers'
+    name = scriptName
+    for (const script of scripts) {
+      name = script.name
+      if (await script.cleanupContainers(currentLocationURL.href)) {
+        console.log(`Cleanedup Containers> ${name} ${currentLocationURL.href}`)
+      }
     }
     action = 'createContainer'
     name = scriptName
     for (const script of scripts) {
       name = script.name
-      containers.push(await script.createContainer(currentLocationHref))
+      const container = await script.createContainer(currentLocationURL.href)
+      containers.push(container)
     }
     action = 'renderInContainer'
     name = scriptName
     for (let i = 0; i < scripts.length; i++) {
       name = scripts[i].name
-      await scripts[i].renderInContainer(currentLocationHref, containers[i])
+      await scripts[i].renderInContainer(currentLocationURL.href, containers[i])
     }
     window.addEventListener("urlchange", (e) => {
-      RunUserscripts(userscripts, currentLocationHref);
+      RunUserscripts(userscripts, currentLocationURL.href);
     });
   } catch (e) {
     console.error(`Failed loading ${scriptName}. ${name}.${action}`, e);

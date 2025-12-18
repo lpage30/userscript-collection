@@ -199,5 +199,18 @@ export function getMaximumZIndex(): number {
             const zIndex = parseInt(computedStyle.getPropertyValue('z-index'))
             return zIndex > maxZIndex ? zIndex : maxZIndex
         }, 0)
-
+}
+export function padToAlign(maxLength: number, curLength: number): JSX.Element {
+    const rem =(maxLength - curLength)/2
+    return maxLength === curLength ? null : (<span style={{ display: 'inline-block', width: `${rem}rem`}}></span>)
+}
+export function getHeightWidth(element: HTMLElement): { height: number, width: number } {
+    const { width, height } = element.getBoundingClientRect()
+    return { width, height }
+}
+export function scaleDimension(srcDim: { height: number, width: number }, fixedSideLength: number, isWidth: boolean): { height: number, width: number } {
+    if (isWidth) {
+        return { height: Math.round(fixedSideLength * (srcDim.height / srcDim.width)), width: fixedSideLength }
+    }
+    return { height: fixedSideLength, width: Math.round(fixedSideLength * (srcDim.width/srcDim.height)) }
 }

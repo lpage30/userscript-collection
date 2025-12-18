@@ -12,8 +12,7 @@ import { collectJob, uncollectJob, isJobCollected } from "../jobCollections";
 export const JobCollector: Userscript = {
   name: "JobCollector",
   containerId: 'job-saver-button',
-  isSupported: (href: string): boolean =>
-    JobSites.some((site) => site.isJobSite(href)),
+  isSupported: (href: string): boolean => JobSites.some((site) => site.isJobSite(href)),
   preparePage: async (href: string): Promise<void> => {
     const jobSite = JobSites.find((site) => site.isJobSite(href));
     if (jobSite == undefined) {
@@ -21,6 +20,19 @@ export const JobCollector: Userscript = {
     }
     await jobSite.awaitPageLoad();
 
+  },
+  cleanupContainers: async (href: string): Promise<boolean> => {
+    let result = false
+    const ids: string[] = [JobCollector.containerId]
+    ids.forEach(id => {
+      Array.from(document.querySelectorAll(`div[id="${id}"]`)).forEach((element: HTMLElement) => {
+        element.style.display = 'none'
+        element.innerHTML = ''
+        element.remove()
+        result = true
+      })
+    })
+    return result
   },
   createContainer: async (href: string): Promise<HTMLElement> => {
     const container = document.createElement("div");

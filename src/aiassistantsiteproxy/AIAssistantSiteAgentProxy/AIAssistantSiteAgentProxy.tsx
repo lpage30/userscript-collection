@@ -120,16 +120,26 @@ async function runProcesses(updateDashboard: (report: { [site: string]: AIStatus
 export const AIAssistantSiteAgentProxy: Userscript = {
   name: "AIAssistantSiteAgentProxy",
   containerId: 'ai-dashboard',
-
-  isSupported: (href: string): boolean =>
-    href.includes(AIAssistantProxyDashboardPageUrl),
-
+  isSupported: (href: string): boolean => href.includes(AIAssistantProxyDashboardPageUrl),
   preparePage: async (href: string): Promise<void> => {
     if (!href.includes(AIAssistantProxyDashboardPageUrl)) {
       throw new Error(`${href} has no supported AIAssistantClient Userscript`);
     }
     await awaitPageLoadByEvent();
 
+  },
+  cleanupContainers: async (href: string): Promise<boolean> => {
+    let result = false
+    const ids: string[] = [AIAssistantSiteAgentProxy.containerId]
+    ids.forEach(id => {
+      Array.from(document.querySelectorAll(`div[id="${id}"]`)).forEach((element: HTMLElement) => {
+        element.style.display = 'none'
+        element.innerHTML = ''
+        element.remove()
+        result = true
+      })
+    })
+    return result
   },
   createContainer: async (href: string): Promise<HTMLElement> => {
     const hrefParams = new URLSearchParams((new URL(href)).search.toLowerCase())
