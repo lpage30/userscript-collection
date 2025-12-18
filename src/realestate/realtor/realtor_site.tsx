@@ -1,4 +1,4 @@
-import { PropertyInfo, RealEstateSite } from '../realestate_site'
+import { PropertyInfo, RealEstateSite, MaxPropertyInfoImageWidth } from '../realestate_site'
 import { awaitQuerySelection } from '../../common/await_functions'
 import { ReactNode } from 'react'
 import { Button } from 'primereact/button'
@@ -83,7 +83,7 @@ export const RealtorSite: RealEstateSite = {
             let Picture = undefined
             const img = document.querySelector('ul[data-testid="carousel-track"]').querySelector('li').querySelector('img')
             if (img) {
-                const {width, height} = scaleDimension(getHeightWidth(img), 200, true)
+                const {width, height} = scaleDimension(getHeightWidth(img), MaxPropertyInfoImageWidth, true)
                 Picture = <img 
                     src={img.src}
                     title={address}
@@ -94,9 +94,9 @@ export const RealtorSite: RealEstateSite = {
             }
 
             let createMapButton = undefined
-            const mapBtn = document.querySelector('button[data-testid="map-snapshot-map-btn"]')
+            const mapBtn = await awaitQuerySelection('button[data-testid="map-snapshot-map-btn"]')
             if (mapBtn) {
-                const mapClassName = mapBtn.parentElement.classList[1]
+                const mapClassName = Array.from(mapBtn.parentElement.classList).join(' ')
                 createMapButton = (text: string, onClick: () => void): ReactNode => (
                     <Button
                         title={text}
@@ -106,7 +106,9 @@ export const RealtorSite: RealEstateSite = {
                             display: 'flex',
                             flexDirection: 'column',
                             justifyContent: 'center',
-                            alignItems: 'center'
+                            alignItems: 'center',
+                            padding: 0,
+                            margin: 0,
                         }}
                     >
                         <div

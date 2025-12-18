@@ -12,7 +12,7 @@ export interface PropertyInfo {
     Picture?: ReactNode
     createMapButton?: (text: string, onClick: () => void) => ReactNode
 }
-
+export const MaxPropertyInfoImageWidth = 325
 export interface FeedPage {
     isFeedPage: (href: string) => boolean;
     getFeedPageMapToggleButtons: () => Promise<HTMLElement[]>;
@@ -36,4 +36,12 @@ export interface RealEstateSite {
     feedPage?: FeedPage;
     listingPage: ListingPage;
     singlePropertyPage: SinglePropertyPage;
+}
+
+export function addressToMapUrl(address: string): string {
+    const addressURL = `https://www.google.com/maps/search/?api=1&query=${address.replace(/\s+/g,'+')}`
+    return addressURL
+}
+export function latlonToMapUrl(latitude: number, longitude: number): string {
+    return addressToMapUrl(`${latitude.toFixed(7)},${longitude.toFixed(7)}`)
 }

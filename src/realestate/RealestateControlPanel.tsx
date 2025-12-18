@@ -39,11 +39,11 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
                 padding: 0,
             }}
             ><tbody> {propertyInfo && <>
-                    <tr><td><PropertyInfoCard id={`${id}-info`} info={propertyInfo} /></td></tr>
-                    <tr><td>{getMapButton()}</td></tr>
+                    <tr><td style={{padding: 0, margin: 0}} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={propertyInfo} /></td></tr>
+                    <tr><td style={{padding: 0, margin: 0}} className={'text-center'}>{getMapButton()}</td></tr>
                 </>}
                 {propertyInfo === undefined && 
-                    <tr><td>{getMapButton()}</td></tr>
+                    <tr><td style={{padding: 0, margin: 0}} className={'text-center'}>{getMapButton()}</td></tr>
                 }
             </tbody></table>
         )
