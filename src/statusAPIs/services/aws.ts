@@ -24,8 +24,8 @@ class AWSClass implements ServiceAPI {
             statusPage: this.statusPage,
             dependentCompanies: AWSDependentCompanies,
             serviceName: 'Amazon Web Services',
-            status: null,
-            incidents: null
+            status: '',
+            incidents: []
         }
         this.persistence = awsPersistence
         this.isLoading = false

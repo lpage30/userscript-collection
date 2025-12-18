@@ -27,6 +27,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "country-state-city": "^3.2.1",
     "dompurify": "^3.3.0",
     "html-react-parser": "^5.2.7",
     "primeicons": "^7.0.0",

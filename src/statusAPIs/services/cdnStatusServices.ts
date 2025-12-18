@@ -101,8 +101,8 @@ class CDNStatusAPIServicesClass implements ServiceAPI {
                 statusPage: cdnAPISupportedSites[key].statusPage,
                 dependentCompanies: cdnAPISupportedSites[key].dependentCompanies,
                 serviceName: toTitleCase(key),
-                status: null,
-                incidents: null
+                status: '',
+                incidents: []
             }
         }), {})
         this.isLoading = false
@@ -128,7 +128,7 @@ class CDNStatusAPIServicesClass implements ServiceAPI {
                     const existingStatus = this.persistence[serviceName].getStatus()
                     if (existingStatus) {
                         this.data[serviceName].status = existingStatus.status
-                        this.data[serviceName].incidents = existingStatus.incidents
+                        this.data[serviceName].incidents = existingStatus.incidents ?? []
                         fetchServiceNames = fetchServiceNames.filter(name => name !== serviceName)
                     }
                 })
@@ -137,7 +137,7 @@ class CDNStatusAPIServicesClass implements ServiceAPI {
                 fetchCDNStatus(cdnAPISupportedSites[serviceName].summaryURL)
                     .then(newStatus => {
                         this.data[serviceName].status = newStatus.status
-                        this.data[serviceName].incidents = newStatus.incidents
+                        this.data[serviceName].incidents = newStatus.incidents ?? []
                         this.persistence[serviceName].storeStatus(newStatus)
                     })
                 )

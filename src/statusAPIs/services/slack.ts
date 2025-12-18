@@ -19,8 +19,8 @@ class SlackClass implements ServiceAPI {
             statusPage: this.statusPage,
             dependentCompanies: [],
             serviceName: 'Slack',
-            status: null,
-            incidents: null
+            status: '',
+            incidents: []
         }
         this.isLoading = false
         this.onIsLoadingChangeCallbacks = []
@@ -43,7 +43,7 @@ class SlackClass implements ServiceAPI {
                 const existingStatus = this.persistence.getStatus()
                 if (existingStatus) {
                     this.data.status = existingStatus.status
-                    this.data.incidents = existingStatus.incidents
+                    this.data.incidents = existingStatus.incidents ?? []
                     this.isLoading = false
                     this.onIsLoadingChange(this.isLoading)
                     return [this.data]
@@ -96,7 +96,7 @@ class SlackClass implements ServiceAPI {
                 })
             })
             this.data.status = newStatus.status
-            this.data.incidents = newStatus.incidents
+            this.data.incidents = newStatus.incidents ?? []
             this.persistence.storeStatus(newStatus)
         }
         finally {

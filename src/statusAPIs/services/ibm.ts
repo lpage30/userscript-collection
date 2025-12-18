@@ -23,8 +23,8 @@ class IBMClass implements ServiceAPI {
             statusPage: this.statusPage,
             dependentCompanies: IBMDependentCompanies,
             serviceName: 'IBM Cloud',
-            status: null,
-            incidents: null
+            status: '',
+            incidents: []
         }
         this.persistence = ibmPersistence
         this.isLoading = false

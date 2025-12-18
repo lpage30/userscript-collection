@@ -41,8 +41,8 @@ class GCPClass implements ServiceAPI {
             statusPage: this.statusPage,
             dependentCompanies: GCPDependentCompanies,
             serviceName: 'Google GCP',
-            status: null,
-            incidents: null
+            status: '',
+            incidents: []
         }
         this.persistence = gcpPersistence
         this.isLoading = false

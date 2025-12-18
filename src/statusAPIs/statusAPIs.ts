@@ -7,7 +7,7 @@ import { Fastly } from "./services/fastly";
 import { CNDStatusServices } from "./services/cdnStatusServices";
 import { Slack } from "./services/slack";
 import { Microsoft365 } from "./services/microsoft365";
-import { ServiceAPI, ServiceStatus } from "./statustypes";
+import { ServiceAPI, ServiceStatus, classifyServiceStatusLocations, sortServiceIncidents } from "./statustypes";
 
 class ServiceAPIsClass implements ServiceAPI {
     isLoading: boolean
@@ -44,7 +44,13 @@ class ServiceAPIsClass implements ServiceAPI {
         this.isLoading = true
         this.onIsLoadingChange(this.isLoading)
         try {
-            this.serviceStatuses = (await Promise.all(this.serviceAPIs.map(api => api.load(force)))).flat()
+            this.serviceStatuses = (await Promise.all(
+                this.serviceAPIs
+                 .map(async api => (await api.load(force))
+                        .map(classifyServiceStatusLocations)
+                        .map(sortServiceIncidents)
+                )
+            )).flat()
         } finally {
             this.isLoading = false
             this.onIsLoadingChange(this.isLoading)

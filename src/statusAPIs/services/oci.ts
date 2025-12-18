@@ -23,8 +23,8 @@ class OCIClass implements ServiceAPI {
             statusPage: this.statusPage,
             dependentCompanies: OCIDependentCompanies,
             serviceName: 'Oracle OCI',
-            status: null,
-            incidents: null
+            status: '',
+            incidents: []
         }
         this.persistence = ociPersistence
         this.isLoading = false
