@@ -1,4 +1,4 @@
-import { ServiceStatus } from "./statustypes"
+import { ServiceStatus, Status, Incident } from "./statustypes"
 
 export enum StatusLevel {
     Operational = 0x0000,
@@ -72,6 +72,7 @@ const statusArray: { level: StatusLevel, words: string[] }[] = [
             'minor',
             'progress',
             'monitoring',
+            'active',
         ]
     },
     {
@@ -140,4 +141,37 @@ export function compareFunction(l: ComparableTextServiceStatus, r: ComparableTex
 }
 export function sortServiceByStatusIndicatorRank(l: ServiceStatus, r: ServiceStatus) {
   return compareFunction({text: l.status.indicator, status: l.status.statusLevel},{text: r.status.indicator, status: r.status.statusLevel})
+}
+export function determineOverallStatusLevel(status: Status, incidents: Incident[]): StatusLevel {
+    const statusLevelCountMap = incidents.reduce((levelCounts, incident) => {
+        const result = incident.updates.reduce((updateLevelCounts, update) => {
+            if (undefined !== update.statusLevel) {
+                if (undefined === updateLevelCounts[update.statusLevel]) {
+                    updateLevelCounts[update.statusLevel] = 0
+                }
+                updateLevelCounts[update.statusLevel] = updateLevelCounts[update.statusLevel] + 1
+            }
+            return updateLevelCounts
+        }, {...levelCounts})
+        if (undefined !== incident.statusLevel) {
+            if (undefined === result[incident.statusLevel]) {
+                result[incident.statusLevel] = 0
+            }
+            result[incident.statusLevel] = result[incident.statusLevel] + 1
+        }
+        return result
+    }, {} as { [level: number]: number })
+    const maxNonOperationalLevel = Object.values(StatusLevel)
+        .filter((level: number) => StatusLevel.Operational !== level && undefined !== statusLevelCountMap[level])
+        .map((level: number) => ([level, statusLevelCountMap[level]]))
+        .reduce((maxEntry, entry) => {
+            if (maxEntry[1] < entry[1]) {
+                return entry
+            }
+            return maxEntry
+        }, [-1, 0])[0] as number
+    if (maxNonOperationalLevel < 0 && undefined === statusLevelCountMap[StatusLevel.Operational]) {
+        return classifyStatus(status.indicator) ?? StatusLevel.Operational
+    }
+    return 0 <= maxNonOperationalLevel ? maxNonOperationalLevel as StatusLevel : StatusLevel.Operational
 }

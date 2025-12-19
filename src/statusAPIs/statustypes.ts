@@ -1,5 +1,5 @@
 import { CountryStateCity, classifyCountryStateCity, compareFunction as compareLocation } from './countryCityService'
-import { StatusLevel, classifyStatus, compareFunction as compareStatusLevel} from './statusService'
+import { StatusLevel, classifyStatus, compareFunction as compareStatusLevel, determineOverallStatusLevel} from './statusService'
 export type IndicatorType = 'major' | 'minor' | string
 export type ImpactType = 'critical' | 'minor' | 'none' | string
 export type StatusType = 'major_outage' | 'partial_outage' | 'identified' | 'scheduled' | 'in_progress' | string
@@ -53,42 +53,16 @@ export function classifyServiceStatus(status: ServiceStatus): ServiceStatus {
         updates: incident.updates.map(update => ({
             ...update,
             location: classifyCountryStateCity(update.name),
-            statusLevel: classifyStatus(update.name),
+            statusLevel: classifyStatus(`${update.status} ${update.name}`),
         })),
         location: classifyCountryStateCity(incident.name),
-        statusLevel: classifyStatus(incident.name),
+        statusLevel: classifyStatus(`${incident.status} ${incident.name}`),
     }))
-    const statusLevel = Object.entries(
-        incidents.reduce((levelCounts, incident) => {
-            const result = incident.updates.reduce((updateLevelCounts, update) => {
-                if (undefined !== update.statusLevel) {
-                    if (undefined === updateLevelCounts[update.statusLevel]) {
-                        updateLevelCounts[update.statusLevel] = 0
-                    }
-                    updateLevelCounts[update.statusLevel] = updateLevelCounts[update.statusLevel] + 1
-                }
-                return updateLevelCounts
-            }, {...levelCounts})
-            if (undefined !== incident.statusLevel) {
-                if (undefined === result[incident.statusLevel]) {
-                    result[incident.statusLevel] = 0
-                }
-                result[incident.statusLevel] = result[incident.statusLevel] + 1
-            }
-            return result
-        }, {} as { [level: number]: number })
-    ).reduce((maxEntry, entry) => {
-        if (maxEntry[1] < entry[1]) {
-            return entry
-        }
-        return maxEntry
-    }, [-1, 0])[0] as number
-    
     return {
         ...status,
         status: {
             ...status.status,
-            statusLevel: 0 <= statusLevel ? statusLevel as StatusLevel : classifyStatus(status.status.indicator) ?? StatusLevel.Operational
+            statusLevel: determineOverallStatusLevel(status.status, incidents)
         },
         incidents
     }
