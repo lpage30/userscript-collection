@@ -4,7 +4,7 @@ import { ServiceStatus, Incident, CompanyHealthStatus } from '../statustypes'
 import StatusComponent from './StatusComponent'
 import IncidentComponent from './IncidentComponent'
 import { CompanyHealthLevelTypeInfoMap } from './IndicatorStatusTypeInfoMaps'
-import { IndicatorTypeInfoMap, toIndicatorTypeInfo } from './IndicatorStatusTypeInfoMaps'
+import { getStatusMetadata } from '../statusService'
 import { CompanyHealthStatusSpan } from './IndicatorStatusComponents'
 
 interface ServiceStatusComponentComponentProps {
@@ -48,7 +48,7 @@ const ServiceStatusComponent: React.FC<ServiceStatusComponentComponentProps> = (
     return (<div style={{ 
         width: '100%', 
         margin: '0 auto',
-        borderLeft: `5px solid ${IndicatorTypeInfoMap[toIndicatorTypeInfo(serviceStatus.status.indicator)].bgColor}`
+        borderLeft: `5px solid ${getStatusMetadata(serviceStatus.status.statusLevel!).bgColor}`
     }}>
         <div>
             <div style={{display: 'flex', padding: '10px', alignItems: 'center'}}>

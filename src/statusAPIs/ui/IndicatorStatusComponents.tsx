@@ -1,10 +1,9 @@
 import React, { CSSProperties, JSX } from 'react'
 import { ServiceStatus } from '../statustypes'
 import {
-    IndicatorTypeInfoMap,
-    toIndicatorTypeInfo,
     CompanyHealthLevelTypeInfoMap
 } from './IndicatorStatusTypeInfoMaps'
+import { getStatusMetadata } from '../statusService'
 
 
 export function ServiceHealthStatusSpan(
@@ -13,7 +12,7 @@ export function ServiceHealthStatusSpan(
     paddingRight: number,
     useDivInstead: boolean = false
 ): JSX.Element {
-    const { bgColor, fgColor } = IndicatorTypeInfoMap[toIndicatorTypeInfo(status.status.indicator)]
+    const { bgColor, fgColor } = getStatusMetadata(status.status.statusLevel!)
     const style: CSSProperties = {
         backgroundColor: bgColor,
         color: fgColor,

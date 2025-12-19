@@ -7,10 +7,8 @@ import { StatusAPIs } from '../statusAPIs'
 import ServiceStatusComponent from './ServiceStatusComponent'
 import {
   CompanyHealthLevelTypeInfoMap,
-  IndicatorTypeInfoMap,
-  sortIndicatorByIndicatorRank,
-  sortServiceByIndicatorRank
 } from './IndicatorStatusTypeInfoMaps'
+import { getSortedStatusLevels, getStatusMetadata, sortServiceByStatusIndicatorRank } from '../statusService'
 import { createSpinningContentElement } from '../../common/ui/style_functions'
 
 interface ServiceDashboardProps {
@@ -40,7 +38,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
   const [state, setState] = useState<ServiceDashboardState>({
     visible: true,
     isLoading: StatusAPIs.isLoading,
-    statuses: initialStatuses.sort(sortServiceByIndicatorRank),
+    statuses: initialStatuses.sort(sortServiceByStatusIndicatorRank),
     companyStatuses: companyHealthStatuses ?? [],
   })
   StatusAPIs.registerOnIsLoadingChange((isLoading: boolean) => {
@@ -50,7 +48,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
     })
   })
   const refresh = async (showDialog: boolean, force: boolean): Promise<void> => {
-    const statuses = (await StatusAPIs.load(force)).sort(sortServiceByIndicatorRank)
+    const statuses = (await StatusAPIs.load(force)).sort(sortServiceByStatusIndicatorRank)
     if (onServiceStatus) {
       onServiceStatus(statuses)
     }
@@ -242,7 +240,7 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProp
 
   const setServiceStatus = (serviceStatus: ServiceStatus[]) => {
     const displayStatus = [...serviceStatus]
-      .sort(sortServiceByIndicatorRank)
+      .sort(sortServiceByStatusIndicatorRank)
       .reduce((rows, status, index) => {
         if (0 === (index % statusesPerRow)) {
           rows.push([])
@@ -290,14 +288,14 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProp
                 <td style={{ textAlign: 'right' }}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Service Color Legend:</span></td>
                 <td><div style={{ display: 'flex', alignItems: 'center' }}>
                   {
-                    Object.keys(IndicatorTypeInfoMap).sort(sortIndicatorByIndicatorRank)
+                    getSortedStatusLevels()
                       .map(level => (
                         <span className="text-sm" style={{
-                          backgroundColor: IndicatorTypeInfoMap[level].bgColor,
-                          color: IndicatorTypeInfoMap[level].fgColor,
+                          backgroundColor: getStatusMetadata(level).bgColor,
+                          color: getStatusMetadata(level).fgColor,
                           paddingLeft: `5px`,
                           paddingRight: `5px`
-                        }}>{IndicatorTypeInfoMap[level].displayName}</span>
+                        }}>{getStatusMetadata(level).statusName}</span>
                       ))
                   }
                 </div></td>

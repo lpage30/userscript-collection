@@ -24,7 +24,7 @@ import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDash
 import { ServiceStatus } from "../../statusAPIs/statustypes";
 import { setServiceStatus, getDependentServiceStatuses } from "../../statusAPIs/servicestatuscache";
 import { reactToHTMLString } from "../../common/ui/reactTrustedHtmlString";
-import { sortServiceByIndicatorRank } from "../../statusAPIs/ui/IndicatorStatusTypeInfoMaps";
+import { sortServiceByStatusIndicatorRank } from "../../statusAPIs/statusService";
 import { ServiceHealthStatusSpan } from "../../statusAPIs/ui/IndicatorStatusComponents";
 
 export const DownDetectorDashboard: Userscript = {
@@ -65,7 +65,7 @@ export const DownDetectorDashboard: Userscript = {
                 style={{ paddingLeft: `0px`, paddingRight: `3px` }}
               >Dependent Services</div>
               {serviceStatuses
-                .sort(sortServiceByIndicatorRank)
+                .sort(sortServiceByStatusIndicatorRank)
                 .map(status => (ServiceHealthStatusSpan(status, 0, 3, true)))
               }
             </>

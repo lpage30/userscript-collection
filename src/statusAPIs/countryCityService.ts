@@ -97,7 +97,7 @@ function compareTextFunction(l?: string, r?: string): number {
     }
     return l ? -1 : r ? 1 : 0
 }
-export function compareFunction(l: ComparableTextCountryStateCity, r: ComparableTextCountryStateCity): number {
+export function compareFunction(l: ComparableTextCountryStateCity, r: ComparableTextCountryStateCity, compareTextonNoLocation: boolean = true): number {
     if (l.location && r.location) {
         if (l.location.country && r.location.country) {
             if (l.location.country === r.location.country) {
@@ -119,6 +119,6 @@ export function compareFunction(l: ComparableTextCountryStateCity, r: Comparable
         }
         return l.location.country ? -1 : r.location.country ? 1 : compareTextFunction(l.text, r.text)
     }
-    return l.location ? -1 : r.location ? 1 : compareTextFunction(l.text, r.text)
+    return l.location ? -1 : r.location ? 1 : compareTextonNoLocation ? compareTextFunction(l.text, r.text) : 0
 }
 

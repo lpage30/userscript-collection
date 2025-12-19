@@ -1,6 +1,7 @@
 import React from 'react'
 import { Status } from '../statustypes'
 import { toMonthDayYearDateTime } from '../../common/datetime'
+import { getStatusMetadata } from '../statusService'
 
 interface StatusComponentProps {
     title?: string
@@ -13,7 +14,7 @@ const StatusComponent: React.FC<StatusComponentProps> = ({
 }) => {
     return (<div style={{display: 'flex', padding: '10px'}}>
         {title && <span style={{paddingRight: '10px'}}><strong>{title}</strong></span>}
-        <span style={{paddingRight: '10px'}}><strong>{status.indicator}</strong></span>
+        <span style={{paddingRight: '10px'}}><strong>{getStatusMetadata(status.statusLevel!).statusName}</strong></span>
         <span style={{paddingRight: '10px'}}>{status.description}</span>
         <span>{toMonthDayYearDateTime(status.timestamp)}</span>
     </div>)

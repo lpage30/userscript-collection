@@ -1,6 +1,7 @@
 import React, { useState} from 'react'
 import { Button } from 'primereact/button'
 import { Incident, IncidentUpdate } from '../statustypes'
+import { getStatusMetadata, classifyStatus } from '../statusService'
 import { toMonthDayYearDateTime } from '../../common/datetime'
 
 interface IncidentUpdateComponentProps {
@@ -10,10 +11,11 @@ interface IncidentUpdateComponentProps {
 const IncidentUpdateComponent: React.FC<IncidentUpdateComponentProps> = ({
     update
 }) => {
+    const statusMetadata = getStatusMetadata(update.statusLevel ?? classifyStatus(update.status))
     return (
         <div style={{display: 'flex', padding: '10px', alignItems: 'center'}}>
             <span style={{paddingRight: '10px'}}>{toMonthDayYearDateTime(update.updated)}</span>
-            <span style={{paddingRight: '10px'}}><strong>{update.status}</strong></span>
+            <span style={{paddingRight: '10px'}}><strong>{statusMetadata.statusName}</strong></span>
             <span style={{paddingRight: '10px'}}>{update.name}</span>
         </div>
     )
@@ -35,12 +37,15 @@ const IncidentComponent: React.FC<IncidentComponentProps> = ({
     }
 
     const maxTimestamp = incident.updated > incident.timestamp ? incident.updated : incident.timestamp
+    const statusMetadata = getStatusMetadata(incident.statusLevel ?? classifyStatus(incident.status))
+    const impactMetadata = getStatusMetadata(incident.statusLevel ?? classifyStatus(incident.impact)) ?? statusMetadata
+
     return (
         <>
             <div style={{display: 'flex', padding: '10px', alignItems: 'center'}}>
                 {title && <span style={{paddingRight: '10px'}}><strong>{title}</strong></span>}
-                <span style={{paddingRight: '10px'}}><strong>{incident.impact}</strong></span>
-                <span style={{paddingRight: '10px'}}><strong>{incident.status}</strong></span>
+                <span style={{paddingRight: '10px'}}><strong>{impactMetadata.impactName}</strong></span>
+                <span style={{paddingRight: '10px'}}><strong>{statusMetadata.statusName}</strong></span>
                 <span style={{paddingRight: '10px'}}>{incident.name}</span>
                 <span style={{paddingRight: '10px'}}>{toMonthDayYearDateTime(maxTimestamp)}</span>
                 <Button
