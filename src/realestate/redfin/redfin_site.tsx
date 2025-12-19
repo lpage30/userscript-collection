@@ -28,7 +28,7 @@ export const RedfinSite: RealEstateSite = {
         isListingPage: (href: string): boolean => (null !== href.match(/^https:\/\/www.redfin.com\/.*\/filter\/.*/)),
         getListingPageMapToggleElement: async (): Promise<HTMLElement> => {
             (await awaitQuerySelection('div[class="ExposedLayoutButtonContainer"]')).querySelector('button').click()
-            const buttons = Array.from(document.querySelector('div[class*="ExposedLayoutMenu"]').querySelectorAll('li[class="MenuItem"]'))
+            const buttons = Array.from((await awaitQuerySelection('div[class*="ExposedLayoutMenu"]')).querySelectorAll('li[class="MenuItem"]'))
                 .reduce((obj, li) => ({ ...obj, [(li as HTMLElement).innerText]: li.querySelector('button') }), {} as LayoutMenuButtons)
             return buttons.Map ?? buttons.Grid
         },
