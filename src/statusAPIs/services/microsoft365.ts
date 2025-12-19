@@ -23,7 +23,7 @@ class M365Class implements ServiceAPI {
             statusPage: this.statusPage,
             dependentCompanies: [],
             serviceName: 'Microsoft 365',
-            status: '',
+            status: { timestamp: 0, description: '', indicator: '' },
             incidents: []
         }
         this.persistence = M365Persistence

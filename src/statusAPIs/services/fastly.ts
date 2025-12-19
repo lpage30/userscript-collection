@@ -23,7 +23,7 @@ class FastlyClass implements ServiceAPI {
             statusPage: this.statusPage,
             dependentCompanies: FastlyDependentCompanies,
             serviceName: 'Fastly',
-            status: '',
+            status: { timestamp: 0, description: '', indicator: '' },
             incidents: []
         }
         this.persistence = fastlyPersistence

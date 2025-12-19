@@ -14,12 +14,12 @@ class SlackClass implements ServiceAPI {
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
 
     constructor() {
-        this.persistence = Persistence('slack')
+        this.persistence = Persistence('Slack')
         this.data = {
             statusPage: this.statusPage,
             dependentCompanies: [],
             serviceName: 'Slack',
-            status: '',
+            status: { timestamp: 0, description: '', indicator: '' },
             incidents: []
         }
         this.isLoading = false

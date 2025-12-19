@@ -7,7 +7,7 @@ import { ServiceStatus, ServiceAPI } from "../statustypes"
 import { Persistence, PersistenceClass, PersistableStatus } from "../persistence"
 import { IBMDependentCompanies } from "../servicedependentcompanylists"
 
-const ibmPersistence = Persistence('Azure')
+const ibmPersistence = Persistence('IBM')
 export const storeIBMStatus = (status: PersistableStatus) => {
     ibmPersistence.storeStatus(status)
 }
@@ -23,7 +23,7 @@ class IBMClass implements ServiceAPI {
             statusPage: this.statusPage,
             dependentCompanies: IBMDependentCompanies,
             serviceName: 'IBM Cloud',
-            status: '',
+            status: { timestamp: 0, description: '', indicator: '' },
             incidents: []
         }
         this.persistence = ibmPersistence

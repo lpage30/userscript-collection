@@ -25,7 +25,7 @@ export const GCPZonePageUrlMap = {
     multiregion: 'https://status.cloud.google.com/regional/multiregions'
 }
 export const GCPHealthStatusPages = 'https://status.cloud.google.com/'
-const gcpPersistence = Persistence('gcp')
+const gcpPersistence = Persistence('GCP')
 export const storeGCPStatus = (zone: string, status: PersistableStatus) => {
     gcpPersistence.storeStatus(status, zone)
 }
@@ -41,7 +41,7 @@ class GCPClass implements ServiceAPI {
             statusPage: this.statusPage,
             dependentCompanies: GCPDependentCompanies,
             serviceName: 'Google GCP',
-            status: '',
+            status: { timestamp: 0, description: '', indicator: '' },
             incidents: []
         }
         this.persistence = gcpPersistence

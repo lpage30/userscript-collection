@@ -93,7 +93,7 @@ class CDNStatusAPIServicesClass implements ServiceAPI {
     constructor() {
         this.persistence = Object.keys(cdnAPISupportedSites).reduce((persistenceMap, service) => ({
             ...persistenceMap,
-            [service]: Persistence(service)
+            [service]: Persistence(`${service.charAt(0).toUpperCase()}${service.slice(1)}`)
         }), {})
         this.data = Object.keys(cdnAPISupportedSites).reduce((serviceMap, key) => ({
             ...serviceMap,
@@ -101,7 +101,7 @@ class CDNStatusAPIServicesClass implements ServiceAPI {
                 statusPage: cdnAPISupportedSites[key].statusPage,
                 dependentCompanies: cdnAPISupportedSites[key].dependentCompanies,
                 serviceName: toTitleCase(key),
-                status: '',
+                status: { timestamp: 0, description: '', indicator: '' },
                 incidents: []
             }
         }), {})

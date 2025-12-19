@@ -23,7 +23,7 @@ class AzureClass implements ServiceAPI {
             statusPage: this.statusPage,
             dependentCompanies: AzureDependentCompanies,
             serviceName: 'Microsoft Azure',
-            status: '',
+            status: { timestamp: 0, description: '', indicator: '' },
             incidents: []
         }
         this.persistence = azurePersistence
