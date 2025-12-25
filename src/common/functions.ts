@@ -181,11 +181,14 @@ export function getLargestOverlappingPrefix(s1: string, s2: string): string {
   }
   return shortestString;
 }
+export function getComputedStyle(e: Element): CSSStyleDeclaration {
+  return window.getComputedStyle(e, null)
+}
 export function getAllDisplayedElements(): { e: HTMLElement, style: CSSStyleDeclaration}[] {
   return Array.from(document.querySelectorAll('*'))
     .map(e => ({
       e: e as HTMLElement,
-      style: window.getComputedStyle(e, null)
+      style: getComputedStyle(e)
     }))
     .filter(({style}) => style.display !== 'none')
 }

@@ -41,7 +41,7 @@ export interface ItemDateBetweenFilter extends ItemFilterBase {
 export type ItemFilter = ItemValueExistenceFilter | ItemDateBetweenFilter
 
 export const sortFiltersByField = (filter: ItemFilter[]) => filter.sort((l: ItemFilter, r: ItemFilter) => l.field.localeCompare(r.field))
-export const findIndexOfFilterField = (fieldName: string, filter: ItemFilter[]) => filter.findIndex(({field}) => field === fieldName)
+export const findIndexOfFilterField = (fieldName: string, filter: ItemFilter[]) => filter.findIndex(({ field }) => field === fieldName)
 
 export const mergeFilters = (existing: ItemFilter[], updated: ItemFilter[]) => {
   const result: ItemFilter[] = []
@@ -109,13 +109,18 @@ function toSortFunction<T extends Card>(sorts: ItemSort[],): (l: T, r: T) => num
 function inFilterFunction<T extends Card>(item: T, filter: ItemFilter[]): boolean {
   return filter.every(itemFilter => {
     if (item[itemFilter.field]) {
-      if(itemFilter.type === 'ValueExistence') return itemFilter.filter[item[itemFilter.field]] === true
+      if (itemFilter.type === 'ValueExistence') return itemFilter.filter[item[itemFilter.field]] === true
       return (itemFilter.filter.beginDate <= item[itemFilter.field] && item[itemFilter.field] <= itemFilter.filter.endDate)
     }
     return true
   })
 }
-export const toCardElementId = (index: number) => `card-shell-${index}`
+export const CardShellContainerId = 'card-shell-container'
+const CardShellIdPrefix = 'card-shell-'
+export function queryAllCardShells(): HTMLDivElement[] {
+  return Array.from(document.querySelectorAll(`div[id*="${CardShellIdPrefix}"]`))
+}
+export const toCardElementId = (index: number) => `${CardShellIdPrefix}${index}`
 export const fromCardElementId = (elementId: string): number => parseInt(elementId.split('-').slice(-1)[0])
 
 export const toCardIndex = (elementId: string, pageName: string, items: Card[] | undefined): number | null => {

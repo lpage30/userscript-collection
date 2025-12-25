@@ -1335,7 +1335,48 @@ select,
   text-align: center;
   padding: 1rem;
 }
-.picklist-list-item {
+.grid-2-scroll-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  height: 100vh;
+  width: 100vw;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+.grid-2-scroll-content {
+  text-align: center;
+  padding: 1rem;
+}
+.grid-3-scroll-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  height: 100vh;
+  width: 100vw;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+.grid-3-scroll-content {
+  text-align: center;
+  padding: 1rem;
+}
+.grid-4-scroll-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  height: 100vh;
+  width: 100vw;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+.grid-4-scroll-content {
+  text-align: center;
+  padding: 1rem;
+}.picklist-list-item {
   @extend .p-dropdown-item
 }
 .picklist-list-item:disabled {

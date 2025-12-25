@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useRef, CSSProperties, JSX } from 'react';
+import React, { useState, useEffect, useRef, CSSProperties, JSX, BaseSyntheticEvent } from 'react';
 import '../common/ui/styles.scss';
 import { Dialog } from 'primereact/dialog';
 import { awaitElementById } from '../common/await_functions';
-import { 
+import {
   Card,
   FilterableItems,
   InfoDisplayItem,
-  toCardElementId, fromCardElementId, toCardIndex, 
-  SortedFilteredItems, sortAndFilterItems, 
-  ItemSort, ItemFilter
+  toCardElementId, fromCardElementId, toCardIndex,
+  SortedFilteredItems, sortAndFilterItems,
+  ItemSort, ItemFilter, CardShellContainerId
 } from './datatypes';
 import { PersistenceClass } from './persistence';
 import Picklist from './PickList';
@@ -16,7 +16,7 @@ import InfoDisplay from './InfoDisplay';
 import FilterSort from './FilterSort';
 import CardShell from './CardShell';
 
-export type DashboardLayout = 'vertical' | 'horizontal' | 'grid'
+export type DashboardLayout = 'vertical' | 'horizontal' | 'grid' | 'grid-2' | 'grid-3' | 'grid-4'
 interface DashboardProps {
   title: string
   getPersistence: () => PersistenceClass
@@ -26,11 +26,15 @@ interface DashboardProps {
   page: string
   getCards: () => Card[];
   style?: CSSProperties
+  cardStyle?: CSSProperties
+  ignoreClickEvent?: (e: BaseSyntheticEvent) => boolean
   layout?: DashboardLayout
   registerRefreshContent?: (refreshContent: () => void) => void
-  addedHeaderComponent?: { 
+  registerRefreshFunction?: (refreshFunction: (showDialog: boolean) => void) => void
+  onClose?: () => void
+  addedHeaderComponent?: {
     after: 'picklist' | 'infodisplay' | 'filtersort' | 'lastrow',
-    element:JSX.Element,
+    element: JSX.Element,
   }
 }
 
@@ -40,12 +44,17 @@ const Dashboard: React.FC<DashboardProps> = ({
   pageTypes,
   getFilterableItems,
   sortingFields,
-  page, 
+  page,
   getCards,
   style,
+  cardStyle,
+  ignoreClickEvent,
   layout = 'grid',
   registerRefreshContent,
+  registerRefreshFunction,
+  onClose,
   addedHeaderComponent
+
 }) => {
   const persistence = useRef<PersistenceClass>(getPersistence())
 
@@ -61,6 +70,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   );
   const focusedElementIdRef = useRef<string>(null)
   if (registerRefreshContent) registerRefreshContent(() => refreshContent())
+  if (registerRefreshFunction) registerRefreshFunction((showDialog: boolean) => {
+    refreshContent()
+    setVisible(showDialog)
+  })
 
   const refreshCards = async () => {
     await awaitElementById(toCardElementId(sortedFilteredItems.sortedItems.length - 1))
@@ -89,9 +102,9 @@ const Dashboard: React.FC<DashboardProps> = ({
       sorting: persistence.current.loadSorting()
     }),
 
-    setSortedFilteredItems(
-      sortAndFilterItems(getCards(), filterableItems, sortedFilteredItems.sortingFilter)
-    )
+      setSortedFilteredItems(
+        sortAndFilterItems(getCards(), filterableItems, sortedFilteredItems.sortingFilter)
+      )
   }
 
   const handlFilterSorting = (
@@ -153,19 +166,22 @@ const Dashboard: React.FC<DashboardProps> = ({
     const result =
       focusedElementIdRef.current === toCardElementId(index)
         ? {
+          ...(cardStyle ?? {}),
           backgroundColor: 'yellow',
           transition: 'background-color 0.5s ease-in-out',
           display: displayType,
         }
         : {
+          ...(cardStyle ?? {}),
           display: displayType,
+
         };
     return result;
   };
   const layoutItems = (layout: DashboardLayout, itemIndices: number[]): JSX.Element => {
     return (
       <div
-        id='card-container'
+        id={CardShellContainerId}
         className={`${layout}-scroll-container`}
       >
         {itemIndices.map(index => (
@@ -177,6 +193,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             onMouseOver={onMouseOver}
             onMouseOut={onMouseOut}
             className={`${layout}-scroll-content`}
+            ignoreClickEvent={ignoreClickEvent}
           />
         ))}
       </div>
@@ -187,10 +204,13 @@ const Dashboard: React.FC<DashboardProps> = ({
     return (
       <Dialog
         showHeader={true}
-        closable={false}
+        closable={[undefined, null].includes(onClose)}
         position={'center'}
         visible={visible}
-        onHide={() => setVisible(false)}
+        onHide={() => {
+          setVisible(false)
+          if (onClose) onClose()
+        }}
         style={{ width: '90vw', height: '90vh', ...(style ?? {}) }}
         header={
           <table
@@ -252,7 +272,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
         className='p-dialog-maximized'
       >
-      { layoutItems(layout, sortedFilteredItems.sortedItems.map((_item, index) => index)) }
+        {layoutItems(layout, sortedFilteredItems.sortedItems.map((_item, index) => index))}
       </Dialog>
     );
   };

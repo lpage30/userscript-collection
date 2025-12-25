@@ -78,7 +78,8 @@ const statusArray: { level: StatusLevel, words: string[] }[] = [
     {
         level: StatusLevel.PartialOutage,
         words: [
-            'partial'
+            'partial',
+            'degraded',
         ]
     },
     {
