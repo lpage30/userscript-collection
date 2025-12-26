@@ -1,5 +1,5 @@
 import { PropertyInfo, toPropertyInfoCard, RealEstateSite, MaxPropertyInfoImageWidth, PropertyPageType } from '../realestate_site'
-import { awaitQueryAll, awaitQuerySelection } from '../../common/await_functions'
+import { awaitQueryAll, awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 import { ReactNode } from 'react'
 import { Button } from 'primereact/button'
 import { getHeightWidth, scaleDimension } from '../../common/ui/style_functions'
@@ -12,6 +12,10 @@ export const RealtorSite: RealEstateSite = {
         [PropertyPageType.Listing]: {
             pageType: PropertyPageType.Listing,
             isPage: (href: string): boolean => href.startsWith('https://www.realtor.com/realestateandhomes-search') || href.startsWith('https://www.realtor.com/recommended'),
+            awaitForPageLoad: async (): Promise<void> => {
+                await awaitPageLoadByMutation()
+                await awaitQuerySelection('div[class*="ListView_lazyWrapperPlaceholder__bcuKe"]')
+            },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
                 const List = document.querySelector('button[data-testid="map-to-list-view-toggle"]') as HTMLElement
                 const Map = document.querySelector('button[data-testid="list-to-map-view-toggle"]') as HTMLElement
@@ -25,7 +29,6 @@ export const RealtorSite: RealEstateSite = {
             },
             scrapePage: async (): Promise<PropertyInfo[]> => {
                 const isRecommendedList = window.location.href.startsWith('https://www.realtor.com/recommended') as boolean
-                (await awaitQuerySelection('div[data-testid="seo-para-widget"]')).scrollIntoView()
                 const cards = Array.from(await awaitQueryAll(isRecommendedList ? 'div[data-testid="recommended-homes-card"]' : 'div[class="BasePropertyCard_propertyCardWrap__gtWK6"]'))
                 return cards
                     .map((e: HTMLElement) => ({ e, img: e.querySelector('img'), a: e.querySelector('a') }))
@@ -85,6 +88,10 @@ export const RealtorSite: RealEstateSite = {
         [PropertyPageType.Single]: {
             pageType: PropertyPageType.Single,
             isPage: (href: string): boolean => href.startsWith('https://www.realtor.com/realestateandhomes-detail'),
+            awaitForPageLoad: async (): Promise<void> => {
+                await awaitPageLoadByMutation()
+                await awaitElementById('Property details')
+            },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
                 const List = document.querySelector('button[aria-label="close"]') as HTMLElement
                 const MapSvg = document.querySelector('svg[data-testid="listing-summary-map__container"]') as HTMLElement

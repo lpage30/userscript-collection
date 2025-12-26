@@ -1,5 +1,5 @@
 import { PropertyInfo, toPropertyInfoCard, RealEstateSite, MaxPropertyInfoImageWidth, PropertyPageType } from '../realestate_site'
-import { awaitQuerySelection, awaitQueryAll } from '../../common/await_functions'
+import { awaitQuerySelection, awaitQueryAll, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 import { ReactNode } from 'react'
 import { Button } from 'primereact/button'
 import { getHeightWidth, scaleDimension } from '../../common/ui/style_functions'
@@ -19,6 +19,10 @@ export const RedfinSite: RealEstateSite = {
         [PropertyPageType.Feed]: {
             pageType: PropertyPageType.Feed,
             isPage: (href: string): boolean => ('https://www.redfin.com/#userFeed' === href || 'https://www.redfin.com/' === href),
+            awaitForPageLoad: async (): Promise<void> => {
+                await awaitPageLoadByMutation()
+                await awaitQuerySelection('div[class*="SeenEverythingFooter"]')
+            },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
                 const toggleButtonSelector = 'button[aria-label*="Toggle to "]'
                 if (undefined == parentElement) {
@@ -73,7 +77,11 @@ export const RedfinSite: RealEstateSite = {
         },
         [PropertyPageType.Listing]: {
             pageType: PropertyPageType.Listing,
-            isPage: (href: string): boolean => (null !== href.match(/^https:\/\/www.redfin.com\/.*\/filter\/.*/)),
+            isPage: (href: string): boolean => (null !== href.match(/^https:\/\/www.redfin.com\/(city|zipcode|neighborhood)\/.*/)),
+            awaitForPageLoad: async (): Promise<void> => {
+                await awaitPageLoadByMutation()
+                await awaitElementById('region-content')
+            },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
                 (await awaitQuerySelection('div[class="ExposedLayoutButtonContainer"]')).querySelector('button').click()
                 const buttons = Array.from((await awaitQuerySelection('div[class*="ExposedLayoutMenu"]')).querySelectorAll('li[class="MenuItem"]'))
@@ -126,6 +134,10 @@ export const RedfinSite: RealEstateSite = {
         [PropertyPageType.Single]: {
             pageType: PropertyPageType.Single,
             isPage: (href: string): boolean => (null !== href.match(/^https:\/\/www.redfin.com\/.*\/home\/\d+$/)),
+            awaitForPageLoad: async (): Promise<void> => {
+                await awaitPageLoadByMutation()
+                await awaitQuerySelection('div[class*="AskGeneralInquirySection"]')
+            },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => [await awaitQuerySelection('div[class*="static-map"]')],
             isMapToggleElement: (element: HTMLElement): boolean => {
                 return Array.from(element.classList).some(name => name === 'static-map')

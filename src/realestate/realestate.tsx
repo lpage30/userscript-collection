@@ -4,7 +4,7 @@ import { Userscript, RunUserscripts } from "../common/userscript";
 import { RealEstateSite, PropertyPageType } from "./realestate_site";
 import { RedfinSite } from "./redfin/redfin_site";
 import { RealtorSite } from "./realtor/realtor_site";
-import { awaitPageLoadByMutation, awaitElementById } from "../common/await_functions";
+import { awaitDelay, awaitElementById } from "../common/await_functions";
 import {
   renderInContainer,
 } from "../common/ui/renderRenderable";
@@ -21,7 +21,10 @@ export function toUserscript(site: RealEstateSite): Userscript {
     containerId: site.containerId,
     isSupported: (href: string): boolean => site.isSupported(href),
     preparePage: async (href: string): Promise<void> => {
-      await awaitPageLoadByMutation()
+      const page = Object.values(site.pages).find(page => page.isPage(href))
+      if ([undefined, null].includes(page)) return
+      await page.awaitForPageLoad()
+
     },
     cleanupContainers: async (href: string): Promise<boolean> => {
       let result = false
@@ -53,6 +56,7 @@ export function toUserscript(site: RealEstateSite): Userscript {
       const toggleMaps = async (parentElement?: HTMLElement) => {
         (await page.getMapToggleElements(parentElement)).forEach(element => element.click())
       }
+      await awaitDelay(1000)
       const initialProperties = await page.scrapePage()
       renderInContainer(container, <RealestateControlPanel
         id={renderableId}

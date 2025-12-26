@@ -60,7 +60,7 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
                     <>
                         {1 < state.properties.length &&
                             <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><ListedPropertyDashboardPopup
-                                title={'Property List'}
+                                title={`Property List (${state.properties.length})`}
                                 siteName={siteName}
                                 initialProperties={initialProperties}
                                 loadListedPropertyInfo={getProperties}
