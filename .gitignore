@@ -13,3 +13,6 @@ package-lock.json
 *.js
 /**/*.js
 /src/statusAPIs/*.js
+!/src/geocoding/datageneration/**/*
+/src/geocoding/geojsondata/*.json
+/src/geocoding/generated_*

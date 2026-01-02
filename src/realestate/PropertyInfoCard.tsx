@@ -1,6 +1,5 @@
 import React, {JSX} from "react";
 import { PropertyInfo } from "./realestate_site";
-import { padToAlign } from "../common/ui/style_functions";
 
 interface PropertyInfoCardProps {
   id: string
@@ -22,8 +21,8 @@ export const PropertyInfoCard: React.FC<PropertyInfoCardProps> = ({
     if (info.Picture) {
       result.push(<tr><td colSpan={2} style={{padding: 0, margin: 0}} className={'text-center'}>{info.Picture}</td></tr>)
     }
-    if (info.Address) {
-      result.push(<tr><td  colSpan={2} style={{padding: 0, margin: 0}} className={'text-sm text-center'}>{info.Address}</td></tr>)
+    if (info.address) {
+      result.push(<tr><td  colSpan={2} style={{padding: 0, margin: 0}} className={'text-sm text-center'}>{info.address}</td></tr>)
     }
     if (info.Type) {
       result.push(<tr><td style={{padding: 0, margin: 0}} className={'text-sm text-left'}>Type</td><td style={{padding: 0, margin: 0}} className={'text-sm text-left'}>{info.Type}</td></tr>)    
@@ -45,6 +44,9 @@ export const PropertyInfoCard: React.FC<PropertyInfoCardProps> = ({
     }
     if (info.Bathrooms) {
       result.push(<tr><td style={{padding: 0, margin: 0}} className={'text-sm text-left'}>Bathrooms</td><td style={{padding: 0, margin: 0}} className={'text-sm text-left'}>{info.Bathrooms}</td></tr>)    
+    }
+    if (info.geoPropertyInfo) {
+      result.push(<tr><td style={{padding: 0, margin: 0}} className={'text-sm text-left'} colSpan={2}>{info.geoPropertyInfo.displayString}</td></tr>)    
     }
     return result
   }

@@ -57,13 +57,13 @@ export function toUserscript(site: RealEstateSite): Userscript {
         (await page.getMapToggleElements(parentElement)).forEach(element => element.click())
       }
       await awaitDelay(1000)
-      const initialProperties = await page.scrapePage()
+      const properties = await page.scrapePage()
+
       renderInContainer(container, <RealestateControlPanel
         id={renderableId}
         siteName={site.name}
         toggleMapDisplay={toggleMaps}
-        initialProperties={initialProperties}
-        getProperties={() => page.scrapePage()}
+        properties={properties}
         canToggleMapInDashboard={[PropertyPageType.Feed].includes(page.pageType)}
         ignoreDashboardClickEvent={(e) => page.isMapToggleElement(e.target)}
       />

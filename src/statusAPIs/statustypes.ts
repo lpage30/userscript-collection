@@ -1,5 +1,7 @@
-import { CountryStateCity, classifyCountryStateCity, compareFunction as compareLocation } from './countryCityService'
+import { CountryStateCity } from '../geocoding/datatypes'
+import { classifyCountryStateCity, compareFunction as compareLocation} from '../geocoding/countryStateCityService'
 import { StatusLevel, classifyStatus, compareFunction as compareStatusLevel, determineOverallStatusLevel} from './statusService'
+
 export type IndicatorType = 'major' | 'minor' | string
 export type ImpactType = 'critical' | 'minor' | 'none' | string
 export type StatusType = 'major_outage' | 'partial_outage' | 'identified' | 'scheduled' | 'in_progress' | string

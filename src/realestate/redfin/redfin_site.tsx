@@ -1,4 +1,5 @@
-import { PropertyInfo, toPropertyInfoCard, RealEstateSite, MaxPropertyInfoImageWidth, PropertyPageType } from '../realestate_site'
+import { PropertyInfo, toPropertyInfoCard, geocodePropertyInfoCard, RealEstateSite, MaxPropertyInfoImageWidth, PropertyPageType } from '../realestate_site'
+import { toNumber } from '../../common/functions'
 import { awaitQuerySelection, awaitQueryAll, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 import { ReactNode } from 'react'
 import { Button } from 'primereact/button'
@@ -38,41 +39,52 @@ export const RedfinSite: RealEstateSite = {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
             scrapePage: async (): Promise<PropertyInfo[]> => {
-                return Array.from(await awaitQueryAll('div[class="FeedHomeCard"]'))
-                    .map((e: HTMLElement): PropertyInfo => {
-                        const img = e.querySelector('img')
-                        const href = e.querySelector('a').href
-                        const parts = e.innerText.split('\n')
-                        const priceIndex = parts.findIndex(part => part.startsWith('$'))
-                        const Bathrooms = parts[priceIndex + 2].split(' ')[0]
-                        const isLand = [String.fromCharCode(8212), '-'].includes(Bathrooms)
-                        const result = {
-                            Status: parts.slice(0, priceIndex).join('|'),
-                            Price: parts[priceIndex],
-                            Bedrooms: parts[priceIndex + 1].split(' ')[0],
-                            Bathrooms,
-                            isLand,
-                            Sqft: isLand ? undefined : parts[priceIndex + 3].split(' ')[0],
-                            Address: parts[priceIndex + 4],
-                            City: parts[priceIndex + 4].split(', ').slice(-2)[0],
-                            State: parts[priceIndex + 4].split(', ').slice(-1)[0].split(' ')[0],
-                            lotSize: isLand ? parts[priceIndex + 3].split(' ')[0] : undefined,
-                            element: e,
-                            href: () => href
-                        }
-                        const { width, height } = scaleDimension(getHeightWidth(img), MaxPropertyInfoImageWidth, true)
-                        return toPropertyInfoCard({
-                            ...result,
-                            Picture: <img
-                                src={img.src}
-                                title={result.Address}
-                                alt={result.Address}
-                                className={img.className}
-                                height={`${height}px`}
-                                width={`${width}px`}
-                            />
-                        })
+                const properties: PropertyInfo[] = []
+                for (const e of Array.from(await awaitQueryAll('div[class="FeedHomeCard"]'))) {
+                    const img = e.querySelector('img')
+                    const href = e.querySelector('a').href
+                    const parts = e.innerText.split('\n')
+                    const priceIndex = parts.findIndex(part => part.startsWith('$'))
+                    const Bathrooms = parts[priceIndex + 2].split(' ')[0]
+                    const isLand = [String.fromCharCode(8212), '-'].includes(Bathrooms)
+                    const result = {
+                        Status: parts.slice(0, priceIndex).join('|'),
+                        Price: parts[priceIndex],
+                        Bedrooms: parts[priceIndex + 1].split(' ')[0],
+                        Bathrooms,
+                        isLand,
+                        Sqft: isLand ? undefined : parts[priceIndex + 3].split(' ')[0],
+                        address: parts[priceIndex + 4],
+                        city: parts[priceIndex + 4].split(', ').slice(-2)[0],
+                        state: parts[priceIndex + 4].split(', ').slice(-1)[0].split(' ')[0],
+                        country: 'United States',
+                        lotSize: isLand ? parts[priceIndex + 3].split(' ')[0] : undefined,
+                        element: e,
+                        href: () => href
+                    }
+                    const { width, height } = scaleDimension(getHeightWidth(img), MaxPropertyInfoImageWidth, true)
+                    let coordinate: { lat: number, lon: number } | undefined = undefined
+                    try {
+                        const { latitude, longitude } = JSON.parse(e.querySelector('script').innerText)[0].geo
+                        coordinate = { lat: toNumber(latitude), lon: toNumber(longitude) }
+                    } catch (err) {
+                        console.error(`Failed parsing script as json for property`, err)
+                    }
+                    const propertyInfoCard = toPropertyInfoCard({
+                        ...result,
+                        Picture: <img
+                            src={img.src}
+                            title={result.address}
+                            alt={result.address}
+                            className={img.className}
+                            height={`${height}px`}
+                            width={`${width}px`}
+                        />,
+                        coordinate
                     })
+                    properties.push(await geocodePropertyInfoCard(propertyInfoCard))
+                }
+                return properties
             },
         },
         [PropertyPageType.Listing]: {
@@ -96,39 +108,50 @@ export const RedfinSite: RealEstateSite = {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
             scrapePage: async (): Promise<PropertyInfo[]> => {
-                return Array.from(await awaitQueryAll('div[class*="bp-Homecard "]'))
-                    .map((e: HTMLElement): PropertyInfo => {
-                        const href = e.querySelector('a').href
-                        const img = e.querySelector('img')
-                        const parts = e.innerText.split('\n')
-                        const priceIndex = parts.findIndex(part => part.startsWith('$'))
-                        const result: Partial<PropertyInfo> = {
-                            Price: parts[priceIndex],
-                            Bedrooms: parts[priceIndex + 1].split(' ')[0],
-                            Bathrooms: parts[priceIndex + 2].split(' ')[0],
-                            isLand: [String.fromCharCode(8212), '-'].includes(parts[priceIndex + 2].split(' ')[0]),
-                            Sqft: parts[priceIndex + 3].split(' ')[0],
-                            Address: parts[priceIndex + 4],
-                            City: parts[priceIndex + 4].split(', ').slice(-2)[0],
-                            State: parts[priceIndex + 4].split(', ').slice(-1)[0].split(' ')[0],
-                            HOA: (parts[priceIndex + 5].split(' • ').find(p => p.includes('HOA')) ?? '-').split(' ')[0],
-                            lotSize: (parts[priceIndex + 5].split(' • ').find(p => p.includes('lot')) ?? '-').split(' ')[0],
-                            element: e,
-                            href: () => href,
-                        }
-                        const { width, height } = scaleDimension(getHeightWidth(img), MaxPropertyInfoImageWidth, true)
-                        return toPropertyInfoCard({
-                            ...result,
-                            Picture: <img
-                                src={img.src}
-                                title={result.Address}
-                                alt={result.Address}
-                                className={img.className}
-                                height={`${height}px`}
-                                width={`${width}px`}
-                            />
-                        })
+                const properties: PropertyInfo[] = []
+                for (const e of Array.from(await awaitQueryAll('div[class*="bp-Homecard "]'))) {
+                    const href = e.querySelector('a').href
+                    const img = e.querySelector('img')
+                    const parts = e.innerText.split('\n')
+                    const priceIndex = parts.findIndex(part => part.startsWith('$'))
+                    const result: Partial<PropertyInfo> = {
+                        Price: parts[priceIndex],
+                        Bedrooms: parts[priceIndex + 1].split(' ')[0],
+                        Bathrooms: parts[priceIndex + 2].split(' ')[0],
+                        isLand: [String.fromCharCode(8212), '-'].includes(parts[priceIndex + 2].split(' ')[0]),
+                        Sqft: parts[priceIndex + 3].split(' ')[0],
+                        address: parts[priceIndex + 4],
+                        city: parts[priceIndex + 4].split(', ').slice(-2)[0],
+                        state: parts[priceIndex + 4].split(', ').slice(-1)[0].split(' ')[0],
+                        country: 'United States',
+                        HOA: (parts[priceIndex + 5].split(' • ').find(p => p.includes('HOA')) ?? '-').split(' ')[0],
+                        lotSize: (parts[priceIndex + 5].split(' • ').find(p => p.includes('lot')) ?? '-').split(' ')[0],
+                        element: e,
+                        href: () => href,
+                    }
+                    const { width, height } = scaleDimension(getHeightWidth(img), MaxPropertyInfoImageWidth, true)
+                    let coordinate: { lat: number, lon: number } | undefined = undefined
+                    try {
+                        const { latitude, longitude } = JSON.parse(e.querySelector('script').innerText)[0].geo
+                        coordinate = { lat: toNumber(latitude), lon: toNumber(longitude) }
+                    } catch (err) {
+                        console.error(`Failed parsing script as json for property`, err)
+                    }
+                    const propertyInfoCard = toPropertyInfoCard({
+                        ...result,
+                        Picture: <img
+                            src={img.src}
+                            title={result.address}
+                            alt={result.address}
+                            className={img.className}
+                            height={`${height}px`}
+                            width={`${width}px`}
+                        />,
+                        coordinate
                     })
+                    properties.push(await geocodePropertyInfoCard(propertyInfoCard))
+                }
+                return properties
             },
         },
         [PropertyPageType.Single]: {
@@ -157,6 +180,7 @@ export const RedfinSite: RealEstateSite = {
                 const address = (topStats.querySelector('h1[class*="full-address"]') as HTMLElement).innerText
                 const city = address.split(', ').slice(-2)[0]
                 const state = address.split(', ').slice(-1)[0].split(' ')[0]
+                const country = 'United States'
 
                 const facts = Array.from(await awaitQueryAll('div[class="keyDetails-value"]'))
                     .map((e: HTMLElement) => e.innerText.split('\n').map(v => v.trim()).filter(v => 0 < v.length))
@@ -259,23 +283,32 @@ export const RedfinSite: RealEstateSite = {
                         </Button>
                     )
                 }
-
-                return [toPropertyInfoCard({
+                let coordinate: { lat: number, lon: number } | undefined = undefined
+                try {
+                    const { latitude, longitude } = JSON.parse(Array.from(element.querySelectorAll('script')).slice(-2)[0].innerText).mainEntity.geo
+                    coordinate = { lat: toNumber(latitude), lon: toNumber(longitude) }
+                } catch (err) {
+                    console.error(`Failed parsing script as json for property`, err)
+                }
+                const propertyInfoCard = toPropertyInfoCard({
                     isLand,
                     Price: price,
                     Bedrooms: bedrooms,
                     Bathrooms: bathrooms,
                     Sqft: isLand ? undefined : sqft,
                     lotSize: isLand ? sqft : undefined,
-                    Address: address,
-                    City: city,
-                    State: state,
+                    address,
+                    city,
+                    state,
+                    country,
                     ...facts,
                     Picture,
                     createMapButton,
                     element,
                     href: () => href,
-                })]
+                    coordinate,
+                })
+                return [await geocodePropertyInfoCard(propertyInfoCard)]
             }
         }
     }

@@ -6,40 +6,41 @@ import { FilterableItems, ItemFilter, CardShellContainerId } from '../dashboardc
 import { Persistence } from '../dashboardcomponents/persistence';
 
 export const ListedPropertyContainerId = CardShellContainerId
-export const sortingFields = ['Price', 'City', 'State'];
+export const sortingFields = ['PriceValue', 'OceanDistance'];
 export const getFilterableItems = (propertyInfo: PropertyInfo[]): FilterableItems => (
   {
-    City: {
-      field: 'City',
-      type: 'ValueExistence',
+    PriceValue: {
+      field: 'PriceValue',
+      type: 'ValueRange', 
+      displayData: { mode: 'currency', currency: 'USD', locale: 'en-US' , maxWidth: 10, step: 50000 },
       filter: propertyInfo
-        .map(({ City }) => City).sort()
-        .filter(city => ![undefined, null].includes(city))
-        .filter((city, index, array) => index === 0 || array[index - 1] !== city)
-        .reduce((result, city) => ({
-          ...result,
-          [city]: true
-        }), {} as { [value: string]: boolean })
-    } as ItemFilter,
-    State: {
-      field: 'State',
-      type: 'ValueExistence',
+        .map(({ PriceValue }) => PriceValue).sort()
+        .filter(value => ![undefined, null].includes(value))
+        .filter((value, index, array) => index === 0 || array[index - 1] !== value)
+        .reduce((result, value) => ({
+          minValue: Math.min(value, result.minValue),
+          maxValue: Math.max(value, result.maxValue)
+        }), { minValue: Number.MAX_VALUE, maxValue: 0 } as { minValue: number, maxValue: number })
+    } as unknown as ItemFilter,
+    DistanceToOcean: {
+      field: 'DistanceToOcean',
+      type: 'ValueRange',
+      displayData: { mode: 'decimal', suffix: ' mi', maxWidth: 5, step: 0.25 },
       filter: propertyInfo
-        .map(({ State }) => State).sort()
-        .filter(state => ![undefined, null].includes(state))
-        .filter((state, index, array) => index === 0 || array[index - 1] !== state)
-        .reduce((result, state) => ({
-          ...result,
-          [state]: true
-        }), {} as { [value: string]: boolean })
-    } as ItemFilter,
+        .map(({ DistanceToOcean }) => DistanceToOcean).sort()
+        .filter(value => ![undefined, null].includes(value))
+        .filter((value, index, array) => index === 0 || array[index - 1] !== value)
+        .reduce((result, value) => ({
+          minValue: Math.min(value, result.minValue),
+          maxValue: Math.max(value, result.maxValue)
+        }), { minValue: Number.MAX_VALUE, maxValue: 0 } as { minValue: number, maxValue: number })
+    } as unknown as ItemFilter,
   })
 
 interface ListedPropertyDashboardProps {
   title: string
   siteName: string
-  initialProperties: PropertyInfo[]
-  loadListedPropertyInfo: () => Promise<PropertyInfo[]>
+  properties: PropertyInfo[]
   onClose: () => void
   registerRefreshFunction?: (refreshFunction: (showDialog: boolean) => void) => void
   ignoreClickEvent?: (e: BaseSyntheticEvent) => boolean
@@ -55,48 +56,27 @@ interface ListedPropertyDashboardState {
 export const ListedPropertyDashboard: React.FC<ListedPropertyDashboardProps> = ({
   title,
   siteName,
-  initialProperties,
-  loadListedPropertyInfo,
+  properties,
   onClose,
   registerRefreshFunction,
   ignoreClickEvent,
   addedHeaderComponent
 }) => {
   const refreshDashboardRef = useRef<(showDialog: boolean) => void>(null)
-
-  const [state, setState] = useState<ListedPropertyDashboardState>({
-    properties: initialProperties
-  })
+  const filterableItems = getFilterableItems(properties)
   if (registerRefreshFunction) registerRefreshFunction((showDialog: boolean) => {
-    if (showDialog) reloadCards()
+    if (refreshDashboardRef.current) refreshDashboardRef.current(showDialog)
   })
-  useEffect(() => {
-    reloadCards()
-  }, [])
-  const reloadCards = async () => {
-    const properties = await loadListedPropertyInfo()
-    setState({
-      ...state,
-      properties
-    })
-    if (refreshDashboardRef.current) refreshDashboardRef.current(true)
-  }
-  const getCards = () => {
-    return state.properties
-  }
-  const getPersistence = () => {
-    return Persistence(siteName, () => getFilterableItems(getCards()))
-  }
 
   return <Dashboard
     title={title}
-    getPersistence={getPersistence}
+    getPersistence={() => Persistence(siteName, () => filterableItems)}
     pageTypes={['dashboard']}
-    getFilterableItems={() => getFilterableItems(getCards())}
+    getFilterableItems={() => filterableItems}
     sortingFields={sortingFields}
     page={'dashboard'}
-    getCards={getCards}
-    cardStyle={{height: '500px', width: '600px'}}
+    getCards={() => properties}
+    cardStyle={{ height: '500px', width: '600px' }}
     layout={'grid-2'}
     onClose={onClose}
     registerRefreshFunction={(refreshFunction) => refreshDashboardRef.current = refreshFunction}
@@ -108,8 +88,7 @@ export const ListedPropertyDashboard: React.FC<ListedPropertyDashboardProps> = (
 interface ListedPropertyDashboardPopupProps {
   title: string
   siteName: string
-  initialProperties: PropertyInfo[]
-  loadListedPropertyInfo: () => Promise<PropertyInfo[]>
+  properties: PropertyInfo[]
   onDashboardClose: () => void
   registerOpen?: (closeDashboard: () => void) => void
   registerClose?: (closeDashboard: () => void) => void
@@ -127,8 +106,7 @@ interface ListedPropertyDashboardPopupState {
 export const ListedPropertyDashboardPopup: React.FC<ListedPropertyDashboardPopupProps> = ({
   title,
   siteName,
-  initialProperties,
-  loadListedPropertyInfo,
+  properties,
   onDashboardClose,
   addedDashboardHeaderComponent,
   registerOpen,
@@ -171,8 +149,7 @@ export const ListedPropertyDashboardPopup: React.FC<ListedPropertyDashboardPopup
       {state.visible && <ListedPropertyDashboard
         title={title}
         siteName={siteName}
-        initialProperties={initialProperties}
-        loadListedPropertyInfo={loadListedPropertyInfo}
+        properties={properties}
         onClose={closeDashboard}
         registerRefreshFunction={(refreshFunction: (showDialog: boolean) => void) => {
           refreshDashboardRef.current = refreshFunction

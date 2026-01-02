@@ -10,34 +10,26 @@ interface RealestateControlPanelProps {
     siteName: string
     title?: string
     toggleMapDisplay: (parentElement?: HTMLElement) => void
-    initialProperties: PropertyInfo[]
-    getProperties: () => Promise<PropertyInfo[]>
+    properties: PropertyInfo[]
     canToggleMapInDashboard?: boolean
     ignoreDashboardClickEvent?: (e: BaseSyntheticEvent) => boolean
-}
-interface RealestateControlPanelState {
-    properties: PropertyInfo[]
 }
 export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
     id,
     siteName,
     title = "Realestate Userscript",
     toggleMapDisplay,
-    initialProperties,
-    getProperties,
+    properties,
     ignoreDashboardClickEvent,
     canToggleMapInDashboard = false
 }) => {
-    const [state, setState] = useState<RealestateControlPanelState>({ properties: initialProperties })
+    const [state, setState] = useState<PropertyInfo[]>(properties)
     const closeListing = useRef(null)
     const toggleMapTitle = 'Toggle Map Display'
-    useEffect(() => {
-        getProperties().then(properties => setState({ ...state, properties }))
-    }, [])
 
     const getMapButton = (parentElement?: HTMLElement): ReactNode => {
-        if (0 < state.properties.length && state.properties[0].createMapButton) {
-            return state.properties[0].createMapButton(toggleMapTitle, () => toggleMapDisplay(parentElement))
+        if (0 < state.length && state[0].createMapButton) {
+            return state[0].createMapButton(toggleMapTitle, () => toggleMapDisplay(parentElement))
         }
         return (
             <Button
@@ -58,13 +50,12 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
             }}
             ><tbody>
                     <>
-                        {1 < state.properties.length &&
+                        {1 < state.length &&
                             <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><ListedPropertyDashboardPopup
-                                title={`Property List (${state.properties.length})`}
+                                title={`Property List (${state.length})`}
                                 siteName={siteName}
-                                initialProperties={initialProperties}
-                                loadListedPropertyInfo={getProperties}
-                                onDashboardClose={() => setState({ ...state, properties: [...state.properties] })}
+                                properties={state}
+                                onDashboardClose={() => setState([...properties])}
                                 registerClose={(closeDashboard: () => void) => {
                                     closeListing.current = closeDashboard
                                 }}
@@ -82,8 +73,8 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
                                 }}
                             /></td></tr>
                         }
-                        {1 === state.properties.length &&
-                            <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state.properties[0]} /></td></tr>
+                        {1 === state.length &&
+                            <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state[0]} /></td></tr>
                         }
                         <tr><td style={{ padding: 5, margin: 0 }} className={'text-center'}>{getMapButton()}</td></tr>
                     </>

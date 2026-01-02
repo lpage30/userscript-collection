@@ -1,8 +1,24 @@
 import { ReactNode } from 'react'
 import { Card } from '../dashboardcomponents/datatypes'
-import { toHashCode } from '../common/functions'
+import { toHashCode, toNumber } from '../common/functions'
+import { 
+    GeoAddress, 
+    GeoCountryStateCityAddress,
+    Place,
+    toGeoPlace,
+    toCityStateCountryString,
+    toGeoCountryStateCityAddressString,
+    toPlaceString
+} from '../geocoding/datatypes'
+import { classifyGeoCountryStateCity, findClosestOceanPlace } from '../geocoding/geojsonService'
 
-export interface PropertyInfo extends Card {
+export interface GeoPropertyInfo {
+    propertyPlace: GeoCountryStateCityAddress
+    closestOceanPlace?: Place
+    displayString: string
+}
+
+export interface PropertyInfo extends Card, GeoAddress {
     isLand: boolean
     Type?: string
     Year?: string
@@ -13,12 +29,12 @@ export interface PropertyInfo extends Card {
     Bathrooms?: string
     Sqft?: string
     lotSize?: string
-    Address?: string
-    City?: string
-    State?: string
     Picture?: ReactNode
     createMapButton?: (text: string, onClick: () => void) => ReactNode
     element?: HTMLElement
+    PriceValue?: number
+    DistanceToOcean?: number
+    geoPropertyInfo?: GeoPropertyInfo
 }
 export function toPropertyInfoCard(data: Partial<PropertyInfo>): PropertyInfo {
     const property: Partial<PropertyInfo> = {}
@@ -28,32 +44,57 @@ export function toPropertyInfoCard(data: Partial<PropertyInfo>): PropertyInfo {
     property.HOA = data.HOA
     property.Garage = data.Garage
     property.Price = data.Price
+    property.PriceValue = toNumber(data.Price)
     property.Bedrooms = data.Bedrooms
     property.Bathrooms = data.Bathrooms
     property.Sqft = data.Sqft
     property.lotSize = data.lotSize
-    property.Address = data.Address
-    property.City = data.City
-    property.State = data.State
+    property.address = data.address
+    property.city = data.city
+    property.country = data.country
+    property.state = data.state
     property.Picture = data.Picture
     property.createMapButton = data.createMapButton
     property.element = data.element
+    property.coordinate = data.coordinate
     // InfoDisplay
     property.displayLines = () => [
-        `${property.Price}@${property.Address}`,
+        `${property.Price}@${property.address}`,
         `${property.Bedrooms} Beds, ${property.Bathrooms} baths`,
-        `${property.Sqft} sqft`
-    ]
+        `${property.Sqft} sqft`,
+    ].filter(t => undefined !== t)
+
     // PicklistItem
     const href = data.href('')
-    property.groupName = data.Address
-    property.label = () => property.Address
+    property.groupName = data.address
+    property.label = () => property.address
     property.color = () => 'white'
     property.href = () => href
     property.elementId = toHashCode(href)
+    // Card
     property.renderable = property.element
     return property as PropertyInfo
 }
+export async function geocodePropertyInfoCard(data: PropertyInfo): Promise<PropertyInfo> {
+    if (data.geoPropertyInfo) return data
+
+    const result: PropertyInfo = {...data}
+    const displayLines = [...data.displayLines()]
+    const propertyPlace: GeoCountryStateCityAddress =  classifyGeoCountryStateCity(data as GeoAddress)
+
+    const closestOceanPlace: Place | undefined = await findClosestOceanPlace(toGeoPlace(propertyPlace))
+    
+    result.geoPropertyInfo = {
+        propertyPlace,
+        closestOceanPlace,
+        displayString: `Ocean Location: ${closestOceanPlace ? toPlaceString(closestOceanPlace) : toGeoCountryStateCityAddressString(propertyPlace)}`
+    }
+    result.DistanceToOcean = closestOceanPlace ? Math.round(closestOceanPlace.distance.value) : undefined
+    displayLines.push(result.geoPropertyInfo.displayString)
+    result.displayLines = () => displayLines
+    return result
+}
+
 export const MaxPropertyInfoImageWidth = 325
 export enum PropertyPageType {
     Feed = 0,

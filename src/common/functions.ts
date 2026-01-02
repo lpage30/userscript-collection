@@ -200,3 +200,9 @@ export function getLargestZIndex(): number {
     return newZ > result ? newZ : result
   }, 0)
 }
+export function toNumber(value: string | number | undefined | null): number {
+  if ([null, undefined].includes(value)) return Number.NaN
+  if (typeof value === 'number') return value
+  const numericString = value.replace(/[^\d.-]/g, '')
+  return parseFloat(numericString)
+}

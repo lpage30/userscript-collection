@@ -1,6 +1,12 @@
 #!/bin/bash
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 SRC_DIR="${SCRIPT_DIR}/src"
+GEOCODING_DIR="${SRC_DIR}/geocoding"
+
+echo "Creating geojson files..."
+pushd "${GEOCODING_DIR}/datageneration"
+node generate_uscoast_geocoded_countrystatecitymap.js "${GEOCODING_DIR}"
+popd
 echo "Building all userscripts in $SRC_DIR"
 for item in "$SRC_DIR"/*; do
     if [ -d "$item" ] && [ -f "$item"/vite.config.ts ]; then
@@ -8,6 +14,7 @@ for item in "$SRC_DIR"/*; do
         vite build --config "$item"/vite.config.ts
     fi
 done
+
 if [ -d "$SRC_DIR" ] && [ -f "${SRC_DIR}"/generate-and-stage-userscript-index-html.ts ]; then
         echo "building index html"
         tsx "${SRC_DIR}"/generate-and-stage-userscript-index-html.ts

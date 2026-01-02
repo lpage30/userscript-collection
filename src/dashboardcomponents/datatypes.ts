@@ -27,7 +27,7 @@ export interface ItemSort {
 
 interface ItemFilterBase {
   field: string
-  type: 'ValueExistence' | 'DateBetween'
+  type: 'ValueExistence' | 'DateBetween' | 'ValueRange'
 }
 
 export interface ItemValueExistenceFilter extends ItemFilterBase {
@@ -38,7 +38,20 @@ export interface ItemDateBetweenFilter extends ItemFilterBase {
   type: 'DateBetween'
   filter: { beginDate: number, endDate: number }
 }
-export type ItemFilter = ItemValueExistenceFilter | ItemDateBetweenFilter
+export interface ItemValueRangeFilter extends ItemFilterBase {
+  type: 'ValueRange'
+  displayData: {
+    mode: 'decimal' | 'currency',
+    suffix?: string,
+    prefix?: string,
+    maxWidth: number,
+    step: number
+    currency?: string
+    locale?: string
+  }
+  filter: { minValue: number, maxValue: number }
+}
+export type ItemFilter = ItemValueExistenceFilter | ItemDateBetweenFilter | ItemValueRangeFilter
 
 export const sortFiltersByField = (filter: ItemFilter[]) => filter.sort((l: ItemFilter, r: ItemFilter) => l.field.localeCompare(r.field))
 export const findIndexOfFilterField = (fieldName: string, filter: ItemFilter[]) => filter.findIndex(({ field }) => field === fieldName)
@@ -109,8 +122,16 @@ function toSortFunction<T extends Card>(sorts: ItemSort[],): (l: T, r: T) => num
 function inFilterFunction<T extends Card>(item: T, filter: ItemFilter[]): boolean {
   return filter.every(itemFilter => {
     if (item[itemFilter.field]) {
-      if (itemFilter.type === 'ValueExistence') return itemFilter.filter[item[itemFilter.field]] === true
-      return (itemFilter.filter.beginDate <= item[itemFilter.field] && item[itemFilter.field] <= itemFilter.filter.endDate)
+      switch (itemFilter.type) {
+        case 'ValueExistence':
+          return itemFilter.filter[item[itemFilter.field]] === true
+        case 'DateBetween':
+          return itemFilter.filter.beginDate <= item[itemFilter.field] && item[itemFilter.field] <= itemFilter.filter.endDate
+        case 'ValueRange':
+          return itemFilter.filter.minValue <= item[itemFilter.field] && item[itemFilter.field] <= itemFilter.filter.maxValue
+        default:
+          return true
+      }
     }
     return true
   })
