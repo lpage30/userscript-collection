@@ -88,7 +88,7 @@ interface ScriptSingleData {
 function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
     const result: Partial<PropertyInfo> = {}
     result.isLand = scriptData.propertyType === 'land'
-    result.oceanGeodataSource = 'ITL2_JAN_2025_UK'
+    result.oceanGeodataSource = 'ukcp18_uk_marine_coastline_hires'
     result.Type = scriptData.propertyType
     result.address = scriptData.address
     result.city = result.address.split(', ')[1]

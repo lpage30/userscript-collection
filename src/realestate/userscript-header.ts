@@ -8,6 +8,7 @@
 
 // @include     https://www.redfin.com/*
 // @include     https://www.realtor.com/*
+// @include     https://www.zoopla.co.uk/*
 
 // @grant       window.onurlchange
 // @grant       GM_setValue
