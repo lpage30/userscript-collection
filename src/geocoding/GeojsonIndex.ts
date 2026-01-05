@@ -1,8 +1,14 @@
-import { GeojsonIndex } from './datatypes'
+import { GeojsonIndex, GeodataSourceType } from './datatypes'
 import { MultiLineString, Feature } from 'geojson'
 import { ONE_MINUTE } from '../common/datetime'
 import * as turf from '@turf/turf'
 import getTl2025UsCoastlineGeojsonIndex from './generated_tl_2025_us_coastline'
+import getUkcp18UkMarineCoastlineHiresGeojsonIndex from './generated_ukcp18_uk_marine_coastline_hires'
+
+function getGeojsonIndex(geodataSource: GeodataSourceType, index: number): GeojsonIndex {
+    if ('tl_2025_us_coastline' === geodataSource) return getTl2025UsCoastlineGeojsonIndex(index)
+    if ('ukcp18_uk_marine_coastline_hires' === geodataSource) return getUkcp18UkMarineCoastlineHiresGeojsonIndex(index)
+}
 
 function toMultilineString(indices: GeojsonIndex[]): Feature<MultiLineString> {
     const coordinates = indices.map(({lineString}) => lineString.geometry.coordinates)
@@ -19,61 +25,70 @@ type MultilineCacheBlock = {
 
 class GeojsonIndexCache {
     private indexCache: {
-        [index: number]: IndexCacheBlock
+        tl_2025_us_coastline: {
+            [index: number]: IndexCacheBlock
+        }
     }
     private multilineStringCache: {
-        [indexcsv: string]: MultilineCacheBlock
+        tl_2025_us_coastline: {
+            [indexcsv: string]: MultilineCacheBlock
+        }
     }
     private maxAgeMs: number
-    constructor(maxAgeMs) {
-        this.indexCache = {}
-        this.multilineStringCache = {}
+    constructor(maxAgeMs: number) {
+        this.indexCache = {
+            tl_2025_us_coastline: {}
+        }
+        this.multilineStringCache = {
+            tl_2025_us_coastline: {}
+        }
         this.maxAgeMs = maxAgeMs
     }
-    async loadIndex(index: number): Promise<GeojsonIndex> {
-        let result: IndexCacheBlock = this.indexCache[index]
+
+    async loadIndex(geodataSource: GeodataSourceType, index: number): Promise<GeojsonIndex> {
+        let result: IndexCacheBlock = this.indexCache[geodataSource][index]
         if(result) {
             clearTimeout(result.evictionTimeout)
         } else {
-            const geojsonIndex = getTl2025UsCoastlineGeojsonIndex(index)
+            const geojsonIndex = getGeojsonIndex(geodataSource, index)
             result = {
                 geojsonIndex,
                 evictionTimeout: undefined,
             }
-            this.indexCache[index] = result
+            this.indexCache[geodataSource][index] = result
         }
         result.evictionTimeout = setTimeout(() => {
-            delete this.indexCache[index]
+            delete this.indexCache[geodataSource][index]
         }, this.maxAgeMs)
         return result.geojsonIndex
     }
-    async loadIndicies(indices: number[]): Promise<GeojsonIndex[]> {
+    async loadIndicies(geodataSource: GeodataSourceType, indices: number[]): Promise<GeojsonIndex[]> {
         const result: GeojsonIndex[] = []
         for (const index of indices) {
-            result.push(await this.loadIndex(index))
+            result.push(await this.loadIndex(geodataSource, index))
         }
         return result
     }
-    async loadMultlineString(indices: number[]): Promise<Feature<MultiLineString>> {
+    async loadMultlineString(geodataSource: GeodataSourceType, indices: number[]): Promise<Feature<MultiLineString>> {
         const indexcsv = indices.sort().join(',')
-        let result: MultilineCacheBlock = this.multilineStringCache[indexcsv]
+        let result: MultilineCacheBlock = this.multilineStringCache[geodataSource][indexcsv]
         if(result) {
             clearTimeout(result.evictionTimeout)
         } else {
-            const multilineString = toMultilineString(await this.loadIndicies(indices))
+            const multilineString = toMultilineString(await this.loadIndicies(geodataSource, indices))
             result = {
                 multilineString,
                 evictionTimeout: undefined,
             }
-            this.multilineStringCache[indexcsv] = result
+            this.multilineStringCache[geodataSource][indexcsv] = result
         }
         result.evictionTimeout = setTimeout(() => {
-            delete this.multilineStringCache[indexcsv]
+            delete this.multilineStringCache[geodataSource][indexcsv]
         }, this.maxAgeMs)
         return result.multilineString
     }
 }
 const geojsonIndexCache = new GeojsonIndexCache(ONE_MINUTE)
 
-export const loadGeoJsonIndex = async (index: number) => geojsonIndexCache.loadIndex(index)
-export const loadMultilineString = async (indices: number[]) => geojsonIndexCache.loadMultlineString(indices)
+export const loadGeoJsonIndex = async (geodataSource: GeodataSourceType, index: number) => geojsonIndexCache.loadIndex(geodataSource, index)
+export const loadMultilineString = async (geodataSource: GeodataSourceType, indices: number[]) => geojsonIndexCache.loadMultlineString(geodataSource, indices)

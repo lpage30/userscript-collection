@@ -1,9 +1,10 @@
 import React from "react";
 import "../common/ui/styles.scss";
 import { Userscript, RunUserscripts } from "../common/userscript";
-import { RealEstateSite, PropertyPageType } from "./realestate_site";
+import { RealEstateSite, PropertyPageType } from "./realestatesitetypes";
 import { RedfinSite } from "./redfin/redfin_site";
 import { RealtorSite } from "./realtor/realtor_site";
+import { ZooplaSite } from "./zoopla/zoopla_site";
 import { awaitDelay, awaitElementById } from "../common/await_functions";
 import {
   renderInContainer,
@@ -12,7 +13,8 @@ import { RealestateControlPanel } from "./RealestateControlPanel";
 
 const realestateSites: RealEstateSite[] = [
   RedfinSite,
-  RealtorSite
+  RealtorSite,
+  ZooplaSite
 ];
 
 export function toUserscript(site: RealEstateSite): Userscript {

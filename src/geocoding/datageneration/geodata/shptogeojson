@@ -1,0 +1,8 @@
+#!/bin/bash
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+shapefilename=$1
+jsonfilename=${1}.json
+echo "Converting geojson files..."
+pushd "${SCRIPT_DIR}"
+node shptogeojson.js $shapefilename $jsonfilename
+popd

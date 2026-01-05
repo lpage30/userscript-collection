@@ -6,6 +6,7 @@ export const GenerateCommand = (
     scriptName,
     geocodingDirname,
     shapefilenamePrefix,
+    shapefilenameSuffix,
     regionIsoCodeMap,
     defaultMaxMilesDistant,
 ) => {
@@ -23,7 +24,7 @@ export const GenerateCommand = (
 
     const generate = async (maxMilesDistance, regionFilter) => {
         const countrystatecityMapGenerator = CountryStateCityMapGenerator(geocodingDirname)
-        const geocodeGenerator = GeocodeGenerator(geocodingDirname, shapefilenamePrefix, regionIsoCodeMap)
+        const geocodeGenerator = GeocodeGenerator(geocodingDirname, shapefilenamePrefix, shapefilenameSuffix, regionIsoCodeMap)
         const tstart = Date.now()
         console.log(`Generating Assets`)
 

@@ -1,6 +1,6 @@
 import Path from 'path'
 
-export const toArguments = (argvArray, shapefilenamePrefix, regionIsoCodeMap, defaultMaxMilesDistant) => {
+export const toArguments = (argvArray, shapefilenamePrefix, shapefilenameSuffix, regionIsoCodeMap, defaultMaxMilesDistant) => {
 
     let maxMilesDistance = parseInt(argvArray[3])
     const regionFilterArgpos = isNaN(maxMilesDistance) ? 3 : 4
@@ -14,6 +14,7 @@ export const toArguments = (argvArray, shapefilenamePrefix, regionIsoCodeMap, de
         scriptName: Path.basename(argvArray[1]),
         geocodingDirname: argvArray[2],
         shapefilenamePrefix,
+        shapefilenameSuffix,
         regionIsoCodeMap,
         defaultMaxMilesDistant,
         maxMilesDistance,

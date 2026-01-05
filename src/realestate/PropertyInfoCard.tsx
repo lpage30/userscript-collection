@@ -1,5 +1,5 @@
 import React, {JSX} from "react";
-import { PropertyInfo } from "./realestate_site";
+import { PropertyInfo } from "./propertyinfotypes";
 
 interface PropertyInfoCardProps {
   id: string

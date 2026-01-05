@@ -3,7 +3,7 @@ export function toJsonFilename(filenamePrefix, index) {
 }
 
 export function toTitleCase(underscoreName) {
-    const parts = underscoreName.split('_')
+    const parts = underscoreName.split(/_|-/)
     return parts.reduce((titlecase, part) => `${titlecase}${part[0].toUpperCase()}${part.substring(1)}`, '')
 }
 

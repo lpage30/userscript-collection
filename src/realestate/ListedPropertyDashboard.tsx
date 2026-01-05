@@ -1,6 +1,6 @@
 import React, { useState, JSX, useEffect, useRef, BaseSyntheticEvent } from 'react'
 import { Button } from 'primereact/button';
-import { PropertyInfo } from './realestate_site'
+import { PropertyInfo } from './realestatesitetypes'
 import Dashboard from '../dashboardcomponents/Dashboard'
 import { FilterableItems, ItemFilter, CardShellContainerId } from '../dashboardcomponents/datatypes';
 import { Persistence } from '../dashboardcomponents/persistence';

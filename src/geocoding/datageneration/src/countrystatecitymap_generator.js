@@ -25,8 +25,7 @@ function createCountryStateCityMap(maxMilesDistant, indent = '') {
                 isoCode: country.isoCode,
                 lat: toFloat(country.latitude),
                 lon: toFloat(country.longitude),
-                geojsonIndexes: [],
-                distantGeojsonIndexes: [],
+                geocoding: {},
                 distantMaxMiles: maxMilesDistant,
                 states: (State.getStatesOfCountry(country.isoCode) ?? []).reduce((stateMap, state) => {
                     counts.state = counts.state + 1
@@ -37,8 +36,7 @@ function createCountryStateCityMap(maxMilesDistant, indent = '') {
                             isoCode: state.isoCode,
                             lat: toFloat(state.latitude),
                             lon: toFloat(state.longitude),
-                            geojsonIndexes: [],
-                            distantGeojsonIndexes: [],
+                            geocoding: {},
                             distantMaxMiles: maxMilesDistant,
                             cities: (City.getCitiesOfState(country.isoCode, state.isoCode) ?? []).reduce((cityMap, city) => {
                                 counts.city = counts.city + 1
@@ -48,8 +46,7 @@ function createCountryStateCityMap(maxMilesDistant, indent = '') {
                                         name: city.name,
                                         lat: toFloat(city.latitude),
                                         lon: toFloat(city.longitude),
-                                        geojsonIndexes: [],
-                                        distantGeojsonIndexes: [],
+                                        geocoding: {},
                                         distantMaxMiles: maxMilesDistant,
                                     }
                                 }

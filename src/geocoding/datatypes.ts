@@ -1,6 +1,7 @@
 import { LineString, Feature, Polygon } from 'geojson'
 import { Units } from '@turf/turf'
 
+export type GeodataSourceType = 'tl_2025_us_coastline' | 'ukcp18_uk_marine_coastline_hires'
 export interface GeojsonIndex {
     index: number
     lineString: Feature<LineString>
@@ -14,12 +15,20 @@ export interface GeoCoordinate {
 export const toGeoCoordinateString = (coordinate: GeoCoordinate): string => 
     coordinate ? `Lat: ${coordinate.lat}, Lon: ${coordinate.lon}` : 'Coordinates not disclosed'
 
+export const toGoogleMapsPlace = (coordinate: GeoCoordinate): string | undefined =>
+    coordinate ? `https://www.google.com/maps/place/@${coordinate.lat},${coordinate.lon}` : undefined
+
+export interface Geocoding {
+    [geodataSource: string]: {
+        geojsonIndexes: number[]
+        distantGeojsonIndexes: number[]
+    }
+}
 export interface CountryCityStateBase extends GeoCoordinate {
     name: string
     isoCode: string
-    geojsonIndexes: number[],
-    distantGeojsonIndexes: number[],
-    distantMaxMiles: number,
+    geocoding: Geocoding
+    distantMaxMiles: number
 }
 
 export interface City extends Omit<CountryCityStateBase, 'isoCode'> {
@@ -99,3 +108,4 @@ export interface Place {
     distance: Distance
 }
 export const toPlaceString = (place: Place): string => `${toDistanceString(place.distance)} ${toCityStateCountryString(place.place.region)}`
+

@@ -57,4 +57,19 @@ Collection of userscripts for various purposes
 - looking for realestate along ocean, so wanted to toggle map on different pages
 - also scrapes info when on single property page so you don't have to dig for it
 
+## Geocoding
+- Country-State-City data: npm 'country-state-city' provides an exhaustive organized collection of world-wide mappings Country => States => Cities with lat/lon for the centroids of the country/state/city
+- GIS coastal shapefiles. These are used to define what is a coastline so properties close to coast can be more easily identified.
+    - US: https://catalog.data.gov/dataset/tiger-line-shapefile-current-nation-u-s-coastline
+    - UK: https://osdatahub.os.uk/data/downloads/open/GeoCoast_Open
+- Due to the sheer volume of data the definition of country-state-city filters are established so we can 'trim' and partition the data for dynamic usage
+- Code generation:
+    - Country-state-City creates a world map
+    - Region filter is applied to geocode the world map just for those regions
+    - GIS chunks used when geocoding the map are identified and built into project
+    - runtime code uses 
+        - the now geocoded (generated) world map
+        - the GIS chunks for what was geocoded (figuring out closest to coast etc..)
+
+
    

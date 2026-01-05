@@ -1,5 +1,5 @@
 import countrystatecitymap from './generated_country_state_city_map.json'
-import { Country, State, City, CountryStateCityMapType, CountryStateCityCodeToNameIndexType } from './datatypes'
+import { Country, State, City, CountryStateCityMapType } from './datatypes'
 
 function toNameRegex(name: string): RegExp {
     return new RegExp(`^([,\\s]*|.*[,\\s]+)${name}([,\\s]*|[,\\s]+.*)$`,'ig')

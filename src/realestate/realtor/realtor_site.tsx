@@ -1,10 +1,103 @@
-import { PropertyInfo, toPropertyInfoCard, geocodePropertyInfoCard, RealEstateSite, MaxPropertyInfoImageWidth, PropertyPageType } from '../realestate_site'
-import { toNumber } from '../../common/functions'
-import { awaitQueryAll, awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
+import { 
+    PropertyInfo,
+    toPropertyInfoCard,
+    geocodePropertyInfoCard,
+    MaxPropertyInfoImageWidth 
+} from '../propertyinfotypes'
+import { PropertyPageType, RealEstateSite } from '../realestatesitetypes'
+import { parseNumber, toScaledPicture } from '../propertypagefunctions'
+import { GeoCoordinate, GeodataSourceType } from '../../geocoding/datatypes'
+
+import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 import { ReactNode } from 'react'
 import { Button } from 'primereact/button'
-import { getHeightWidth, scaleDimension } from '../../common/ui/style_functions'
+interface ScriptDescription {
+    'baths_consolidated': string | null
+    'baths_max': any
+    'baths_min': any
+    'beds': number | null
+    'beds_max': any
+    'beds_min': any
+    'garage': number | null
+    'lot_sqft': number | null
+    'name': any
+    'sold_date': any
+    'sold_price': any
+    'sqft': number | null
+    'sqft_max': any
+    'sqft_min': any
+    'sub_type': any
+    'type': string | null
+    'year_built': number | null
 
+}
+interface ScriptLocation {
+    'address': {
+        'line': string
+        'city': string
+        'state': string
+        'state_code': string
+        'postal_code': string
+        'coordinate': {
+            'lat': number
+            'lon': number
+        }
+    }
+    'county': any
+    'street_view_url': any
+}
+interface ScriptNextData {
+    'property_id': string
+    'description': ScriptDescription
+    'location': ScriptLocation
+    'primary_photo': { href: string }
+    'list_price': number
+    'permalink': string
+
+    'advertisers'?: any
+    'branding': any
+    'community': any
+    'flags': any
+    'lead_attributes': any
+    'list_date': any
+    'listing_id': any
+    'mattersport': any
+    'open_houses': any
+    'photos': any
+    'price_reduced_amount': any
+    'products': any
+    'rmn_listing_attribution': any
+    'search_promotions': any
+    'source': any
+    'status': any
+    'virtual_tours': any
+}
+function scrapeScriptData(scriptData: ScriptNextData): Partial<PropertyInfo> {
+    const result = {
+        isLand: scriptData.description.type === 'land',
+        oceanGeodataSource: 'tl_2025_us_coastline' as GeodataSourceType,
+        Type: scriptData.description.type,
+        Year: scriptData.description.year_built,
+        Garage: scriptData.description.garage,
+        Price: scriptData.list_price,
+        Bedrooms: scriptData.description.beds,
+        Bathrooms: parseFloat(scriptData.description.baths_consolidated),
+        Sqft: scriptData.description.sqft,
+        lotSize: scriptData.description.lot_sqft,
+        address: scriptData.location.address.line,
+        city: scriptData.location.address.city,
+        state: scriptData.location.address.state_code,
+        country: 'United States',
+        coordinate: scriptData.location.address.coordinate ? { ...scriptData.location.address.coordinate } : undefined,
+        href: () => `https://www.realtor.com/realestateandhomes-detail/${scriptData.permalink}`,
+        element: document.getElementById(`placeholder_property_${scriptData.property_id}`) as HTMLElement
+    }
+    const Picture = toScaledPicture(result.element.querySelector('img'), MaxPropertyInfoImageWidth, result)
+    return {
+        ...result,
+        Picture
+    }
+}
 export const RealtorSite: RealEstateSite = {
     name: 'Realtor',
     containerId: 'realtor-realestate-id',
@@ -29,82 +122,13 @@ export const RealtorSite: RealEstateSite = {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
             scrapePage: async (): Promise<PropertyInfo[]> => {
-                let propertyidLatLongMap: { [propId: string]: { lat: number, lon: number } } = {}
-                try {
-                    propertyidLatLongMap = JSON.parse(document.getElementById('__NEXT_DATA__').innerText)
-                        .props.pageProps.properties
-                        .reduce((idMap: { [propId: string]: { lat: number, lon: number } }, p: { property_id: string, location: { address: { coordinate: { lat: number, lon: number } } } }) => ({
-                            ...idMap,
-                            [p.property_id]: {
-                                lat: toNumber(p.location.address.coordinate.lat),
-                                lon: toNumber(p.location.address.coordinate.lon),
-                            }
-                        }), {})
-                } catch (err) {
-                    console.error(`Failed parsing script as json for property`, err)
-                }
                 const properties: PropertyInfo[] = []
-                const isRecommendedList = window.location.href.startsWith('https://www.realtor.com/recommended') as boolean
-                for (const e of Array.from(await awaitQueryAll(isRecommendedList ? 'div[data-testid="recommended-homes-card"]' : 'div[class="BasePropertyCard_propertyCardWrap__gtWK6"]'))) {
-                    const img = e.querySelector('img')
-                    if ([null, undefined].includes(img)) continue
-
-                    const a = e.querySelector('a')
-                    const coordinate: { lat: number, lon: number } | undefined = propertyidLatLongMap[e.dataset.propertyId]
-                    const href = a.href
-                    const parts = e.innerText.split('\n')
-                    let index = parts.findIndex(part => part.startsWith('$'))
-                    const result: Partial<PropertyInfo> = {
-                        Type: parts[index - 1].split(' ')[0],
-                        Price: parts[index],
-                        href: () => href,
-                        coordinate,
-                    }
-                    result.Bedrooms = parts[index + 1]
-                    index = parts.findIndex(part => part.startsWith('bed'))
-                    if (0 < index) {
-                        result.Bedrooms = `${result.Bedrooms} parts[index - 1]`
-                    }
-                    index = parts.findIndex(part => part.startsWith('bath'))
-                    result.isLand = index < 0
-                    if (0 < index) {
-                        result.Bathrooms = parts[index - 1]
-                    }
-                    index = parts.findIndex(part => part.includes('sqft'))
-                    if (0 < index) {
-                        result.Sqft = parts[index].split('sqft')[0]
-                    }
-                    index = parts.findIndex(part => part.includes('Email Agent'))
-                    if (0 < index) {
-                        result.city = parts[index - 1].split(', ').slice(-2)[0]
-                        result.state = parts[index - 1].split(', ').slice(-2)[1]
-                        result.address = `${parts[index - 2]}, ${result.city}, ${result.state}`
-                    }
-                    result.country = 'United States'
-                    index = parts.findIndex(part => part.includes('HOA'))
-                    if (0 < index) {
-                        result.HOA = (parts[index].split(' • ').find(p => p.includes('HOA')) ?? '-').split(' ')[0]
-                    }
-                    index = parts.findIndex(part => part.includes(' lot'))
-                    if (0 < index) {
-                        result.lotSize = parts[index].split(' lot')[0]
-                    }
-                    const { width, height } = scaleDimension(getHeightWidth(img), MaxPropertyInfoImageWidth, true)
-                    const propertyInfoCard = toPropertyInfoCard({
-                        ...result,
-                        Picture: <img
-                            src={img.src}
-                            title={result.address}
-                            alt={result.address}
-                            className={img.className}
-                            height={`${height}px`}
-                            width={`${width}px`}
-                        />,
-                    })
-                    properties.push(await geocodePropertyInfoCard(propertyInfoCard))
+                for (const scriptData of JSON.parse(document.getElementById('__NEXT_DATA__').innerText).props.pageProps.properties) {
+                    properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(scrapeScriptData(scriptData))))
                 }
                 return properties
             },
+
         },
         [PropertyPageType.Single]: {
             pageType: PropertyPageType.Single,
@@ -127,80 +151,70 @@ export const RealtorSite: RealEstateSite = {
             },
             scrapePage: async (): Promise<PropertyInfo[]> => {
                 const href = window.location.href
-                const element = await awaitQuerySelection('div[data-testid="ldp-main-container"]')
-                const price = (await awaitQuerySelection('div[data-testid="ldp-list-price"]')).innerText
-                const homeInfo = Array.from((await awaitQuerySelection('div[data-testid="ldp-home-facts"]')).querySelectorAll('li'))
-                    .map(e => e.innerText.split('\n').map(v => v.trim()).filter(v => 0 < v.length))
-                    .reduce((info, valueName) => {
-                        const value = valueName[0]
-                        const name = valueName.slice(-1)[0]
-                        const newInfo: Partial<PropertyInfo> = {}
-                        if (value === 'Studio') {
-                            newInfo.Bedrooms = value
-                        }
-                        if (name.includes('bed')) {
-                            newInfo.Bedrooms = value
-                        }
-                        if (name.includes('bath')) {
-                            newInfo.Bathrooms = value
-                        }
-                        if (name.includes('square feet')) {
-                            newInfo.Sqft = value.split('sqft')[0]
-                        }
-                        if (name.includes(' lot')) {
-                            newInfo.lotSize = value.split(' lot')[0]
-                        }
-                        return {
-                            ...info,
-                            ...newInfo
-                        }
-                    }, {} as Partial<PropertyInfo>)
-                const facts = Array.from(document.querySelector('ul[data-testid="key-facts"]').querySelectorAll('li'))
-                    .map(e => e.innerText.split('\n').map(v => v.trim()).filter(v => 0 < v.length))
-                    .reduce((info, nameValue) => {
-                        const name = nameValue[0]
-                        const value = nameValue.slice(-1)[0]
-                        const newInfo: Partial<PropertyInfo> = {}
-                        if (name.includes('Property type')) {
-                            newInfo.Type = value.split(' ')[0]
-                        }
-                        if (name.includes('Year built')) {
-                            newInfo.Year = value
-                        }
-                        if (name.includes('HOA fees')) {
-                            newInfo.HOA = value.split('/')[0]
-                        }
-                        if (name.includes('Garage')) {
-                            newInfo.Garage = value
-                        }
-                        return {
-                            ...info,
-                            ...newInfo,
-                        }
-                    }, {} as PropertyInfo)
-                const address = (document.querySelector('div[data-testid="address-line-ldp"]') as HTMLElement).innerText
-                const city = address.split(', ')[1]
-                const state = address.split(', ')[2].split(' ')[0]
-                const country = 'United States'
-
-                let Picture = undefined
-                const img = document.querySelector('ul[data-testid="carousel-track"]').querySelector('li').querySelector('img')
-                if (img) {
-                    const { width, height } = scaleDimension(getHeightWidth(img), MaxPropertyInfoImageWidth, true)
-                    Picture = <img
-                        src={img.src}
-                        title={address}
-                        alt={address}
-                        height={`${height}px`}
-                        width={`${width}px`}
-                    />
+                let result: Partial<PropertyInfo> = {
+                    oceanGeodataSource: 'tl_2025_us_coastline' as GeodataSourceType,
+                    href: () => href
                 }
+                result.element = await awaitQuerySelection('div[data-testid="ldp-main-container"]')
+                result.Price = parseNumber((await awaitQuerySelection('div[data-testid="ldp-list-price"]')).innerText)
+                result = {
+                    ...result, ...Array.from((await awaitQuerySelection('div[data-testid="ldp-home-facts"]')).querySelectorAll('li'))
+                        .map((e): Partial<PropertyInfo> => {
+                            const value = e.innerText.split('\n')[0]
+                            switch (e.dataset.testid) {
+                                case 'property-meta-beds':
+                                    return { Bedrooms: parseNumber(value) }
+                                case 'property-meta-baths':
+                                    return { Bathrooms: parseNumber(value) }
+                                case 'property-meta-sqft':
+                                    return { Sqft: parseNumber(value) }
+                                case 'property-meta-lot-size':
+                                    return { lotSize: parseNumber(value) }
+                                default:
+                                    return {}
+                            }
+                        }).reduce((propinfo, obj) => ({
+                            ...propinfo,
+                            ...obj,
+                        }), {} as Partial<PropertyInfo>)
+                }
+                const addrText = (document.querySelector('div[data-testid="address-line-ldp"]') as HTMLElement).innerText
+                result = {
+                    ...result,
+                    isLand: [null, undefined].includes(result.Bathrooms),
+                    address: addrText,
+                    city: addrText.split(', ')[1],
+                    state: addrText.split(', ')[2].split(' ')[0],
+                    country: 'United States'
+                }
+                const coordinate = Array.from(document.querySelectorAll('meta[property*="place:location"]'))
+                    .reduce((coordinate, e) => ({
+                        ...coordinate,
+                        [e.attributes.getNamedItem('property').value.split(':').slice(-1)[0].slice(0, 3)]: parseNumber(e.attributes.getNamedItem('content').value)
+                    }), {} as Partial<GeoCoordinate>)
 
-                let createMapButton = undefined
+                result.coordinate = Object.keys(coordinate).length === 2 ? coordinate as GeoCoordinate : undefined
+
+                result = {
+                    ...result, ...Array.from(document.querySelector('div[data-testid="ldp-highlighted-facts"]').querySelectorAll('li'))
+                        .map(e => e.innerText.split('\n').filter(t => 0 < t.length))
+                        .map(([name, value]): Partial<PropertyInfo> => {
+                            if (name.includes('Property type')) return { Type: value }
+                            if (name.includes('Year built')) return { Year: parseNumber(value) }
+                            if (name.includes('HOA fees')) return { HOA: parseNumber(value) }
+                            if (name.includes('Garage')) return { Garage: parseNumber(value) }
+                            return {}
+                        }).reduce((propinfo, obj) => ({
+                            ...propinfo,
+                            ...obj,
+                        }), {} as Partial<PropertyInfo>)
+                }
+                result.Picture = toScaledPicture(document.querySelector('ul[data-testid="carousel-track"]').querySelector('li').querySelector('img'), MaxPropertyInfoImageWidth, result)
+
                 const mapBtn = await awaitQuerySelection('button[data-testid="map-snapshot-map-btn"]')
                 if (mapBtn) {
                     const mapClassName = Array.from(mapBtn.parentElement.classList).join(' ')
-                    createMapButton = (text: string, onClick: () => void): ReactNode => (
+                    result.createMapButton = (text: string, onClick: () => void): ReactNode => (
                         <Button
                             title={text}
                             className={`app-button ${mapClassName}`}
@@ -224,31 +238,8 @@ export const RealtorSite: RealEstateSite = {
                         </Button>
                     )
                 }
-                const coordinate: { lat: number, lon: number } = Array.from(document.querySelectorAll('meta[property*="place:location"]'))
-                    .reduce((latlonMap, e) => {
-                        const label = e.attributes.getNamedItem('property').value.split(':').slice(-1)[0]
-                        const value = toNumber(e.attributes.getNamedItem('content').value)
-                        return {
-                            ...latlonMap,
-                            [label === 'latitude' ? 'lat' : 'lon']: value
-                        }
-                    }, {} as { lat: number, lon: number })
-                const propertyInfoCard = toPropertyInfoCard({
-                    isLand: [null, undefined].includes(homeInfo.Bathrooms),
-                    Price: price,
-                    ...homeInfo,
-                    address,
-                    city,
-                    state,
-                    country,
-                    coordinate,
-                    ...facts,
-                    Picture,
-                    createMapButton,
-                    element,
-                    href: () => href,
-                })
-                return [await geocodePropertyInfoCard(propertyInfoCard)]
+
+                return [await geocodePropertyInfoCard(toPropertyInfoCard(result))]
             }
         },
     }
