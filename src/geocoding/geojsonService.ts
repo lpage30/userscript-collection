@@ -33,7 +33,7 @@ function getClosest<T extends Country | State | City>(geodataSource: GeodataSour
         location?: T
     }
     // isolate to just best ones 1st
-    let closest = collection.filter(item => item.geocoding[geodataSource].geojsonIndexes.includes(geojsonIndex))
+    let closest = collection.filter(item => item.geocoding[geodataSource] && item.geocoding[geodataSource].geojsonIndexes.includes(geojsonIndex))
         .reduce((closest, item) => {
             const distance = getDistance(coordinate, item as GeoCoordinate)
             if (distance && distance.value < closest.distance) {
@@ -48,7 +48,7 @@ function getClosest<T extends Country | State | City>(geodataSource: GeodataSour
     if (closest) return closest
 
     // isolate to 2nd best
-    closest = collection.filter(item => item.geocoding[geodataSource].distantGeojsonIndexes.includes(geojsonIndex))
+    closest = collection.filter(item => item.geocoding[geodataSource] && item.geocoding[geodataSource].distantGeojsonIndexes.includes(geojsonIndex))
         .reduce((closest, item) => {
             const distance = getDistance(coordinate, item as GeoCoordinate)
             if (distance && distance.value < closest.distance) {
@@ -63,7 +63,7 @@ function getClosest<T extends Country | State | City>(geodataSource: GeodataSour
 
     if (closest) return closest
     // brute force all the rest
-    closest = collection.filter(item => 0 === (item.geocoding[geodataSource].distantGeojsonIndexes.length + item.geocoding[geodataSource].geojsonIndexes.length))
+    closest = collection.filter(item => item.geocoding[geodataSource] && 0 === (item.geocoding[geodataSource].distantGeojsonIndexes.length + item.geocoding[geodataSource].geojsonIndexes.length))
         .reduce((closest, item) => {
             const distance = getDistance(coordinate, item as GeoCoordinate)
             if (distance && distance.value < closest.distance) {
@@ -80,15 +80,15 @@ function getClosest<T extends Country | State | City>(geodataSource: GeodataSour
 }
 
 function getGeojsonIndexes(geodataSource: GeodataSourceType, region: CountryStateCity): number[] {
-    if (region.city) {
+    if (region.city && region.city.geocoding[geodataSource]) {
         if (0 < region.city.geocoding[geodataSource].geojsonIndexes.length) return [...region.city.geocoding[geodataSource].geojsonIndexes]
         if (0 < region.city.geocoding[geodataSource].distantGeojsonIndexes.length) return [...region.city.geocoding[geodataSource].distantGeojsonIndexes]
     }
-    if (region.state) {
+    if (region.state && region.state.geocoding[geodataSource]) {
         if (0 < region.state.geocoding[geodataSource].geojsonIndexes.length) return [...region.state.geocoding[geodataSource].geojsonIndexes]
         if (0 < region.state.geocoding[geodataSource].distantGeojsonIndexes.length) return [...region.state.geocoding[geodataSource].distantGeojsonIndexes]
     }
-    if (region.country) {
+    if (region.country && region.country.geocoding[geodataSource]) {
         if (0 < region.country.geocoding[geodataSource].geojsonIndexes.length) return [...region.country.geocoding[geodataSource].geojsonIndexes]
         if (0 < region.country.geocoding[geodataSource].distantGeojsonIndexes.length) return [...region.country.geocoding[geodataSource].distantGeojsonIndexes]
     }
