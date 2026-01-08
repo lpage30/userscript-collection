@@ -83,6 +83,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
 
     return (
       <Dialog
+        appendTo={'self'}
         showHeader={true}
         closable={true}
         position={'center'}

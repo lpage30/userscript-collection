@@ -31,6 +31,7 @@ const AIAssistantProxyDashboard: React.FC<AIAssistantProxyDashboardProps> = ({ i
       
     return (
       <Dialog
+        appendTo={'self'}
         showHeader={true}
         closable={false}
         position={'center'}

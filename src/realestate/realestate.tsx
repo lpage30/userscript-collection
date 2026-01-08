@@ -11,6 +11,7 @@ import {
   renderInContainer,
 } from "../common/ui/renderRenderable";
 import { RealestateControlPanel } from "./RealestateControlPanel";
+import { getMaximumZIndex } from '../common/ui/style_functions';
 
 const realestateSites: RealEstateSite[] = [
   RedfinSite,
@@ -44,6 +45,8 @@ export function toUserscript(site: RealEstateSite): Userscript {
     },
     createContainer: async (href: string): Promise<HTMLElement> => {
       const container = document.createElement("div");
+      container.style.zIndex = `${getMaximumZIndex() + 1}`
+      container.style.position = 'absolute'
       container.id = site.containerId;
       const page = Object.values(site.pages).find(page => page.isPage(href))
       if ([undefined, null].includes(page)) return container

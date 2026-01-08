@@ -207,6 +207,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const render = () => {
     return (
       <Dialog
+        appendTo={'self'}
         showHeader={true}
         closable={[undefined, null].includes(onClose)}
         position={'center'}

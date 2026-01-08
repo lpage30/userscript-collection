@@ -69,6 +69,7 @@ const JobCollectorDashboard: React.FC<JobCollectorDashboardProps> = ({
       
     return (
       <Dialog
+        appendTo={'self'}
         showHeader={true}
         closable={false}
         position={'center'}

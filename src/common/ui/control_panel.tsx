@@ -36,6 +36,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     }
     return <Dialog
         id={id}
+        appendTo={'self'}
         header={title ? <div className={'text-center'}>{title}</div> : undefined}
         showHeader={title && 0 < title.length}
         visible={display}
@@ -48,7 +49,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         resizable={true}
         maximizable={maximizable ?? false}
         closable={canHide}
-        style={{ ...(style ?? {}), ...dimensions }}
+        style={{ ...(style ?? {}), ...dimensions, position: 'absolute' }}
     >
         {content}
     </Dialog>

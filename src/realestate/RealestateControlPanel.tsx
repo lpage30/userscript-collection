@@ -1,5 +1,5 @@
-import React, { ReactNode, useRef, useState, useEffect, BaseSyntheticEvent } from 'react'
-import { PropertyInfo } from './realestatesitetypes';
+import React, { ReactNode, useRef, useState, BaseSyntheticEvent } from 'react'
+import { PropertyInfo } from './propertyinfotypes';
 import { PropertyInfoCard } from './PropertyInfoCard';
 import { Button } from 'primereact/button';
 import { ControlPanel } from '../common/ui/control_panel'

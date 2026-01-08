@@ -192,14 +192,7 @@ export function getAllDisplayedElements(): { e: HTMLElement, style: CSSStyleDecl
     }))
     .filter(({style}) => style.display !== 'none')
 }
-export function getLargestZIndex(): number {
-  return getAllDisplayedElements().reduce((result, {style}) => {
-    const z = style.getPropertyValue('z-index')
-    if ([undefined, 'auto'].includes(z)) return result
-    const newZ = parseInt(z)
-    return newZ > result ? newZ : result
-  }, 0)
-}
+
 export function toNumber(value: string | number | undefined | null): number {
   if ([null, undefined].includes(value)) return Number.NaN
   if (typeof value === 'number') return value

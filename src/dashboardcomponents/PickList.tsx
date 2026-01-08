@@ -115,13 +115,14 @@ const Picklist: React.FC<PicklistProps> = ({
       >
         <tbody>
           <tr style={{ alignItems: 'center', verticalAlign: 'top' }}>
-            <td>
+            <td style={{display: 'flex'}}>
               <PickList
                 options={picklistLabelValue}
                 value={picklistLabelValue.find(({value}) => value.elementId === selectedElementId)}
                 onChange={(value: PickOptionValue) => onItemSelect((value ?? {elementId: null}).elementId)}
                 maxWidthPx={475}
                 style={{ width: '100%' }}
+                fixedWidth={false}
                 itemTemplate={(option) => (
                   <div
                     id={`${option.value.elementId}-option`}

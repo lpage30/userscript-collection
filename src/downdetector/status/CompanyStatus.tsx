@@ -82,6 +82,7 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
       sortedFilteredItems;
     return (
       <Dialog
+        appendTo={'self'}
         showHeader={true}
         position={"center"}
         modal

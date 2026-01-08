@@ -4,7 +4,6 @@ import { PropertyInfo, toPropertyInfoCard, geocodePropertyInfoCard, MaxPropertyI
 import { RealEstateSite, PropertyPageType } from '../realestatesitetypes'
 import { parseNumber, toScaledImg, toScaledPicture } from '../propertypagefunctions'
 import { awaitQuerySelection, awaitQueryAll, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
-import { getHeightWidth, scaleDimension } from '../../common/ui/style_functions'
 
 interface ScriptAmenityFeature {
     '@type': string
@@ -97,26 +96,36 @@ function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
     return result
 }
 
-
-async function scrapeListing(bpHomeCards: HTMLElement[]): Promise<PropertyInfo[]> {
+async function scrapeListing(): Promise<PropertyInfo[]> {
     const properties: PropertyInfo[] = []
-    for (const e of bpHomeCards) {
-        const context = JSON.parse(e.querySelector('script').innerText)[0]
-        const result: Partial<PropertyInfo> = scrapeScriptData(context)
-        result.Price = parseNumber((e.querySelector('span[class*="bp-Homecard__Price--value"]') as HTMLElement).innerText)
-        if (result.isLand) {
-            result.lotSize = parseNumber((e.querySelector('span[class*="bp-Homecard__Stats--sqft"]') as HTMLElement).innerText)
-        }
-        result.element = e
-        properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(result)))
+    const elements = Array.from(await awaitQueryAll('div[class*="bp-Homecard "]'))
+    const scriptData = Array.from(document.querySelectorAll('script'))
+        .map(s => s.innerText)
+        .filter(t => 0 < t.length && ['{\"@context\"', '[{\"@context\"'].some(prefix => t.startsWith(prefix)))
+        .map(t => JSON.parse(t))
+        .flat()
+        .filter(data => !['BreadcrumbList', 'Product', 'Organization'].includes(data['@type']))
+
+    for (let i = 0; i < Math.min(elements.length, scriptData.length); i = i + 1) {
+        const property: Partial<PropertyInfo> = scrapeScriptData(scriptData[i])
+        property.Price = property.Price ?? parseNumber(elements[i].innerText.split('\n').find(p => p.startsWith('$')))
+        property.Bathrooms = property.Bathrooms ?? parseNumber(elements[i].innerText.split('\n').find(p => (/^[\d\.]+\s*bath?/ig).test(p)))
+        property.Bedrooms = property.Bedrooms ?? parseNumber(elements[i].innerText.split('\n').find(p => (/^[\d\.]+\s*bed?/ig).test(p)))
+        property.element = elements[i]
+        const img = elements[i].querySelector('img')
+        property.Picture = toScaledImg({ src: img.src, width: img.width, height: img.height }, MaxPropertyInfoImageWidth, property)
+
+        properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(property)))
     }
     return properties
 }
+
 export const RedfinSite: RealEstateSite = {
     name: 'Redfin',
     containerId: 'redfin-realestate-id',
     isSupported: (href: string): boolean => Object.values(RedfinSite.pages).some(page => page.isPage(href)),
     pages: {
+
         [PropertyPageType.Feed]: {
             pageType: PropertyPageType.Feed,
             isPage: (href: string): boolean => ('https://www.redfin.com/#userFeed' === href || 'https://www.redfin.com/' === href),
@@ -138,10 +147,9 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (): Promise<PropertyInfo[]> =>
-                scrapeListing(Array.from(await awaitQueryAll('div[class*="bp-Homecard "]'))),
-
+            scrapePage: async (): Promise<PropertyInfo[]> => scrapeListing(),
         },
+
         [PropertyPageType.Listing]: {
             pageType: PropertyPageType.Listing,
             isPage: (href: string): boolean => (null !== href.match(/^https:\/\/www.redfin.com\/(city|zipcode|neighborhood)\/.*/)),
@@ -162,15 +170,14 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (): Promise<PropertyInfo[]> =>
-                scrapeListing(Array.from(await awaitQueryAll('div[class*="bp-Homecard "]'))),
+            scrapePage: async (): Promise<PropertyInfo[]> => scrapeListing(),
         },
+
         [PropertyPageType.Single]: {
             pageType: PropertyPageType.Single,
             isPage: (href: string): boolean => (null !== href.match(/^https:\/\/www.redfin.com\/.*\/home\/\d+$/)),
             awaitForPageLoad: async (): Promise<void> => {
                 await awaitPageLoadByMutation()
-                await awaitQuerySelection('div[class*="AskGeneralInquirySection"]')
             },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => [await awaitQuerySelection('div[class*="static-map"]')],
             isMapToggleElement: (element: HTMLElement): boolean => {

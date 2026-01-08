@@ -75,6 +75,7 @@ const CollectedJobBrowser: React.FC<CollectedJobBrowserProps> = ({
         <div style={style ?? {}}>
             <Button className="app-button" onClick={(() => popupBrowser())}>Browse and Manage Jobs</Button>
             <Dialog
+                appendTo={'self'}
                 showHeader={true}
                 closable={true}
                 position={'center'}

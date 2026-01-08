@@ -1,20 +1,20 @@
-import React, { useState, JSX, useEffect, useRef, BaseSyntheticEvent } from 'react'
+import React, { useState, JSX, useRef, BaseSyntheticEvent } from 'react'
 import { Button } from 'primereact/button';
-import { PropertyInfo } from './realestatesitetypes'
+import { PropertyInfo } from './propertyinfotypes'
 import Dashboard from '../dashboardcomponents/Dashboard'
 import { FilterableItems, ItemFilter, CardShellContainerId } from '../dashboardcomponents/datatypes';
 import { Persistence } from '../dashboardcomponents/persistence';
 
 export const ListedPropertyContainerId = CardShellContainerId
-export const sortingFields = ['PriceValue', 'OceanDistance'];
+export const sortingFields = ['Price', 'OceanDistance'];
 export const getFilterableItems = (propertyInfo: PropertyInfo[]): FilterableItems => (
   {
-    PriceValue: {
-      field: 'PriceValue',
+    Price: {
+      field: 'Price',
       type: 'ValueRange', 
       displayData: { mode: 'currency', currency: 'USD', locale: 'en-US' , maxWidth: 10, step: 50000 },
       filter: propertyInfo
-        .map(({ PriceValue }) => PriceValue).sort()
+        .map(({ Price }) => Price).sort()
         .filter(value => ![undefined, null].includes(value))
         .filter((value, index, array) => index === 0 || array[index - 1] !== value)
         .reduce((result, value) => ({
