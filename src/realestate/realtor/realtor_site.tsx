@@ -6,7 +6,7 @@ import {
 } from '../propertyinfotypes'
 import { PropertyPageType, RealEstateSite } from '../realestatesitetypes'
 import { parseNumber, toScaledPicture } from '../propertypagefunctions'
-import { GeoCoordinate, GeodataSourceType } from '../../geocoding/datatypes'
+import { GeoCoordinate, GeodataSourceType, parseAddress } from '../../geocoding/datatypes'
 
 import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 import { ReactNode } from 'react'
@@ -182,9 +182,7 @@ export const RealtorSite: RealEstateSite = {
                 result = {
                     ...result,
                     isLand: [null, undefined].includes(result.Bathrooms),
-                    address: addrText,
-                    city: addrText.split(', ')[1],
-                    state: addrText.split(', ')[2].split(' ')[0],
+                    ...parseAddress(addrText),
                     country: 'United States'
                 }
                 const coordinate = Array.from(document.querySelectorAll('meta[property*="place:location"]'))

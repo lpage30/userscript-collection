@@ -8,7 +8,7 @@ import { ListedPropertyDashboardPopup, ListedPropertyContainerId } from './Liste
 interface RealestateControlPanelProps {
     id: string
     siteName: string
-    title?: string
+    title: string
     toggleMapDisplay: (parentElement?: HTMLElement) => void
     properties: PropertyInfo[]
     canToggleMapInDashboard?: boolean
@@ -17,7 +17,7 @@ interface RealestateControlPanelProps {
 export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
     id,
     siteName,
-    title = "Realestate Userscript",
+    title,
     toggleMapDisplay,
     properties,
     ignoreDashboardClickEvent,
@@ -52,7 +52,7 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
                     <>
                         {1 < state.length &&
                             <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><ListedPropertyDashboardPopup
-                                title={`Property List (${state.length})`}
+                                title={`${title} (${state.length})`}
                                 siteName={siteName}
                                 properties={state}
                                 onDashboardClose={() => setState([...properties])}

@@ -84,6 +84,10 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
     });
     sortedFilteredItems.filteredItems.forEach((item, index) => {
+      if (undefined === item.renderable) {
+        console.error(`Card[${index}]: Missing renderable. "${item.displayLines().join('|')}"`)
+        return
+      }
       const cardParent = document.getElementById(toCardElementId(index));
       cardParent.appendChild(item.renderable)
     });

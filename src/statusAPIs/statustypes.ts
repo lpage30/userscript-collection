@@ -1,5 +1,5 @@
 import { CountryStateCity } from '../geocoding/datatypes'
-import { classifyCountryStateCity, compareFunction as compareLocation} from '../geocoding/countryStateCityService'
+import { classifyCountryStateCityText, compareFunction as compareLocation} from '../geocoding/countryStateCityTextClassifiers'
 import { StatusLevel, classifyStatus, compareFunction as compareStatusLevel, determineOverallStatusLevel} from './statusService'
 
 export type IndicatorType = 'major' | 'minor' | string
@@ -54,10 +54,10 @@ export function classifyServiceStatus(status: ServiceStatus): ServiceStatus {
         ...incident,
         updates: incident.updates.map(update => ({
             ...update,
-            location: classifyCountryStateCity(update.name),
+            location: classifyCountryStateCityText(update.name),
             statusLevel: classifyStatus(`${update.status} ${update.name}`),
         })),
-        location: classifyCountryStateCity(incident.name),
+        location: classifyCountryStateCityText(incident.name),
         statusLevel: classifyStatus(`${incident.status} ${incident.name}`),
     }))
     return {

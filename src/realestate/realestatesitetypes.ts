@@ -5,6 +5,13 @@ export enum PropertyPageType {
     Listing = 1,
     Single = 2,
 }
+export const propertyPageTypeString = (type: PropertyPageType): string => {
+    switch(type) {
+        case PropertyPageType.Feed: return 'Property Feed'
+        case PropertyPageType.Listing: return 'Property Listing'
+        default: return 'Single Property'
+    }
+}
 export interface RealestatePage {
     pageType: PropertyPageType
     isPage: (href: string) => boolean;

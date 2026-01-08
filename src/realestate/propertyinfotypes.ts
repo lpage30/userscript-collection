@@ -11,7 +11,8 @@ import {
     GeoCoordinate,
     GeodataSourceType
 } from '../geocoding/datatypes'
-import { classifyGeoCountryStateCity, findClosestOceanPlace } from '../geocoding/geojsonService'
+import { classifyGeoCountryStateCity } from '../geocoding/countryStateCityGeoAddressClassifiers'
+import { findClosestGeodataPlace } from '../geocoding/findClosestPlace'
 
 export const MaxPropertyInfoImageWidth = 325
 export interface GeoPropertyInfo {
@@ -39,13 +40,14 @@ export interface PropertyInfo extends Card, GeoAddress {
     DistanceToOcean?: number
     geoPropertyInfo?: GeoPropertyInfo
 }
+
 export function toPropertyInfoCard(data: Partial<PropertyInfo>): PropertyInfo {
     const result: Partial<PropertyInfo> = {
         ...data
     }
     // InfoDisplay
     result.displayLines = () => [
-        `${result.Price}@${v.address}`,
+        `${result.Price}@${result.address}`,
         `${result.Bedrooms} Beds, ${result.Bathrooms} baths`,
         `${result.Sqft} sqft`,
     ].filter(t => undefined !== t)
@@ -66,7 +68,7 @@ export async function geocodePropertyInfoCard(data: PropertyInfo): Promise<Prope
     if (data.geoPropertyInfo) return data
 
     const propertyPlace: GeoCountryStateCityAddress = classifyGeoCountryStateCity(data as GeoAddress)
-    const closestOceanPlace: Place | undefined = await findClosestOceanPlace(data.oceanGeodataSource, toGeoPlace(propertyPlace))
+    const closestOceanPlace: Place | undefined = await findClosestGeodataPlace(data.oceanGeodataSource, toGeoPlace(propertyPlace))
     const displayString = `Ocean Location: ${closestOceanPlace ? toPlaceString(closestOceanPlace) : toGeoCountryStateCityAddressString(propertyPlace)}`
 
     return {

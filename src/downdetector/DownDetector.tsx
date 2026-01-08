@@ -1,3 +1,4 @@
+import './registergeocoding'
 import React from "react";
 import "../common/ui/styles.scss";
 import { Userscript, RunUserscripts } from "../common/userscript";

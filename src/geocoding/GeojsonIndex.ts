@@ -2,8 +2,10 @@ import { GeojsonIndex, GeodataSourceType } from './datatypes'
 import { MultiLineString, Feature } from 'geojson'
 import { ONE_MINUTE } from '../common/datetime'
 import * as turf from '@turf/turf'
-import getTl2025UsCoastlineGeojsonIndex from './generated_tl_2025_us_coastline'
-import getUkcp18UkMarineCoastlineHiresGeojsonIndex from './generated_ukcp18_uk_marine_coastline_hires'
+import { 
+    getTl2025UsCoastlineGeojsonIndex,
+    getUkcp18UkMarineCoastlineHiresGeojsonIndex
+} from './generated_registered_geojson_data'
 
 function getGeojsonIndex(geodataSource: GeodataSourceType, index: number): GeojsonIndex {
     if ('tl_2025_us_coastline' === geodataSource) return getTl2025UsCoastlineGeojsonIndex(index)
@@ -27,20 +29,28 @@ class GeojsonIndexCache {
     private indexCache: {
         tl_2025_us_coastline: {
             [index: number]: IndexCacheBlock
+        },
+        ukcp18_uk_marine_coastline_hires: {
+            [index: number]: IndexCacheBlock            
         }
     }
     private multilineStringCache: {
         tl_2025_us_coastline: {
             [indexcsv: string]: MultilineCacheBlock
         }
+        ukcp18_uk_marine_coastline_hires: {
+            [indexcsv: string]: MultilineCacheBlock
+        }
     }
     private maxAgeMs: number
     constructor(maxAgeMs: number) {
         this.indexCache = {
-            tl_2025_us_coastline: {}
+            tl_2025_us_coastline: {},
+            ukcp18_uk_marine_coastline_hires: {}
         }
         this.multilineStringCache = {
-            tl_2025_us_coastline: {}
+            tl_2025_us_coastline: {},
+            ukcp18_uk_marine_coastline_hires: {}
         }
         this.maxAgeMs = maxAgeMs
     }

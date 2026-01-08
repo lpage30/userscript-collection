@@ -3,6 +3,12 @@ import Path from 'path'
 import { durationToString } from './functions.js'
 import { Country, State, City } from 'country-state-city';
 
+export const GeocodedCountryCityStateDataDirname = 'geocodedcountrystatecitydata'
+
+export function getRequiredGeojsonIndexes(country, geojsonFilenamePrefix) {
+    const coding = country.geocoding[geojsonFilenamePrefix] ?? { geojsonIndexes: [], distantGeojsonIndexes: []}
+    return [...coding.geojsonIndexes, ...coding.distantGeojsonIndexes]
+}
 function createCountryStateCityMap(maxMilesDistant, indent = '') {
     const tstart = Date.now()
     console.log(`${indent}Creating world Country/State/City Map`)
@@ -32,6 +38,7 @@ function createCountryStateCityMap(maxMilesDistant, indent = '') {
                     return {
                         ...stateMap,
                         [state.name]: {
+                            countryName: country.name,
                             name: state.name,
                             isoCode: state.isoCode,
                             lat: toFloat(state.latitude),
@@ -43,6 +50,8 @@ function createCountryStateCityMap(maxMilesDistant, indent = '') {
                                 return {
                                     ...cityMap,
                                     [city.name]: {
+                                        countryName: country.name,
+                                        stateName: state.name,
                                         name: city.name,
                                         lat: toFloat(city.latitude),
                                         lon: toFloat(city.longitude),
@@ -65,8 +74,8 @@ export const CountryStateCityMapGenerator = (geocodingDirname) => {
         throw new Error(`CountryStateCityGenerator: directory ${geocodingDirname} does not exist`)
     }
 
-    const countryStateCityMapJsonFilename = 'generated_country_state_city_map.json'
-    const countryStateCityMapJsonFilepath = Path.join(geocodingDirname, countryStateCityMapJsonFilename)
+    const countryStateCityMapJsonFilename = 'geocoded_country_state_city_map.json'
+    const countryStateCityMapJsonFilepath = Path.join(geocodingDirname, GeocodedCountryCityStateDataDirname, countryStateCityMapJsonFilename)
 
     const loadMap = async (indent = '') => {
         if (!fs.existsSync(countryStateCityMapJsonFilepath)) {
@@ -95,7 +104,7 @@ export const CountryStateCityMapGenerator = (geocodingDirname) => {
         const tstart = Date.now()
         console.log(`${indent}Generating World Country-State-City Map`)
         if (fs.existsSync(`${countryStateCityMapJsonFilepath}`)) {
-            console.log(`${indent}- skipping, already generated.`)
+            console.log(`${indent} - skipping, already generated.`)
             return
         }
         const countryStateCityMap = createCountryStateCityMap(maxMilesDistance, `${indent}\t`)

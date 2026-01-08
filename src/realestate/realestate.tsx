@@ -1,7 +1,8 @@
+import './registergeocoding'
 import React from "react";
 import "../common/ui/styles.scss";
 import { Userscript, RunUserscripts } from "../common/userscript";
-import { RealEstateSite, PropertyPageType } from "./realestatesitetypes";
+import { RealEstateSite, PropertyPageType, propertyPageTypeString } from "./realestatesitetypes";
 import { RedfinSite } from "./redfin/redfin_site";
 import { RealtorSite } from "./realtor/realtor_site";
 import { ZooplaSite } from "./zoopla/zoopla_site";
@@ -60,10 +61,11 @@ export function toUserscript(site: RealEstateSite): Userscript {
       }
       await awaitDelay(1000)
       const properties = await page.scrapePage()
-
+      const title = `${site.name} (${properties[0].country}) ${propertyPageTypeString(page.pageType)}${PropertyPageType.Single === page.pageType ? ` ${properties[0].address}` : ''}`
       renderInContainer(container, <RealestateControlPanel
         id={renderableId}
         siteName={site.name}
+        title={title}
         toggleMapDisplay={toggleMaps}
         properties={properties}
         canToggleMapInDashboard={[PropertyPageType.Feed].includes(page.pageType)}

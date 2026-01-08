@@ -24,3 +24,7 @@ export function durationToString(durationms) {
 
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(remainingDurationms).padStart(3, '0')}`
 }
+export function normalizeName(name) {
+    return name.replace(/\(|\)|'|-|\s|,|\./g, '_')
+}
+export const sortFilterIndexes = (numberArray) => numberArray.sort((l, r) => l - r).filter((v, i, a) => 0 === i || a[i - 1] !== v)
