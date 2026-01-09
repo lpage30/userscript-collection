@@ -5,7 +5,8 @@ import {
     MaxPropertyInfoImageWidth 
 } from '../propertyinfotypes'
 import { PropertyPageType, RealEstateSite } from '../realestatesitetypes'
-import { parseNumber, toScaledPicture } from '../propertypagefunctions'
+import { parseNumber } from '../../common/functions'
+import { toScaledPicture } from '../propertypagefunctions'
 import { GeoCoordinate, GeodataSourceType, parseAddress } from '../../geocoding/datatypes'
 
 import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
@@ -74,8 +75,9 @@ interface ScriptNextData {
 }
 function scrapeScriptData(scriptData: ScriptNextData): Partial<PropertyInfo> {
     const result = {
-        isLand: scriptData.description.type === 'land',
         oceanGeodataSource: 'tl_2025_us_coastline' as GeodataSourceType,
+        currencySymbol: '$',
+        isLand: scriptData.description.type === 'land',
         Type: scriptData.description.type,
         Year: scriptData.description.year_built,
         Garage: scriptData.description.garage,
@@ -153,6 +155,7 @@ export const RealtorSite: RealEstateSite = {
                 const href = window.location.href
                 let result: Partial<PropertyInfo> = {
                     oceanGeodataSource: 'tl_2025_us_coastline' as GeodataSourceType,
+                    currencySymbol: '$',
                     href: () => href
                 }
                 result.element = await awaitQuerySelection('div[data-testid="ldp-main-container"]')

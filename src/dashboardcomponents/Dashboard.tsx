@@ -115,6 +115,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     filter: ItemFilter[],
     sorting: ItemSort[],
   ) => {
+    console.log(`handleFilterSorting:\nfilter:(${JSON.stringify(filter, null, 2)})\nsorting(${JSON.stringify(sorting, null, 2)})`)
     setSortedFilteredItems(
       sortAndFilterItems(sortedFilteredItems.rawItems, sortedFilteredItems.rawFilterableItems, { filter, sorting }),
     );

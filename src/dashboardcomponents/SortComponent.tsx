@@ -4,12 +4,11 @@ import { Checkbox } from "primereact/checkbox";
 import { PickList, PickOption } from "../common/ui/picklist"
 import { toTitleCase } from "../common/functions";
 import "../common/ui/styles.scss";
-import { Dropdown } from "primereact/dropdown";
 
 interface SortComponentProps {
   sortFields: string[]
   initialSorting: ItemSort[];
-  onSortChange: (sorting: ItemSort[]) => void;
+  registerGetSorting: (getSorting: () => ItemSort[]) => void;
   style?: React.CSSProperties
   trailingComponent?: JSX.Element
 }
@@ -20,14 +19,14 @@ const toFieldOption = (field: string): PickOption<string> => ({
 const SortComponent: React.FC<SortComponentProps> = ({
   sortFields,
   initialSorting,
-  onSortChange,
+  registerGetSorting,
   style,
   trailingComponent,
 }) => {
   const [sorting, setSorting] = useState<ItemSort[]>(initialSorting);
   const [selectedSortField, setSelectedSortField] = useState<string>(null);
   const sortFieldOptions: PickOption<string>[] = sortFields.map(toFieldOption);
-
+  if (registerGetSorting) registerGetSorting(() => sorting)
   const handleSortingChange = (
     field: string,
     ascendingCheckbox: boolean,
@@ -43,7 +42,6 @@ const SortComponent: React.FC<SortComponentProps> = ({
             !(item.field === field && item.ascending === ascendingCheckbox),
         );
     setSorting(newSorting);
-    onSortChange(newSorting);
   };
   const getSorting = (
     fieldName: string,

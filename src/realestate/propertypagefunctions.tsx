@@ -3,8 +3,6 @@ import { PropertyInfo } from './propertyinfotypes'
 import { scaleDimension } from '../common/ui/style_functions'
 import { getHeightWidth } from '../common/ui/style_functions'
 
-export const parseNumber = (value: string) => value ? parseFloat(value.replace(/[^\d\.]/g, '')) : undefined
-
 export function toScaledImg(
     imgData: {src: string, width: number, height: number} | undefined,
     maxPropertyInfoImageWidth: number,

@@ -6,13 +6,20 @@ import { FilterableItems, ItemFilter, CardShellContainerId } from '../dashboardc
 import { Persistence } from '../dashboardcomponents/persistence';
 
 export const ListedPropertyContainerId = CardShellContainerId
-export const sortingFields = ['Price', 'OceanDistance'];
+export const sortingFields = ['Price', 'DistanceToOcean'];
 export const getFilterableItems = (propertyInfo: PropertyInfo[]): FilterableItems => (
   {
     Price: {
       field: 'Price',
       type: 'ValueRange', 
-      displayData: { mode: 'currency', currency: 'USD', locale: 'en-US' , maxWidth: 10, step: 50000 },
+      displayData: { 
+        step: 50000,
+        prefix: propertyInfo[0].currencySymbol,
+        formatValue: (value: number) => value.toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        })
+      },
       filter: propertyInfo
         .map(({ Price }) => Price).sort()
         .filter(value => ![undefined, null].includes(value))
@@ -25,7 +32,14 @@ export const getFilterableItems = (propertyInfo: PropertyInfo[]): FilterableItem
     DistanceToOcean: {
       field: 'DistanceToOcean',
       type: 'ValueRange',
-      displayData: { mode: 'decimal', suffix: ' mi', maxWidth: 5, step: 0.25 },
+      displayData: { 
+        suffix: ' mi',
+        step: 0.25,
+        formatValue: (value: number) => value.toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2
+        })
+      },
       filter: propertyInfo
         .map(({ DistanceToOcean }) => DistanceToOcean).sort()
         .filter(value => ![undefined, null].includes(value))

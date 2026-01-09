@@ -1,135 +1,125 @@
-import React, { useState, JSX, useEffect } from "react";
-import { ItemFilter, ItemDateBetweenFilter, ItemValueExistenceFilter, ItemValueRangeFilter, FilterableItems, findIndexOfFilterField, mergeFilters } from "./datatypes";
-import { Checkbox } from "primereact/checkbox";
-import { PickList, PickOption } from "../common/ui/picklist"
-import { Calendar } from "primereact/calendar";
-import { InputNumber } from "primereact/inputnumber";
-import { toDate } from "../common/datetime";
-import "../common/ui/styles.scss";
+import React, { JSX } from 'react';
+import { IUseStateMap, useStateMap } from '../common/ui/useStateMap';
+import {
+  ItemFilter,
+  ItemDateBetweenFilter,
+  ItemValueExistenceFilter,
+  ItemValueRangeFilter,
+  FilterableItems,
+  mergeFilters,
+  isExistenceFilter, isDateBetweenFilter, isRangeFilter
+} from './datatypes';
+import { Checkbox } from 'primereact/checkbox';
+import { PickList, PickOption } from '../common/ui/picklist'
+import { Calendar } from 'primereact/calendar';
+import { InputNumber } from 'primereact/inputnumber';
+import { toDate } from '../common/datetime';
+import { NumberSpinner } from '../common/ui/NumberSpinner';
+import '../common/ui/styles.scss';
 
 interface FilterComponentProps {
   getFilterableItems: () => FilterableItems;
   initialFilter: ItemFilter[];
-  onFilterChange: (filter: ItemFilter[]) => void;
+  registerGetFilter: (getFilter: () => ItemFilter[]) => void;
   style?: React.CSSProperties
   trailingComponent?: JSX.Element
+}
+interface TypedFilters {
+  ValueExistence: { itemFilter: ItemValueExistenceFilter, index: number }[],
+  DateBetween: { itemFilter: ItemDateBetweenFilter, index: number }[],
+  ValueRange: { itemFilter: ItemValueRangeFilter, index: number }[],
 }
 
 const FilterComponent: React.FC<FilterComponentProps> = ({
   getFilterableItems,
   initialFilter,
-  onFilterChange,
+  registerGetFilter,
   style,
   trailingComponent,
 
 }) => {
-  const [filter, setFilter] = useState<ItemFilter[]>(mergeFilters(initialFilter, Object.values(getFilterableItems())));
-  const [valueExistenceFilters, setValueExistenceFilters] = useState<{ itemFilter: ItemValueExistenceFilter, index: number }[]>([])
-  const [dateBetweenFilters, setDateBetweenFilters] = useState<{ itemFilter: ItemDateBetweenFilter, index: number }[]>([])
-  const [valueRangeFilters, setValueRangeFilters] = useState<{ itemFilter: ItemValueRangeFilter, index: number }[]>([])
+  const filterStateMap: IUseStateMap<ItemFilter> = useStateMap(mergeFilters(initialFilter, Object.values(getFilterableItems()))
+    .reduce((result, item) => ({
+      ...result,
+      [item.field]: item
+    }), {})
+  )
 
-  useEffect(() => {
-
-    setValueExistenceFilters(filter.map((itemFilter, index) => {
-      if (itemFilter.type === 'ValueExistence') return { itemFilter, index }
-      return null
-    }).filter(v => v !== null))
-
-    setDateBetweenFilters(filter.map((itemFilter, index) => {
-      if (itemFilter.type === 'DateBetween') return { itemFilter, index }
-      return null
-    }).filter(v => v !== null))
-
-    setValueRangeFilters(filter.map((itemFilter, index) => {
-      if (itemFilter.type === 'ValueRange') return { itemFilter, index }
-      return null
-    }).filter(v => v !== null))
-
-  }, [filter])
+  if (registerGetFilter) registerGetFilter(() => Object.values(filterStateMap).map(state => state.get))
 
   const handleDateBetweenFilterChange = (fieldName: string, beginDate: number, endDate: number) => {
-    const newFilter = mergeFilters(filter, Object.values(getFilterableItems()))
-    const fieldIndex = findIndexOfFilterField(fieldName, newFilter);
-    (newFilter[fieldIndex] as ItemDateBetweenFilter).filter.beginDate = beginDate;
-    (newFilter[fieldIndex] as ItemDateBetweenFilter).filter.endDate = endDate;
-    setFilter(newFilter);
-    onFilterChange(newFilter);
+    const dateBetweenFilter: ItemDateBetweenFilter = { ...(filterStateMap[fieldName].get as ItemDateBetweenFilter) }
+    dateBetweenFilter.filter.beginDate = beginDate;
+    dateBetweenFilter.filter.endDate = endDate;
+    filterStateMap[fieldName].set(dateBetweenFilter)
   };
   const handleValueMinRangeFilterChange = (fieldName: string, minValue: number) => {
-    const newFilter = mergeFilters(filter, Object.values(getFilterableItems()))
-    const fieldIndex = findIndexOfFilterField(fieldName, newFilter);
-    (newFilter[fieldIndex] as ItemValueRangeFilter).filter.minValue = minValue;
-    setFilter(newFilter);
-    onFilterChange(newFilter);
+    const valueRangeFilter: ItemValueRangeFilter = { ...(filterStateMap[fieldName].get as ItemValueRangeFilter) }
+    valueRangeFilter.filter.minValue = minValue;
+    filterStateMap[fieldName].set(valueRangeFilter)
   };
   const handleValueMaxRangeFilterChange = (fieldName: string, maxValue: number) => {
-    const newFilter = mergeFilters(filter, Object.values(getFilterableItems()))
-    const fieldIndex = findIndexOfFilterField(fieldName, newFilter);
-    (newFilter[fieldIndex] as ItemValueRangeFilter).filter.maxValue = maxValue;
-    setFilter(newFilter);
-    onFilterChange(newFilter);
+    const valueRangeFilter: ItemValueRangeFilter = { ...(filterStateMap[fieldName].get as ItemValueRangeFilter) }
+    valueRangeFilter.filter.maxValue = maxValue;
+    filterStateMap[fieldName].set(valueRangeFilter)
   };
   const handleValueExistenceFilterChange = (fieldName: string, value: string, checked: boolean) => {
-    const newFilter = mergeFilters(filter, Object.values(getFilterableItems()))
-    const fieldIndex = findIndexOfFilterField(fieldName, newFilter);
-    (newFilter[fieldIndex] as ItemValueExistenceFilter).filter[value] = checked;
-    setFilter(newFilter);
-    onFilterChange(newFilter);
+    const valueExistenceFilter: ItemValueExistenceFilter = { ...(filterStateMap[fieldName].get as ItemValueExistenceFilter) }
+    valueExistenceFilter.filter[value] = checked;
+    filterStateMap[fieldName].set(valueExistenceFilter)
   };
   const handleValueExistenceFilterChanges = (fieldName: string, checkedValues: string[]) => {
-    const newFilter = mergeFilters(filter, Object.values(getFilterableItems()))
-    const fieldIndex = findIndexOfFilterField(fieldName, newFilter)
-
-    Object.keys(newFilter[fieldIndex].filter).forEach(key => {
-      newFilter[fieldIndex].filter[key] = checkedValues.includes(key)
+    const valueExistenceFilter: ItemValueExistenceFilter = { ...(filterStateMap[fieldName].get as ItemValueExistenceFilter) }
+    Object.keys(valueExistenceFilter.filter).forEach(key => {
+      valueExistenceFilter.filter[key] = checkedValues.includes(key)
     })
-    setFilter(newFilter);
-    onFilterChange(newFilter)
+    filterStateMap[fieldName].set(valueExistenceFilter)
   }
 
   const renderValueExistenceFilters = (
+    valueExistencefilters: { itemFilter: ItemValueExistenceFilter, index: number }[],
     endComponent: JSX.Element | null
   ) => {
-    if (0 === valueExistenceFilters.length) return null
+    if (0 === valueExistencefilters.length) return null
 
     return (
       <table
         style={{
-          tableLayout: "auto",
-          marginLeft: "auto",
-          marginRight: "auto",
-          marginTop: "0",
-          marginBottom: "auto",
-          width: "100%",
+          tableLayout: 'auto',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          marginTop: '0',
+          marginBottom: 'auto',
+          width: '100%',
           ...(style ?? {}),
         }}
       ><tbody>
-          <tr style={{ alignItems: "center", verticalAlign: "top" }}>
-            {valueExistenceFilters.map(({ itemFilter, index }, position) => {
+          <tr style={{ alignItems: 'center', verticalAlign: 'top' }}>
+            {valueExistencefilters.map(({ itemFilter, index }, position) => {
               const valueCheckedArray = Object.entries(itemFilter.filter)
               if (valueCheckedArray.length <= 5) {
                 return (
                   <td>
-                    <div style={{ display: "flex" }}>
+                    <div style={{ display: 'flex' }}>
                       {valueCheckedArray.map(([value, checked], index2) => (
                         <>
                           {0 < index2 && <>&nbsp;&nbsp;</>}
                           <Checkbox
                             inputId={`${index}-${index2}-f`}
-                            variant="filled"
+                            variant='filled'
                             onChange={(e) => handleValueExistenceFilterChange(itemFilter.field, value, e.checked)}
                             checked={checked}
-                            className="p-checkbox-sm"
-                            style={{ marginTop: "2px" }}
+                            className='p-checkbox-sm'
+                            style={{ marginTop: '2px' }}
                           ></Checkbox>
                           &nbsp;
                           <label
                             htmlFor={`${index}-${index2}-f`}
-                            className="text-sm"
+                            className='text-sm'
                           >{`${itemFilter.field}: ${value}`}</label>
                         </>
                       ))}
-                      {endComponent && (position + 1) == valueExistenceFilters.length && <div style={{ display: 'flex', float: 'right' }}>&nbsp;&nbsp;{endComponent}</div>}
+                      {endComponent && (position + 1) == valueExistencefilters.length && <div style={{ display: 'flex', float: 'right' }}>&nbsp;&nbsp;{endComponent}</div>}
                     </div>
                   </td>
                 )
@@ -138,7 +128,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
               const selectedOptions: PickOption<string>[] = valueCheckedArray.filter(([_name, checked]) => checked).map(([name]) => ({ label: name, value: name }))
               return (
                 <td>
-                  <div style={{ display: "flex" }}>
+                  <div style={{ display: 'flex' }}>
                     <PickList
                       multiple
                       options={options}
@@ -148,7 +138,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
                       selectedDisplayMax={5}
                       maxWidthPx={770}
                     />
-                    {endComponent && (position + 1) == valueExistenceFilters.length && <div style={{ display: 'flex', float: 'right' }}>&nbsp;&nbsp;{endComponent}</div>}
+                    {endComponent && (position + 1) == valueExistencefilters.length && <div style={{ display: 'flex', float: 'right' }}>&nbsp;&nbsp;{endComponent}</div>}
                   </div>
                 </td>
               )
@@ -160,31 +150,32 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     )
   }
   const renderDateBetweenFilters = (
+    dateBetweenFilters: { itemFilter: ItemDateBetweenFilter, index: number }[],
     endComponent: JSX.Element | null
   ) => {
     if (0 === dateBetweenFilters.length) return null
     return (
       <table
         style={{
-          tableLayout: "auto",
-          marginLeft: "auto",
-          marginRight: "auto",
-          marginTop: "0",
-          marginBottom: "auto",
-          width: "100%",
+          tableLayout: 'auto',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          marginTop: '0',
+          marginBottom: 'auto',
+          width: '100%',
           ...(style ?? {}),
         }}
       ><tbody>
-          <tr style={{ alignItems: "center", verticalAlign: "top" }}>
+          <tr style={{ alignItems: 'center', verticalAlign: 'top' }}>
             <td>
-              <div style={{ display: "flex", padding: '2px' }}>
+              <div style={{ display: 'flex', padding: '2px' }}>
                 {dateBetweenFilters.map(({ itemFilter, index }, position) => {
                   return (
                     <>
                       {0 < position && <>&nbsp;&nbsp;</>}
                       <label
                         htmlFor={`${index}-f`}
-                        className="text-sm"
+                        className='text-sm'
                         style={{ marginTop: '10px' }}
                       >{`${itemFilter.field}`}</label>
                       &nbsp;
@@ -193,7 +184,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
                         selectionMode='range'
                         value={[toDate(itemFilter.filter.beginDate), toDate(itemFilter.filter.endDate)]}
                         onChange={(e) => handleDateBetweenFilterChange(itemFilter.field, e.value[0].getTime(), e.value[1].getTime())}
-                        showTime hourFormat="24"
+                        showTime hourFormat='24'
                         style={{ width: '100%', padding: 0 }}
                         inputStyle={{ padding: 0 }}
                       />
@@ -209,75 +200,65 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     )
   }
   const renderValueRangeFilters = (
+    valueRangeFilter: { itemFilter: ItemValueRangeFilter, index: number }[],
     endComponent: JSX.Element | null
   ) => {
-    if (0 === valueRangeFilters.length) return null
+    console.log(`Rendering renderValueRangeFilters`)
+    if (0 === valueRangeFilter.length) return null
     return (
       <table
         style={{
-          tableLayout: "auto",
-          marginLeft: "auto",
-          marginRight: "auto",
-          marginTop: "0",
-          marginBottom: "auto",
-          width: "100%",
+          tableLayout: 'auto',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          marginTop: '0',
+          marginBottom: 'auto',
+          width: '100%',
           ...(style ?? {}),
         }}
       ><tbody>
-          <tr style={{ alignItems: "center", verticalAlign: "top" }}>
+          <tr style={{ alignItems: 'center', verticalAlign: 'top' }}>
             <td>
               <table
                 style={{
-                  tableLayout: "auto",
-                  marginLeft: "auto",
-                  marginRight: "auto",
-                  marginTop: "0",
-                  marginBottom: "auto",
-                  width: "100%"
+                  tableLayout: 'auto',
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
+                  marginTop: '0',
+                  marginBottom: 'auto',
+                  width: '100%'
                 }}
               >
                 <thead>
-                  <tr><th>FieldName</th><th>MinValue</th><th>MaxValue</th></tr>
+                  <tr><th style={{ textAlign: 'right'}}>FieldName</th><th>MinValue</th><th>MaxValue</th></tr>
                 </thead>
                 <tbody>
-                  {valueRangeFilters.map(({ itemFilter, index }, position) => {
-                    const widthRem = 10 + Math.ceil(((itemFilter.displayData.maxWidth + (itemFilter.displayData.prefix ?? '').length + (itemFilter.displayData.suffix ?? '').length) - 2) / 2)
+                  {valueRangeFilter.map(({ itemFilter, index }, position) => {
+                    console.log(`Rendering: ${itemFilter.field} with ${JSON.stringify(itemFilter.filter, null, 2)}`)
                     return (
                       <tr>
-                        <td>{itemFilter.field}</td>
-                        <td><InputNumber
-                          value={itemFilter.filter.minValue}
-                          onChange={(e) => handleValueMinRangeFilterChange(itemFilter.field, e.value)}
-                          showButtons
-                          buttonLayout="horizontal" style={{ width: `${widthRem}rem`, padding: 0, margin: 0 }}
-                          mode={itemFilter.displayData.mode}
-                          currency={itemFilter.displayData.currency}
-                          locale={itemFilter.displayData.locale}
-                          step={itemFilter.displayData.step}
-                          prefix={itemFilter.displayData.prefix}
-                          suffix={itemFilter.displayData.suffix}
-                          decrementButtonClassName="p-button-secondary"
-                          incrementButtonClassName="p-button-secondary"
-                          incrementButtonIcon="pi pi-plus"
-                          decrementButtonIcon="pi pi-minus"
-                        />
+                        <td style={{ textAlign: 'right'}}>{itemFilter.field}</td>
+                        <td>
+                          <NumberSpinner
+                            minValue={{min: 0, max: itemFilter.filter.maxValue, value: itemFilter.filter.minValue, onChange: (value: number) => handleValueMinRangeFilterChange(itemFilter.field, value)}}
+                            prefix={itemFilter.displayData.prefix}
+                            suffix={itemFilter.displayData.suffix}
+                            step={itemFilter.displayData.step}
+                            valueDisplayFormat={itemFilter.displayData.formatValue}
+                            buttonLayout={'horizontal'}
+                            containerStyle={{ justifyContent: 'right' }}
+                          />
                         </td>
-                        <td><InputNumber
-                          value={itemFilter.filter.maxValue}
-                          onChange={(e) => handleValueMaxRangeFilterChange(itemFilter.field, e.value)}
-                          showButtons
-                          buttonLayout="horizontal" style={{ width: `${widthRem}rem`, padding: 0, margin: 0 }}
-                          mode={itemFilter.displayData.mode}
-                          currency={itemFilter.displayData.currency}
-                          locale={itemFilter.displayData.locale}
-                          step={itemFilter.displayData.step}
-                          prefix={itemFilter.displayData.prefix}
-                          suffix={itemFilter.displayData.suffix}
-                          decrementButtonClassName="p-button-secondary"
-                          incrementButtonClassName="p-button-secondary"
-                          incrementButtonIcon="pi pi-plus"
-                          decrementButtonIcon="pi pi-minus"
-                        />
+                        <td>
+                          <NumberSpinner
+                            maxValue={{min: itemFilter.filter.minValue , value: itemFilter.filter.maxValue, onChange: (value: number) => handleValueMaxRangeFilterChange(itemFilter.field, value)}}
+                            prefix={itemFilter.displayData.prefix}
+                            suffix={itemFilter.displayData.suffix}
+                            step={itemFilter.displayData.step}
+                            valueDisplayFormat={itemFilter.displayData.formatValue}
+                            buttonLayout={'horizontal'}
+                            containerStyle={{ justifyContent: 'right' }}
+                          />
                         </td>
                       </tr>
                     )
@@ -290,11 +271,29 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     )
   }
   const render = () => {
+    const typedFilters: TypedFilters = Object.values(filterStateMap)
+      .reduce((typeFilterArrayMap: TypedFilters, itemFilter, index) => {
+        const filter = itemFilter.get
+        if (isExistenceFilter(filter)) {
+          typeFilterArrayMap.ValueExistence.push({ itemFilter: filter, index })
+        }
+        if (isDateBetweenFilter(filter)) {
+          typeFilterArrayMap.DateBetween.push({ itemFilter: filter, index })
+        }
+        if (isRangeFilter(filter)) {
+          typeFilterArrayMap.ValueRange.push({ itemFilter: filter, index })
+        }
+        return typeFilterArrayMap
+      }, {
+        ValueExistence: [],
+        DateBetween: [],
+        ValueRange: [],
+      } as TypedFilters)
 
     const filterBody = [
-      renderValueExistenceFilters(trailingComponent ?? null),
-      renderDateBetweenFilters(trailingComponent ?? null),
-      renderValueRangeFilters(trailingComponent ?? null)
+      renderValueExistenceFilters(typedFilters.ValueExistence, trailingComponent ?? null),
+      renderDateBetweenFilters(typedFilters.DateBetween, trailingComponent ?? null),
+      renderValueRangeFilters(typedFilters.ValueRange, trailingComponent ?? null)
     ]
     return (
       <>

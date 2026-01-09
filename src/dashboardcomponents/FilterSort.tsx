@@ -19,16 +19,14 @@ const FilterSort: React.FC<FilterSortProps> = ({
   initialFilterSort,
   getFilterableItems,
   sortingFields,
-  onChange,
+  onChange
 }) => {
-  const [filter, setFilter] = useState<ItemFilter[]>(
-    initialFilterSort.filter,
-  );
-  const [sorting, setSorting] = useState<ItemSort[]>(
-    initialFilterSort.sorting,
-  );
-
+  const [sortingFilter, setSortingFilter] = useState<SortingFilter>(initialFilterSort)
+  const getFilterRef = useRef<() => ItemFilter[]>(null)
+  const getSortingRef = useRef<() => ItemSort[]>(null)
   const applyChange = () => {
+    const filter = getFilterRef.current ? getFilterRef.current() : [];
+    const sorting = getSortingRef.current ? getSortingRef.current() : [];
     persistence.storeFilter(filter);
     persistence.storeSorting(sorting);
     onChange(filter, sorting);
@@ -36,9 +34,8 @@ const FilterSort: React.FC<FilterSortProps> = ({
   const clearFilterAndSort = () => {
     persistence.deleteFilter();
     persistence.deleteSorting();
-    setFilter(persistence.loadFilter())
-    setSorting(persistence.loadSorting())
-    onChange(filter, sorting);
+    setSortingFilter(initialFilterSort)
+    onChange([], []);
   };
   const render = () => {
     return (
@@ -55,15 +52,15 @@ const FilterSort: React.FC<FilterSortProps> = ({
         <tr><td>
         <FilterComponent
           getFilterableItems={getFilterableItems}
-          initialFilter={filter}
-          onFilterChange={setFilter}
+          initialFilter={sortingFilter.filter}
+          registerGetFilter={(getFilter: () => ItemFilter[]) => getFilterRef.current = getFilter}
         />
         </td></tr>
         <tr><td>
         <SortComponent
           sortFields={sortingFields}
-          initialSorting={sorting}
-          onSortChange={setSorting}
+          initialSorting={sortingFilter.sorting}
+          registerGetSorting={(getSorting: () => ItemSort[]) => getSortingRef.current = getSorting}
           trailingComponent={
             <>
               <Button

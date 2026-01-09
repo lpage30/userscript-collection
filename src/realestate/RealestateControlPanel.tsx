@@ -27,14 +27,14 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
     const closeListing = useRef(null)
     const toggleMapTitle = 'Toggle Map Display'
 
-    const getMapButton = (parentElement?: HTMLElement): ReactNode => {
+    const getMapButton = (getParentElement?: () => HTMLElement): ReactNode => {
         if (0 < state.length && state[0].createMapButton) {
-            return state[0].createMapButton(toggleMapTitle, () => toggleMapDisplay(parentElement))
+            return state[0].createMapButton(toggleMapTitle, () => toggleMapDisplay(getParentElement ? getParentElement() : undefined))
         }
         return (
             <Button
                 className="app-button"
-                onClick={() => toggleMapDisplay(parentElement)}
+                onClick={() => toggleMapDisplay(getParentElement ? getParentElement() : undefined)}
             >{toggleMapTitle}</Button>
         )
     }
@@ -66,9 +66,8 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
                                         <Button
                                             className="app-button"
                                             onClick={() => { if (closeListing.current) closeListing.current() }}
-                                            disabled={closeListing.current === null}
                                         >Close Listing</Button>
-                                        {canToggleMapInDashboard && getMapButton(document.getElementById(ListedPropertyContainerId))}
+                                        {canToggleMapInDashboard && getMapButton(() => document.getElementById(ListedPropertyContainerId))}
                                     </div>
                                 }}
                             /></td></tr>

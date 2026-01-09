@@ -199,3 +199,5 @@ export function toNumber(value: string | number | undefined | null): number {
   const numericString = value.replace(/[^\d.-]/g, '')
   return parseFloat(numericString)
 }
+
+export const parseNumber = (value: string) => value ? parseFloat(value.replace(/[^\d\.]/g, '')) : undefined

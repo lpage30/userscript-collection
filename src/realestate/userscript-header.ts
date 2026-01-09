@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name        realestqte
+// @name        realestate
 // @version     0.1
 // @description tool to quickly interrogate realestate listings
 // @author      lawrence L. Page

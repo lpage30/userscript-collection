@@ -1,6 +1,7 @@
 import { PropertyInfo, toPropertyInfoCard, geocodePropertyInfoCard, MaxPropertyInfoImageWidth } from '../propertyinfotypes'
 import { PropertyPageType, RealEstateSite } from '../realestatesitetypes'
-import { parseNumber, toScaledImg } from '../propertypagefunctions'
+import { parseNumber } from '../../common/functions'
+import { toScaledImg } from '../propertypagefunctions'
 import { parseAddress } from '../../geocoding/datatypes'
 
 import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
@@ -89,8 +90,9 @@ interface ScriptSingleData {
 }
 function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
     const result: Partial<PropertyInfo> = {
-        isLand: scriptData.propertyType === 'land',
+        currencySymbol: '\u00A3',
         oceanGeodataSource: 'ukcp18_uk_marine_coastline_hires',
+        isLand: scriptData.propertyType === 'land',
         Type: scriptData.propertyType,
         ...parseAddress(scriptData.address),
         country: 'United Kingdom',
@@ -109,15 +111,16 @@ function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
     const href = `https://www.zoopla.co.uk/${scriptData.listingUris.detail}`
     result.href = () => href
     result.Price = parseNumber(scriptData.price)
-    result.Picture = toScaledImg({ src: scriptData.image.src, width: 244, height: 252 }, MaxPropertyInfoImageWidth, result)
+    result.Picture = toScaledImg(scriptData.image ? { src: scriptData.image.src, width: 244, height: 252 } : undefined, MaxPropertyInfoImageWidth, result)
     result.element = document.getElementById(`listing_${scriptData.listingId}`)
     return result
 }
 const srcSetCoordinateRegex = new RegExp(/.*\/([-\.\d]+),([-\.\d]+).*/g)
 function scrapeScriptSingleData(scriptData: ScriptSingleData, address: string, srcset: string): Partial<PropertyInfo> {
     const result: Partial<PropertyInfo> = {
-        isLand: scriptData['@type'] === 'land',
+        currencySymbol: '\u00A3',
         oceanGeodataSource: 'ukcp18_uk_marine_coastline_hires',
+        isLand: scriptData['@type'] === 'land',
         Type: scriptData['@type'],
         ...parseAddress(address),
         country: 'United Kingdom',
@@ -136,7 +139,7 @@ function scrapeScriptSingleData(scriptData: ScriptSingleData, address: string, s
             lon: parseNumber(parsedSrcSet[1]),
         }
     }
-    result.Picture = toScaledImg({ src: scriptData.image, width: 800, height: 533 }, MaxPropertyInfoImageWidth, result)
+    result.Picture = toScaledImg(scriptData.image ? { src: scriptData.image, width: 800, height: 533 } : undefined, MaxPropertyInfoImageWidth, result)
     return result
 }
 

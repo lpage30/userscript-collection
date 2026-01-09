@@ -22,6 +22,7 @@ export interface GeoPropertyInfo {
 }
 
 export interface PropertyInfo extends Card, GeoAddress {
+    currencySymbol: string,
     oceanGeodataSource: GeodataSourceType
     isLand: boolean
     Type?: string

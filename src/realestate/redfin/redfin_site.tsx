@@ -2,7 +2,8 @@ import { ReactNode } from 'react'
 import { Button } from 'primereact/button'
 import { PropertyInfo, toPropertyInfoCard, geocodePropertyInfoCard, MaxPropertyInfoImageWidth } from '../propertyinfotypes'
 import { RealEstateSite, PropertyPageType } from '../realestatesitetypes'
-import { parseNumber, toScaledImg, toScaledPicture } from '../propertypagefunctions'
+import { parseNumber } from '../../common/functions'
+import { toScaledImg, toScaledPicture } from '../propertypagefunctions'
 import { awaitQuerySelection, awaitQueryAll, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 
 interface ScriptAmenityFeature {
@@ -88,6 +89,8 @@ function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
         if (scriptData.numberOfBedrooms) result.Bedrooms = scriptData.numberOfBedrooms
         if (scriptData.yearBuilt) result.Year = scriptData.yearBuilt
     }
+
+    result.currencySymbol = '$'
     result.oceanGeodataSource = 'tl_2025_us_coastline'
     const href = scriptData.url
     result.href = () => href
@@ -112,8 +115,7 @@ async function scrapeListing(): Promise<PropertyInfo[]> {
         property.Bathrooms = property.Bathrooms ?? parseNumber(elements[i].innerText.split('\n').find(p => (/^[\d\.]+\s*bath?/ig).test(p)))
         property.Bedrooms = property.Bedrooms ?? parseNumber(elements[i].innerText.split('\n').find(p => (/^[\d\.]+\s*bed?/ig).test(p)))
         property.element = elements[i]
-        const img = elements[i].querySelector('img')
-        property.Picture = toScaledImg({ src: img.src, width: img.width, height: img.height }, MaxPropertyInfoImageWidth, property)
+        property.Picture = toScaledPicture(elements[i].querySelector('img'), MaxPropertyInfoImageWidth, property)
 
         properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(property)))
     }
@@ -131,14 +133,15 @@ export const RedfinSite: RealEstateSite = {
             isPage: (href: string): boolean => ('https://www.redfin.com/#userFeed' === href || 'https://www.redfin.com/' === href),
             awaitForPageLoad: async (): Promise<void> => {
                 await awaitPageLoadByMutation()
-                await awaitQuerySelection('div[class*="SeenEverythingFooter"]')
             },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
+                let result: HTMLElement[] = []
                 const toggleButtonSelector = 'button[aria-label*="Toggle to "]'
-                if (undefined == parentElement) {
-                    return Array.from(await awaitQueryAll(toggleButtonSelector))
-                }
-                return Array.from(parentElement.querySelectorAll(toggleButtonSelector))
+                result = Array.from(parentElement
+                    ? parentElement.querySelectorAll(toggleButtonSelector)
+                    : await awaitQueryAll(toggleButtonSelector)
+                )
+                return result
 
             },
             isMapToggleElement: (element: HTMLElement): boolean => {
@@ -157,7 +160,7 @@ export const RedfinSite: RealEstateSite = {
                 await awaitPageLoadByMutation()
                 await awaitElementById('region-content')
             },
-            getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
+            getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {                
                 (await awaitQuerySelection('div[class="ExposedLayoutButtonContainer"]')).querySelector('button').click()
                 const buttons = Array.from((await awaitQuerySelection('div[class*="ExposedLayoutMenu"]')).querySelectorAll('li[class="MenuItem"]'))
                     .reduce((obj, li) => ({ ...obj, [(li as HTMLElement).innerText]: li.querySelector('button') }), {} as LayoutMenuButtons)

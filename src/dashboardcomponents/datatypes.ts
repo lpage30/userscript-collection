@@ -48,10 +48,14 @@ export interface ItemValueRangeFilter extends ItemFilterBase {
     step: number
     currency?: string
     locale?: string
+    formatValue?: (value: number) => string
   }
   filter: { minValue: number, maxValue: number }
 }
 export type ItemFilter = ItemValueExistenceFilter | ItemDateBetweenFilter | ItemValueRangeFilter
+export const isExistenceFilter = (value: ItemFilter): value is ItemValueExistenceFilter => value.type === 'ValueExistence'
+export const isDateBetweenFilter = (value: ItemFilter): value is ItemDateBetweenFilter => value.type === 'DateBetween'
+export const isRangeFilter = (value: ItemFilter): value is ItemValueRangeFilter => value.type === 'ValueRange'
 
 export const sortFiltersByField = (filter: ItemFilter[]) => filter.sort((l: ItemFilter, r: ItemFilter) => l.field.localeCompare(r.field))
 export const findIndexOfFilterField = (fieldName: string, filter: ItemFilter[]) => filter.findIndex(({ field }) => field === fieldName)
@@ -103,6 +107,14 @@ export interface SortedFilteredItems<T extends Card> {
   sortedItems: T[];
   filteredItems: T[];
 }
+function sortDataFunction(l: any, r: any, ascending: boolean): number {
+  if (typeof l === 'number' && typeof r === 'number') {
+    return ascending ? l - r : r - l
+  }
+  const left = toString(l)
+  const right = toString(r)
+  return ascending ? left.localeCompare(right) : right.localeCompare(left)
+}
 
 function toSortFunction<T extends Card>(sorts: ItemSort[],): (l: T, r: T) => number {
   return (l: T, r: T): number => {
@@ -112,25 +124,23 @@ function toSortFunction<T extends Card>(sorts: ItemSort[],): (l: T, r: T) => num
       if ([undefined, null].includes(l[sort.field]) && [undefined, null].includes(r[sort.field])) {
         continue
       }
-      const left = toString(l[sort.field])
-      const right = toString(r[sort.field])
-      result = sort.ascending ? left.localeCompare(right) : right.localeCompare(left)
+      result = sortDataFunction(l[sort.field], r[sort.field], sort.ascending)
     }
     return result
   }
 }
 function inFilterFunction<T extends Card>(item: T, filter: ItemFilter[]): boolean {
   return filter.every(itemFilter => {
-    if (item[itemFilter.field]) {
-      switch (itemFilter.type) {
-        case 'ValueExistence':
-          return itemFilter.filter[item[itemFilter.field]] === true
-        case 'DateBetween':
-          return itemFilter.filter.beginDate <= item[itemFilter.field] && item[itemFilter.field] <= itemFilter.filter.endDate
-        case 'ValueRange':
-          return itemFilter.filter.minValue <= item[itemFilter.field] && item[itemFilter.field] <= itemFilter.filter.maxValue
-        default:
-          return true
+    const itemFieldValue = item[itemFilter.field]
+    if (![undefined, null].includes(itemFieldValue)) {
+      if (isExistenceFilter(itemFilter)) {
+         return itemFilter.filter[itemFieldValue] === true
+      }
+      if (isDateBetweenFilter(itemFilter) && typeof itemFieldValue === 'number') {
+        return itemFilter.filter.beginDate <= itemFieldValue && itemFieldValue <= itemFilter.filter.endDate
+      }
+      if (isRangeFilter(itemFilter) && typeof itemFieldValue === 'number') {
+        return itemFilter.filter.minValue <= itemFieldValue && itemFieldValue <= itemFilter.filter.maxValue
       }
     }
     return true
