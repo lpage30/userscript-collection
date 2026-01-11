@@ -1,5 +1,3 @@
-import { CountryStateCity } from '../geocoding/datatypes'
-import { classifyCountryStateCityText, compareFunction as compareLocation} from '../geocoding/countryStateCityTextClassifiers'
 import { StatusLevel, classifyStatus, compareFunction as compareStatusLevel, determineOverallStatusLevel} from './statusService'
 
 export type IndicatorType = 'major' | 'minor' | string
@@ -15,7 +13,6 @@ export interface IncidentUpdate {
     name: string
     status: StatusType
     updated: number
-    location?: CountryStateCity
     statusLevel?: StatusLevel
 }
 export interface Incident {
@@ -25,7 +22,6 @@ export interface Incident {
     status: StatusType
     updated: number
     updates: IncidentUpdate[]
-    location?: CountryStateCity
     statusLevel?: StatusLevel    
 }
 
@@ -56,14 +52,12 @@ export async function classifyServiceStatus(status: ServiceStatus): Promise<Serv
         for (const update of incident.updates) {
             updates.push({
                 ...update,
-                location: await classifyCountryStateCityText(update.name),
                 statusLevel: classifyStatus(`${update.status} ${update.name}`),
             })
         }
         incidents.push({
             ...incident,
             updates,
-            location: await classifyCountryStateCityText(incident.name),
             statusLevel: classifyStatus(`${incident.status} ${incident.name}`),
         })
     }
