@@ -43,14 +43,18 @@ class ServiceAPIsClass implements ServiceAPI {
     async load(force: boolean = false): Promise<ServiceStatus[]> {
         this.isLoading = true
         this.onIsLoadingChange(this.isLoading)
+        const apiToServiceStatus = async (api: ServiceAPI): Promise<ServiceStatus[]> => {
+            const result: ServiceStatus[] = []
+            const statuses = await api.load(force)
+            for ( const status of statuses) {
+                result.push(await classifyServiceStatus(status))
+            }
+            return result.map(sortServiceIncidents)
+        }
+
         try {
-            this.serviceStatuses = (await Promise.all(
-                this.serviceAPIs
-                 .map(async api => (await api.load(force))
-                        .map(classifyServiceStatus)
-                        .map(sortServiceIncidents)
-                )
-            )).flat()
+            
+            this.serviceStatuses = (await Promise.all(this.serviceAPIs.map(apiToServiceStatus))).flat()
         } finally {
             this.isLoading = false
             this.onIsLoadingChange(this.isLoading)

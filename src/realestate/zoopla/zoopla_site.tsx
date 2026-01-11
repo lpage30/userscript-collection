@@ -1,4 +1,12 @@
-import { PropertyInfo, toPropertyInfoCard, geocodePropertyInfoCard, MaxPropertyInfoImageWidth } from '../propertyinfotypes'
+import {
+    PropertyInfo, 
+    MaxPropertyInfoImageWidth
+} from '../propertyinfotypes'
+import {
+    toPropertyInfoCard,
+    geocodePropertyInfoCard,
+} from '../propertyinfotype_functions'
+
 import { PropertyPageType, RealEstateSite } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
 import { toScaledImg } from '../propertypagefunctions'
@@ -90,6 +98,7 @@ interface ScriptSingleData {
 }
 function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
     const result: Partial<PropertyInfo> = {
+        source: 'zoopla.co.uk',
         currencySymbol: '\u00A3',
         oceanGeodataSource: 'ukcp18_uk_marine_coastline_hires',
         isLand: scriptData.propertyType === 'land',
@@ -118,6 +127,7 @@ function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
 const srcSetCoordinateRegex = new RegExp(/.*\/([-\.\d]+),([-\.\d]+).*/g)
 function scrapeScriptSingleData(scriptData: ScriptSingleData, address: string, srcset: string): Partial<PropertyInfo> {
     const result: Partial<PropertyInfo> = {
+        source: 'zoopla.co.uk',
         currencySymbol: '\u00A3',
         oceanGeodataSource: 'ukcp18_uk_marine_coastline_hires',
         isLand: scriptData['@type'] === 'land',

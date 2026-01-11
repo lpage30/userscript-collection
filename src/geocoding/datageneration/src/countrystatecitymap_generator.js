@@ -4,6 +4,8 @@ import { durationToString } from './functions.js'
 import { Country, State, City } from 'country-state-city';
 
 export const GeocodedCountryCityStateDataDirname = 'geocodedcountrystatecitydata'
+export const CountryStateCityMapJsonFilename = 'geocoded_country_state_city_map.json'
+
 
 export function getRequiredGeojsonIndexes(country, geojsonFilenamePrefix) {
     const coding = country.geocoding[geojsonFilenamePrefix] ?? { geojsonIndexes: [], distantGeojsonIndexes: []}
@@ -24,6 +26,47 @@ function createCountryStateCityMap(maxMilesDistant, indent = '') {
     }
     const countryStateCityMap = Country.getAllCountries().reduce((countryMap, country) => {
         counts.country = counts.country + 1
+        const countryCoordinates = [
+            {lat: toFloat(country.latitude), lon: toFloat(country.longitude)}
+        ]
+        const statesOfCountry =  (State.getStatesOfCountry(country.isoCode) ?? []).reduce((stateMap, state) => {
+            country.state = country.state + 1
+            const stateCoordinates = [
+                {lat: toFloat(state.latitude), lon: toFloat(state.longitude)}
+            ]
+            const citiesOfState = (City.getCitiesOfState(country.isoCode, state.isoCode) ?? []).reduce((cityMap, city) => {
+                counts.city = counts.city + 1
+                stateCoordinates.push({lat: toFloat(city.latitude), lon: toFloat(city.longitude)})
+                return {
+                    ...cityMap,
+                    [city.name]: {
+                        countryName: country.name,
+                        stateName: state.name,
+                        name: city.name,
+                        lat: toFloat(city.latitude),
+                        lon: toFloat(city.longitude),
+                        geocoding: {},
+                        distantMaxMiles: maxMilesDistant,
+                    }
+                }
+            }, {})
+            const stateResult = {
+                ...stateMap,
+                [state.name]: {
+                    countryName: country.name,
+                    name: state.name,
+                    isoCode: state.isoCode,
+                    lat: toFloat(state.latitude),
+                    lon: toFloat(state.longitude),
+                    containedCoordinates: stateCoordinates.filter(({lat, lon}) => ![undefined, null].some(v => [lat, lon].includes(v))),
+                    geocoding: {},
+                    distantMaxMiles: maxMilesDistant,
+                    cities: citiesOfState
+                }
+            }
+            countryCoordinates.push(...stateResult[state.name].containedCoordinates)
+            return stateResult
+        },{})
         return {
             ...countryMap,
             [country.name]: {
@@ -31,38 +74,10 @@ function createCountryStateCityMap(maxMilesDistant, indent = '') {
                 isoCode: country.isoCode,
                 lat: toFloat(country.latitude),
                 lon: toFloat(country.longitude),
+                containedCoordinates: countryCoordinates.filter(({lat, lon}) => ![undefined, null].some(v => [lat, lon].includes(v))),
                 geocoding: {},
                 distantMaxMiles: maxMilesDistant,
-                states: (State.getStatesOfCountry(country.isoCode) ?? []).reduce((stateMap, state) => {
-                    counts.state = counts.state + 1
-                    return {
-                        ...stateMap,
-                        [state.name]: {
-                            countryName: country.name,
-                            name: state.name,
-                            isoCode: state.isoCode,
-                            lat: toFloat(state.latitude),
-                            lon: toFloat(state.longitude),
-                            geocoding: {},
-                            distantMaxMiles: maxMilesDistant,
-                            cities: (City.getCitiesOfState(country.isoCode, state.isoCode) ?? []).reduce((cityMap, city) => {
-                                counts.city = counts.city + 1
-                                return {
-                                    ...cityMap,
-                                    [city.name]: {
-                                        countryName: country.name,
-                                        stateName: state.name,
-                                        name: city.name,
-                                        lat: toFloat(city.latitude),
-                                        lon: toFloat(city.longitude),
-                                        geocoding: {},
-                                        distantMaxMiles: maxMilesDistant,
-                                    }
-                                }
-                            }, {})
-                        }
-                    }
-                }, {})
+                states: statesOfCountry
             }
         }
     }, {})
@@ -74,8 +89,7 @@ export const CountryStateCityMapGenerator = (geocodingDirname) => {
         throw new Error(`CountryStateCityGenerator: directory ${geocodingDirname} does not exist`)
     }
 
-    const countryStateCityMapJsonFilename = 'geocoded_country_state_city_map.json'
-    const countryStateCityMapJsonFilepath = Path.join(geocodingDirname, GeocodedCountryCityStateDataDirname, countryStateCityMapJsonFilename)
+    const countryStateCityMapJsonFilepath = Path.join(geocodingDirname, GeocodedCountryCityStateDataDirname, CountryStateCityMapJsonFilename)
 
     const loadMap = async (indent = '') => {
         if (!fs.existsSync(countryStateCityMapJsonFilepath)) {

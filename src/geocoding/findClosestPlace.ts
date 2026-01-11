@@ -3,17 +3,19 @@ import {
     GeoCoordinate,
     isValidGeoCoordinate,
     CountryStateCity,
-    Country,
-    State,
-    City,
     Distance,
     GeoPlace,
     Place,
     toGeoPoint,
-    measureDistance
+    measureDistance,
+    GeojsonIndex,
+    CountryNameIsoCode,
+    StateNameIsoCode,
+    CityName,
+    isInPolygon
 } from './datatypes'
 import { loadGeoJsonIndex } from './GeojsonIndex'
-import { getCountries } from './generated_registered_geocoded_country_state_city_map'
+import { getCountryNameIsoCodes, getCountry } from './generated_registered_geocoded_country_state_city_map'
 import * as turf from '@turf/turf'
 import { Units } from '@turf/turf'
 
@@ -25,14 +27,17 @@ function getDistance(source: GeoCoordinate, destination: Partial<GeoCoordinate>,
     }
 }
 
-function getClosest<T extends Country | State | City>(geodataSource: GeodataSourceType, geojsonIndex: number, coordinate: GeoCoordinate, collection: T[]): T | undefined {
+function getClosest<T extends CountryNameIsoCode | StateNameIsoCode | CityName>(geojson: GeojsonIndex, coordinate: GeoCoordinate, collection: T[]): T | undefined {
     interface ClosestLocation {
         distance: number
         location?: T
     }
     // isolate to just best ones 1st
-    let closest = collection.filter(item => item.geocoding[geodataSource] && item.geocoding[geodataSource].geojsonIndexes.includes(geojsonIndex))
-        .reduce((closest, item) => {
+    return collection
+        .filter(item => {
+            const coords = (item['containedCoordinates'] ?? [item as GeoCoordinate]).filter(isValidGeoCoordinate)
+            return coords.some((coord: GeoCoordinate) => isInPolygon(coord, geojson.polygon))
+        }).reduce((closest: ClosestLocation, item: T) => {
             const distance = getDistance(coordinate, item as GeoCoordinate)
             if (distance && distance.value < closest.distance) {
                 return {
@@ -43,37 +48,21 @@ function getClosest<T extends Country | State | City>(geodataSource: GeodataSour
             return closest
 
         }, { distance: Number.MAX_VALUE } as ClosestLocation).location
-    if (closest) return closest
-
-    // isolate to 2nd best
-    closest = collection.filter(item => item.geocoding[geodataSource] && item.geocoding[geodataSource].distantGeojsonIndexes.includes(geojsonIndex))
-        .reduce((closest, item) => {
-            const distance = getDistance(coordinate, item as GeoCoordinate)
-            if (distance && distance.value < closest.distance) {
-                return {
-                    distance: distance.value,
-                    location: item
-                }
-            }
-            return closest
-
-        }, { distance: Number.MAX_VALUE } as ClosestLocation).location
-
-    if (closest) return closest
-    // brute force all the rest
-    closest = collection.filter(item => item.geocoding[geodataSource] && 0 === (item.geocoding[geodataSource].distantGeojsonIndexes.length + item.geocoding[geodataSource].geojsonIndexes.length))
-        .reduce((closest, item) => {
-            const distance = getDistance(coordinate, item as GeoCoordinate)
-            if (distance && distance.value < closest.distance) {
-                return {
-                    distance: distance.value,
-                    location: item
-                }
-            }
-            return closest
-
-        }, { distance: Number.MAX_VALUE } as ClosestLocation).location
-    return closest
+}
+async function findClosestCountryStateCity(geojson: GeojsonIndex, coordinate: GeoCoordinate): Promise<CountryStateCity | undefined> {
+    const foundCountry = getClosest<CountryNameIsoCode>(geojson, coordinate, getCountryNameIsoCodes())
+    if (foundCountry) {
+        const country = await getCountry(foundCountry.name)
+        const foundState = getClosest<StateNameIsoCode>(geojson, coordinate, foundCountry.states)
+        if (foundState) {
+            const state = country.states[foundState.name]
+            const foundCity = getClosest<CityName>(geojson, coordinate, foundState.cities)
+            if (foundCity) return { country, state, city: state.cities[foundCity.name] }
+            return { country, state }
+        }
+        return { country }
+    }
+    return undefined
 }
 
 function getGeojsonIndexes(geodataSource: GeodataSourceType, region: CountryStateCity): number[] {
@@ -92,27 +81,12 @@ function getGeojsonIndexes(geodataSource: GeodataSourceType, region: CountryStat
     return []
 }
 
-function findCountryStateCity(geodataSource: GeodataSourceType, geojsonIndex: number, coordinate: GeoCoordinate): CountryStateCity | undefined {
-    const foundCountry = getClosest<Country>(geodataSource, geojsonIndex, coordinate, getCountries())
-    if (foundCountry) {
-        const foundState = getClosest<State>(geodataSource, geojsonIndex, coordinate, Object.values(foundCountry.states))
-        if (foundState) {
-            const foundCity = getClosest<City>(geodataSource, geojsonIndex, coordinate, Object.values(foundState.cities))
-            if (foundCity) return { country: foundCountry, state: foundState, city: foundCity }
-            return { country: foundCountry, state: foundState }
-        }
-        return { country: foundCountry }
-    }
-    return undefined
-}
-
-
 
 export async function findClosestGeodataPlace(geodataSource: GeodataSourceType, source: GeoPlace, distanceUnits: Units = 'miles'): Promise<Place | undefined> {
     if (!isValidGeoCoordinate(source.coordinate)) return undefined
 
     interface ClosestPoint {
-        geojsonIndex: number
+        geojson: GeojsonIndex | undefined,
         distance: number
         nearestPoint: GeoCoordinate
     }
@@ -121,7 +95,7 @@ export async function findClosestGeodataPlace(geodataSource: GeodataSourceType, 
     const point = toGeoPoint({lat, lon})
     const geojsonIndices = getGeojsonIndexes(geodataSource, region)
     let closest: ClosestPoint = {
-        geojsonIndex: -1,
+        geojson: undefined,
         distance: Number.MAX_VALUE,
         nearestPoint: { lat, lon }
     }
@@ -131,14 +105,15 @@ export async function findClosestGeodataPlace(geodataSource: GeodataSourceType, 
         const distance = turf.distance(point, nearestPoint, { units: distanceUnits })
         if (distance < closest.distance) {
             closest = {
-                geojsonIndex: index,
+                geojson: geojson,
                 distance,
                 nearestPoint: { lat: nearestPoint.coordinates[1], lon: nearestPoint.coordinates[0] }
             }
         }
     }
-    if (closest.geojsonIndex < 0) return undefined
-    const foundRegion = findCountryStateCity(geodataSource, closest.geojsonIndex, closest.nearestPoint)
+    if (undefined === closest.geojson) return undefined
+
+    const foundRegion = await findClosestCountryStateCity(closest.geojson, closest.nearestPoint)
     return {
         distance: {
             value: closest.distance,

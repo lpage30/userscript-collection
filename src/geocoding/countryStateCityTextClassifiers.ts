@@ -1,43 +1,53 @@
-import { getCountries} from './generated_registered_geocoded_country_state_city_map'
-import { Country, State, City, CountryStateCity, isDataMatch } from './datatypes'
+import { getCountryNameIsoCodes, getCountry} from './generated_registered_geocoded_country_state_city_map'
+import { CountryNameIsoCode, StateNameIsoCode, CityName, CountryStateCity, isDataMatch } from './datatypes'
 
-export function findDataMatches<T extends Country | State | City>(text: string, data: T[]): T[] {
+export function findDataMatches<T extends CountryNameIsoCode | StateNameIsoCode | CityName>(text: string, data: T[]): T[] {
     return data.filter(result => isDataMatch(text, result))
 }
 
-export function findStateMatches(text: string, countries: Country[]): State[] {
+export function findStateMatches(text: string, countries: CountryNameIsoCode[]): StateNameIsoCode[] {
     return countries
         .map(country => findDataMatches(text, Object.values(country.states))).flat()
 }
 
-export function findCityMatches(text: string, countries: Country[]): City[] {
+export function findCityMatches(text: string, countries: CountryNameIsoCode[]): CityName[] {
     return countries
-        .map(country => Object.values(country.states)
-            .map(state => findDataMatches(text, Object.values(state.cities))).flat()
+        .map(country => country.states
+            .map(state => findDataMatches(text, state.cities)).flat()
         ).flat()
 }
-export const classifyCountryText = (text: string): Country | undefined => findDataMatches(text, getCountries())[0]
+export const classifyCountryText = (text: string): CountryNameIsoCode | undefined => findDataMatches(text, getCountryNameIsoCodes())[0]
 
-export const classifyStateText = (text: string, country: Country): State | undefined => findDataMatches(text, Object.values(country.states))[0]
+export const classifyStateText = (text: string, country: CountryNameIsoCode): StateNameIsoCode | undefined => findDataMatches(text, Object.values(country.states))[0]
 
-export const classifyCityText = (text: string, state: State): City | undefined => findDataMatches(text, Object.values(state.cities))[0]
+export const classifyCityText = (text: string, state: StateNameIsoCode): CityName | undefined => findDataMatches(text, state.cities)[0]
 
 
-export function classifyStateCityText(text: string, country: Country): { state: State, city: City } | undefined {
+export function classifyStateCityText(text: string, country: CountryNameIsoCode): { state: StateNameIsoCode, city: CityName } | undefined {
     const city = findCityMatches(text, [country])[0]
     return city ? { state: country.states[city.stateName], city } : undefined
 }
 
-export function classifyCountryStateCityText(text: string): CountryStateCity | undefined {
-    const country: Country = classifyCountryText(text)
-    let state: State = country ? classifyStateText(text, country) : undefined
-    let city: City = state ? classifyCityText(text, state) : undefined``
+export async function classifyCountryStateCityText(text: string): Promise<CountryStateCity | undefined> {
+    const country: CountryNameIsoCode = classifyCountryText(text)
+    let state: StateNameIsoCode = country ? classifyStateText(text, country) : undefined
+    let city: CityName = state ? classifyCityText(text, state) : undefined``
     if (undefined === state) {
         const stateCity = country ? classifyStateCityText(text, country) : undefined
         state = (stateCity ?? {}).state
         city = (stateCity ?? {}).city
     }
-    return country ? {country, state, city} : undefined
+    if (country) {
+        const countryObj = await getCountry(country.name)
+        const stateObj = state ? countryObj.states[state.name] : undefined
+        const cityObj = city ? state.cities[city.name] : undefined
+        return {
+            country: countryObj,
+            state: stateObj,
+            city: cityObj
+        }
+    }
+    return undefined
 }
 
 export interface ComparableCountryStateCityText {

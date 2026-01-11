@@ -71,8 +71,6 @@ export function toUserscript(site: RealEstateSite): Userscript {
         title={title}
         toggleMapDisplay={toggleMaps}
         properties={properties}
-        canToggleMapInDashboard={[PropertyPageType.Feed].includes(page.pageType)}
-        ignoreDashboardClickEvent={(e) => page.isMapToggleElement(e.target)}
       />
       )
       await awaitElementById(container.id)

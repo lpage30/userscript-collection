@@ -1,9 +1,11 @@
 import { 
     PropertyInfo,
-    toPropertyInfoCard,
-    geocodePropertyInfoCard,
     MaxPropertyInfoImageWidth 
 } from '../propertyinfotypes'
+import {
+    toPropertyInfoCard,
+    geocodePropertyInfoCard,
+} from '../propertyinfotype_functions'
 import { PropertyPageType, RealEstateSite } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
 import { toScaledPicture } from '../propertypagefunctions'
@@ -75,6 +77,7 @@ interface ScriptNextData {
 }
 function scrapeScriptData(scriptData: ScriptNextData): Partial<PropertyInfo> {
     const result = {
+        source: 'Realtor.com',
         oceanGeodataSource: 'tl_2025_us_coastline' as GeodataSourceType,
         currencySymbol: '$',
         isLand: scriptData.description.type === 'land',
@@ -154,6 +157,7 @@ export const RealtorSite: RealEstateSite = {
             scrapePage: async (): Promise<PropertyInfo[]> => {
                 const href = window.location.href
                 let result: Partial<PropertyInfo> = {
+                    source: 'Realtor.com',
                     oceanGeodataSource: 'tl_2025_us_coastline' as GeodataSourceType,
                     currencySymbol: '$',
                     href: () => href

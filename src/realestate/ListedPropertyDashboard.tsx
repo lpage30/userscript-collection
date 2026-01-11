@@ -15,10 +15,7 @@ export const getFilterableItems = (propertyInfo: PropertyInfo[]): FilterableItem
       displayData: { 
         step: 50000,
         prefix: propertyInfo[0].currencySymbol,
-        formatValue: (value: number) => value.toLocaleString('en-US', {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0
-        })
+        formatValue: (value: number) => value.toLocaleString(undefined)
       },
       filter: propertyInfo
         .map(({ Price }) => Price).sort()
@@ -35,8 +32,8 @@ export const getFilterableItems = (propertyInfo: PropertyInfo[]): FilterableItem
       displayData: { 
         suffix: ' mi',
         step: 0.25,
-        formatValue: (value: number) => value.toLocaleString('en-US', {
-          minimumFractionDigits: 0,
+        formatValue: (value: number) => value.toLocaleString(undefined, {
+          minimumFractionDigits: 2,
           maximumFractionDigits: 2
         })
       },
@@ -90,7 +87,7 @@ export const ListedPropertyDashboard: React.FC<ListedPropertyDashboardProps> = (
     sortingFields={sortingFields}
     page={'dashboard'}
     getCards={() => properties}
-    cardStyle={{ height: '500px', width: '600px' }}
+    cardStyle={{ height: '520px', width: '600px' }}
     layout={'grid-2'}
     onClose={onClose}
     registerRefreshFunction={(refreshFunction) => refreshDashboardRef.current = refreshFunction}

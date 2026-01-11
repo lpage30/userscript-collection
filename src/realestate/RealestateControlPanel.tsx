@@ -11,7 +11,6 @@ interface RealestateControlPanelProps {
     title: string
     toggleMapDisplay: (parentElement?: HTMLElement) => void
     properties: PropertyInfo[]
-    canToggleMapInDashboard?: boolean
     ignoreDashboardClickEvent?: (e: BaseSyntheticEvent) => boolean
 }
 export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
@@ -20,8 +19,7 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
     title,
     toggleMapDisplay,
     properties,
-    ignoreDashboardClickEvent,
-    canToggleMapInDashboard = false
+    ignoreDashboardClickEvent
 }) => {
     const [state, setState] = useState<PropertyInfo[]>(properties)
     const closeListing = useRef(null)
@@ -67,13 +65,12 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
                                             className="app-button"
                                             onClick={() => { if (closeListing.current) closeListing.current() }}
                                         >Close Listing</Button>
-                                        {canToggleMapInDashboard && getMapButton(() => document.getElementById(ListedPropertyContainerId))}
                                     </div>
                                 }}
                             /></td></tr>
                         }
                         {1 === state.length &&
-                            <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state[0]} /></td></tr>
+                            <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state[0]} usage={'controlpanel'}/></td></tr>
                         }
                         <tr><td style={{ padding: 5, margin: 0 }} className={'text-center'}>{getMapButton()}</td></tr>
                     </>

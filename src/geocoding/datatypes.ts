@@ -15,6 +15,7 @@ export interface GeoCoordinate {
 export const isValidGeoCoordinate = (value: Partial<GeoCoordinate>): value is GeoCoordinate => undefined !== value && ![value.lat, value.lon].some(v => [null, undefined].includes(v))
 export const toGeoPoint = (value: GeoCoordinate) => turf.point([value.lon, value.lat])
 export const measureDistance = (source: GeoCoordinate, destination: GeoCoordinate, units: turf.Units = 'miles'): number  => turf.distance(toGeoPoint(source), toGeoPoint(destination), { units })
+export const isInPolygon = (value: GeoCoordinate, polygon: Feature<Polygon>) => turf.booleanPointInPolygon(toGeoPoint(value), polygon)
 
 export const toGeoCoordinateString = (coordinate: GeoCoordinate): string => 
     coordinate ? `Lat: ${coordinate.lat}, Lon: ${coordinate.lon}` : 'Coordinates not disclosed'
@@ -22,48 +23,90 @@ export const toGeoCoordinateString = (coordinate: GeoCoordinate): string =>
 export const toGoogleMapsPlace = (coordinate: GeoCoordinate): string | undefined =>
     coordinate ? `https://www.google.com/maps/place/@${coordinate.lat},${coordinate.lon}` : undefined
 
+export interface NameIsoCode extends Partial<GeoCoordinate> {
+    name: string
+    isoCode: string
+    containedCoordinates: GeoCoordinate[]
+}
+
 export interface Geocoding {
     [geodataSource: string]: {
         geojsonIndexes: number[]
         distantGeojsonIndexes: number[]
     }
 }
-export interface CountryCityStateBase extends Partial<GeoCoordinate> {
-    name: string
-    isoCode: string
+
+export interface CountryCityStateBase extends NameIsoCode {
     geocoding: Geocoding
     distantMaxMiles: number
 }
 
-export interface City extends Omit<CountryCityStateBase, 'isoCode'> {
+export interface City extends Omit<CountryCityStateBase, 'isoCode' | 'containedCoordinates'> {
     countryName: string
     stateName: string
 }
-
 export interface State extends CountryCityStateBase {
     countryName: string
     cities: {
         [city: string]: City
     }
 }
-
 export interface Country extends CountryCityStateBase {
     states: {
         [state: string]: State
     }
 }
 
-
 export interface CountryStateCity {
     country: Country,
     state?: State,
     city?: City
 }
+
 export const toCityStateCountryString = (location: CountryStateCity): string => [
     (location ?? {}).city?.name,
     (location ?? {}).state?.isoCode,
     (location ?? {}).country?.isoCode
 ].filter(p => ![undefined, null].includes(p)).join(', ')
+
+
+export interface CityName extends Omit<NameIsoCode, 'isoCode' | 'containedCoordinates'> {
+    countryName: string
+    stateName: string
+}
+export const toCityName = (city: City): CityName => ({
+    name: city.name,
+    countryName: city.countryName,
+    stateName: city.stateName,
+    lat: city.lat,
+    lon: city.lon
+})
+
+export interface StateNameIsoCode extends NameIsoCode {
+    countryName: string
+    cities: CityName[]
+}
+export const toStateNameIsoCode = (state: State): StateNameIsoCode => ({
+    name: state.name,
+    isoCode: state.isoCode,
+    countryName: state.countryName,
+    lat: state.lat,
+    lon: state.lon,
+    containedCoordinates: state.containedCoordinates,
+    cities: Object.values(state.cities).map(toCityName)
+})
+
+export interface CountryNameIsoCode extends NameIsoCode {
+    states: StateNameIsoCode[]
+}
+export const toCountryNameIsoCode = (country: Country): CountryNameIsoCode => ({
+    name: country.name,
+    isoCode: country.isoCode,
+    lat: country.lat,
+    lon: country.lon,
+    containedCoordinates: country.containedCoordinates,
+    states: Object.values(country.states).map(toStateNameIsoCode)
+})
 
 export interface GeoAddress {
     address?: string
@@ -86,7 +129,7 @@ export const toGeoCountryStateCityAddressString = (address: GeoCountryStateCityA
     address.address ?? 'address not disclosed',
     toCityStateCountryString(address),
     toGeoCoordinateString(address.coordinate),
-].filter(p => ![undefined, null].includes(p)).join('|')
+].filter(p => ![undefined, null].includes(p)).join(', ')
 
 export interface GeoPlace {
     coordinate: GeoCoordinate
@@ -110,7 +153,7 @@ export const toPlaceString = (place: Place): string => `${toDistanceString(place
 export function toNameRegex(name: string): RegExp {
     return new RegExp(`^([,\\s]*|.*[,\\s]+)${name}([,\\s]*|[,\\s]+.*)$`,'ig')
 }
-export function isDataMatch<T extends Country | State | City>(text: string, data: T): boolean {
+export function isDataMatch<T extends NameIsoCode | StateNameIsoCode | CityName>(text: string, data: T): boolean {
     return (undefined !== data.name && toNameRegex(data.name).test(text)) || 
     (undefined !== data['isoCode'] && toNameRegex(data['isoCode']).test(text))
 }

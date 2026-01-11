@@ -49,17 +49,24 @@ export interface CompanyHealthStatus {
     healthStatus: 'danger' | 'warning' | 'success'
 }
 
-export function classifyServiceStatus(status: ServiceStatus): ServiceStatus {
-    const incidents: Incident[] = status.incidents.map(incident => ({
-        ...incident,
-        updates: incident.updates.map(update => ({
-            ...update,
-            location: classifyCountryStateCityText(update.name),
-            statusLevel: classifyStatus(`${update.status} ${update.name}`),
-        })),
-        location: classifyCountryStateCityText(incident.name),
-        statusLevel: classifyStatus(`${incident.status} ${incident.name}`),
-    }))
+export async function classifyServiceStatus(status: ServiceStatus): Promise<ServiceStatus> {
+    const incidents: Incident[] = []
+    for (const incident of status.incidents) {
+        const updates: IncidentUpdate[] = []
+        for (const update of incident.updates) {
+            updates.push({
+                ...update,
+                location: await classifyCountryStateCityText(update.name),
+                statusLevel: classifyStatus(`${update.status} ${update.name}`),
+            })
+        }
+        incidents.push({
+            ...incident,
+            updates,
+            location: await classifyCountryStateCityText(incident.name),
+            statusLevel: classifyStatus(`${incident.status} ${incident.name}`),
+        })
+    }
     return {
         ...status,
         status: {

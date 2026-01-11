@@ -97,6 +97,9 @@ export function createViteUserscriptDefineConfigFunction(
         // https://github.com/vitejs/vite/discussions/13587
         "process.env.NODE_ENV": JSON.stringify(mode),
       },
+      json: {
+        stringify: true,
+      },
     };
   });
 }

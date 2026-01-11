@@ -1,6 +1,13 @@
 import { ReactNode } from 'react'
 import { Button } from 'primereact/button'
-import { PropertyInfo, toPropertyInfoCard, geocodePropertyInfoCard, MaxPropertyInfoImageWidth } from '../propertyinfotypes'
+import {
+    PropertyInfo,
+    MaxPropertyInfoImageWidth
+} from '../propertyinfotypes'
+import {
+    toPropertyInfoCard,
+    geocodePropertyInfoCard,
+} from '../propertyinfotype_functions'
 import { RealEstateSite, PropertyPageType } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
 import { toScaledImg, toScaledPicture } from '../propertypagefunctions'
@@ -65,10 +72,11 @@ interface LayoutMenuButtons {
     Split?: HTMLElement
     Table?: HTMLElement
 }
+
 function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
     const result: Partial<PropertyInfo> = scriptData.mainEntity
         ? scrapeScriptData(scriptData.mainEntity)
-        : {}
+        : { source: 'redfin.com', }
     if (scriptData.mainEntity === undefined) {
         result.isLand = (scriptData.floorSize ?? {}).value === undefined
         result.Type = result.isLand ? 'land' : scriptData['@type'] as string

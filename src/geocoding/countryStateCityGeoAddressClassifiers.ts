@@ -3,13 +3,18 @@ import {
     GeoAddress,
     toGeoAddressString,
     GeoCountryStateCityAddress,
-    Country,
+    CountryNameIsoCode,
     isValidGeoCoordinate,
+    StateNameIsoCode,
+    CityName,
+    measureDistance,
+    Country,
+    toCountryNameIsoCode,
     State,
-    City,
-    measureDistance
+    toStateNameIsoCode,
+    City
 } from './datatypes'
-import { getCountries, getCountry } from './generated_registered_geocoded_country_state_city_map'
+import { getCountryNameIsoCodes, getCountry } from './generated_registered_geocoded_country_state_city_map'
 import {
     classifyCountryText,
     classifyStateText,
@@ -34,13 +39,13 @@ function pickClosestOne<T extends Partial<GeoCoordinate>>(
         }, { distance: Number.MAX_VALUE, result: undefined }).result   
 }
 
-function classifyStateCityCoordinates(coordinate: GeoCoordinate, country: Country): { state: State, city: City } | undefined {
+function classifyStateCityCoordinates(coordinate: GeoCoordinate, country: CountryNameIsoCode): { state: StateNameIsoCode, city: CityName } | undefined {
     if (!isValidGeoCoordinate(coordinate)) return undefined
-    type ClosestCityState = { distance: number, state?: State, city?: City }
+    type ClosestCityState = { distance: number, state?: StateNameIsoCode, city?: CityName }
     
-    const result = Object.values(country.states).reduce((closest: ClosestCityState, state: State) => Object.values(state.cities)
+    const result = Object.values(country.states).reduce((closest: ClosestCityState, state: StateNameIsoCode) => Object.values(state.cities)
         .filter(isValidGeoCoordinate)
-        .reduce((closestCity: ClosestCityState, city: City) => {
+        .reduce((closestCity: ClosestCityState, city: CityName) => {
             const distance = measureDistance(coordinate, city as GeoCoordinate)
             return distance < closestCity.distance
                 ? { distance, state, city }
@@ -51,90 +56,99 @@ function classifyStateCityCoordinates(coordinate: GeoCoordinate, country: Countr
     return result.city ? { state: result.state, city: result.city } : undefined
 }
 
-function classifyGeoCountry(geoAddress: GeoAddress): Country {
-    let country: Country = undefined
+async function classifyGeoCountry(geoAddress: GeoAddress): Promise<Country> {
     if (geoAddress.country) {
-        country = classifyCountryText(geoAddress.country)
-        if (country) return country
+        const countryName = classifyCountryText(geoAddress.country)
+        if (countryName) return getCountry(countryName.name)
     }
     if (geoAddress.state) {
-        const states = findStateMatches(geoAddress.state, getCountries())
+        const states = findStateMatches(geoAddress.state, getCountryNameIsoCodes())
         if (0 < states.length) {
+
             const state = (isValidGeoCoordinate(geoAddress.coordinate)
                 ? pickClosestOne(geoAddress.coordinate, states)
                 : states[0])
-            country = getCountry(state.countryName)
-            return country
+            return getCountry(state.countryName)
         }
     }
     if (geoAddress.city) {
-        const cities = findCityMatches(geoAddress.city, getCountries())
+        const cities = findCityMatches(geoAddress.city, getCountryNameIsoCodes())
         if (0 < cities.length) {
             const city = (isValidGeoCoordinate(geoAddress.coordinate)
                 ? pickClosestOne(geoAddress.coordinate, cities)
                 : cities[0])
-            country = getCountry(city.countryName)
-            return country
+            return getCountry(city.countryName)
         }
     }
-    country = (isValidGeoCoordinate(geoAddress.coordinate)
-        ? pickClosestOne(geoAddress.coordinate, getCountries())
+    const countryName = (isValidGeoCoordinate(geoAddress.coordinate)
+        ? pickClosestOne(geoAddress.coordinate, getCountryNameIsoCodes())
         : undefined)
 
-    if (undefined === country) {
+    if (undefined === countryName) {
         throw new Error(`Failed classifying country for ${toGeoAddressString(geoAddress)}`)
     }
-    return country
+    return getCountry(countryName.name)
 }
 
-function classifyGeoState(geoAddress: GeoAddress, country: Country): State | undefined{
-    let state: State = undefined
+function classifyGeoState(geoAddress: GeoAddress, country: Country): State | undefined {
+    const countryName = toCountryNameIsoCode(country)
     if (geoAddress.state) {
-        state = classifyStateText(geoAddress.state, country)
-        if (state) return state
+        const stateName = classifyStateText(geoAddress.state, countryName)
+        if (stateName) return country.states[stateName.name]
     }
     if (geoAddress.city) {
-        const cities = findCityMatches(geoAddress.city, [country])
+        const cities = findCityMatches(geoAddress.city, [countryName])
         if (0 < cities.length) {
             const city = (isValidGeoCoordinate(geoAddress.coordinate)
                 ? pickClosestOne(geoAddress.coordinate, cities)
                 : cities[0])
-            state = getCountry(city.countryName).states[city.stateName]
-            return state
+            return country.states[city.stateName]
         }
     }
-    state = (isValidGeoCoordinate(geoAddress.coordinate)
-        ? pickClosestOne(geoAddress.coordinate, Object.values(country.states))
+    const stateName = (isValidGeoCoordinate(geoAddress.coordinate)
+        ? pickClosestOne(geoAddress.coordinate, countryName.states)
         : undefined )
     
-    return state
+    return stateName ? country.states[stateName.name] : undefined
 }
 
 function classifyGeoCity(geoAddress: GeoAddress, state: State): City | undefined {
-    let city: City = undefined
+    const stateName = toStateNameIsoCode(state)
     if (geoAddress.city) {
-        city = classifyCityText(geoAddress.city, state)
-        if (city) return city
+        const cityName = classifyCityText(geoAddress.city, stateName)
+        if (cityName) return state.cities[cityName.name]
     }
-    city = (isValidGeoCoordinate(geoAddress.coordinate)
-        ? pickClosestOne(geoAddress.coordinate, Object.values(state.cities))
+    const cityName = (isValidGeoCoordinate(geoAddress.coordinate)
+        ? pickClosestOne(geoAddress.coordinate, stateName.cities)
         : undefined)
     
-    return city
+    return cityName ? state.cities[cityName.name] : undefined
 }
 
 function classifyGeoStateCity(geoAddress: GeoAddress, country: Country): { state: State, city: City } | undefined {
-    let result: { state: State, city: City } = undefined
+    const countryName = toCountryNameIsoCode(country)
+
     if (geoAddress.city) {
-        result = classifyStateCityText(geoAddress.city, country)
-        if (result) return result
+        const stateCityName = classifyStateCityText(geoAddress.city, countryName)
+        if (stateCityName){
+            return {
+                state: country.states[stateCityName.state.name],
+                city: country.states[stateCityName.state.name].cities[stateCityName.city.name]
+            }
+        }
     }
-    result = classifyStateCityCoordinates(geoAddress.coordinate, country)
-    return result
+    const stateCityName = classifyStateCityCoordinates(geoAddress.coordinate, countryName)
+    if (stateCityName){
+        return {
+            state: country.states[stateCityName.state.name],
+            city: country.states[stateCityName.state.name].cities[stateCityName.city.name]
+        }
+    }
+    return undefined
 }
 
-export function classifyGeoCountryStateCity(geoAddress: GeoAddress): GeoCountryStateCityAddress {
-    const country = classifyGeoCountry(geoAddress)
+export async function classifyGeoCountryStateCity(geoAddress: GeoAddress): Promise<GeoCountryStateCityAddress> {
+    const country = await classifyGeoCountry(geoAddress)
     let state: State = classifyGeoState(geoAddress, country)
     let city: City = undefined
     if (undefined === state) {
@@ -157,10 +171,11 @@ export function classifyGeoCountryStateCity(geoAddress: GeoAddress): GeoCountryS
             }
         }
         if (undefined === city && isValidGeoCoordinate(geoAddress.coordinate)) {
-            const statecity = classifyStateCityCoordinates(geoAddress.coordinate, country)
+            const countryName = toCountryNameIsoCode(country)
+            const statecity = classifyStateCityCoordinates(geoAddress.coordinate, countryName)
             if (statecity) {
-                state = statecity.state
-                city = statecity.city
+                state = country.states[statecity.state.name]
+                city = country.states[statecity.state.name].cities[statecity.city.name]
             }
 
         }
