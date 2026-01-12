@@ -24,7 +24,7 @@ const CountryStateCityTSGenerators = {
 import { Country, CountryStateBase } from './countrystatecitytypes'
 
 export const getCountryBaseInfo = (): CountryStateBase[] => Object.values(CountryStateCityMap).map(country => country as CountryStateBase)
-export const getCountry = (countryName: string): Country | undefined => CountryStateCityMap[countryName]
+export const getCountry = async (countryName: string): Promise<Country | undefined> => CountryStateCityMap[countryName]
 
 const CountryStateCityMap: { [countryName: string]: Country } = {
 ${countryMappingLines.join(',\n')}
@@ -46,7 +46,7 @@ import { Country, CountryStateBase} from './countrystatecitytypes'
 
 export const getCountryBaseInfo = (): CountryStateBase[] => CountryBaseInfoArray
 
-export async function getCountry(countryName: string): Promise<Country> { 
+export async function getCountry(countryName: string): Promise<Country | undefined> { 
     if (undefined === CountryStateCityMap[countryName]) {
         CountryStateCityMap[countryName] = await dynamicLoadCountryMap(countryName)
     }
@@ -82,9 +82,9 @@ import { GeocodedCountry, GeneratedGeocodedCountry, joinBaseAndGeocoded } from '
 import { getCountryBaseInfo as _getCountryBaseInfo, getCountry as _getCountry } from './${Path.basename(baseTsFilepath)}'
 
 export const getCountryBaseInfo = _getCountryBaseInfo
-export const getGeocodedCountry = (countryName: string): GeocodedCountry | undefined => {
+export const getGeocodedCountry = async (countryName: string): Promise<GeocodedCountry | undefined> => {
     const geocodedCountryExtension = CountryStateCityGeocodedExtensionsMap[countryName]
-    const countryBase = _getCountry(countryName)
+    const countryBase = await _getCountry(countryName)
     
     return [undefined, null].some(v => [geocodedCountryExtension, countryBase].includes(v))
         ? undefined
@@ -105,7 +105,7 @@ import { GeocodedCountry, GeneratedGeocodedCountry, joinBaseAndGeocoded } from '
 import { getCountryBaseInfo as _getCountryBaseInfo, getCountry as _getCountry } from './${Path.basename(baseTsFilepath)}'
 
 export const getCountryBaseInfo = _getCountryBaseInfo
-export async function getGeocodedCountry(countryName: string): Promise<GeocodedCountry> {            
+export async function getGeocodedCountry(countryName: string): Promise<GeocodedCountry | undefined> {            
     if (undefined === CountryStateCityGeocodedExtensionsMap[countryName]) {
         CountryStateCityGeocodedExtensionsMap[countryName] = await dynamicLoadCountryGeocodedExtension(countryName)
     }
@@ -129,7 +129,7 @@ ${globImportLines.join('\n')}
         await fs.promises.writeFile(tsFilepath, typescript, 'utf8')
         console.log(`${indent}done! duration: ${durationToString(Date.now() - tstart)}`)
     },
-    generateRegisterFunctions: async function generateRegisterGetCountriesTSFile(tsFilepath, indent, asMap) {
+    generateRegisterFunctions: async function generateRegisterGetCountriesTSFile(tsFilepath, indent) {
         const tstart = Date.now()
         console.log(`${indent}Generating ${Path.basename(tsFilepath)} used to register and call registered getCountries() or getCountry() functions`)
         const geojsonTypescript = `import { Country, CountryStateBase} from './countrystatecitytypes'
@@ -148,11 +148,11 @@ export function getCountryBaseInfo(): CountryStateBase[] {
 }
 
 // import getCountry from a generated_<usage>_country_state_city_map.ts file
-let fGetCountry: ((countryName: string) => ${asMap ? 'Country' : 'Promise<Country>'}) | undefined = undefined
-export const registerGetCountry = (getCountryFunc: (countryName: string) => ${asMap ? 'Country' : 'Promise<Country>'}) => {
+let fGetCountry: ((countryName: string) => Promise<Country | undefined>') | undefined = undefined
+export const registerGetCountry = (getCountryFunc: (countryName: string) => Promise<Country| undefined>) => {
     fGetCountry = getCountryFunc
 }
-export function getCountry(countryName: string): ${asMap ? 'Country' : 'Promise<Country>'} {
+export function getCountry(countryName: string): Promise<Country | undefined> {
     if(undefined === fGetCountry) {
         throw new Error('fGetCountry not set. Call registerGetCountry() with imported, generated getCountry func')
     }
@@ -160,8 +160,8 @@ export function getCountry(countryName: string): ${asMap ? 'Country' : 'Promise<
 }
 
 // import getGeocodedCountry from a generated_geocoded_<usage>_country_state_city_map.ts file
-let fGetGeocodedCountry: ((countryName: string) => ${asMap ? 'GeocodedCountry' : 'Promise<GeocodedCountry>'}) | undefined = undefined
-export const registerGetGeocodedCountry = (getGeocodedCountryFunc: (countryName: string) => ${asMap ? 'GeocodedCountry' : 'Promise<GeocodedCountry>'}) => {
+let fGetGeocodedCountry: ((countryName: string) => Promise<GeocodedCountry | undefined>) | undefined = undefined
+export const registerGetGeocodedCountry = (getGeocodedCountryFunc: (countryName: string) => Promise<GeocodedCountry | undefined>) => {
     fGetGeocodedCountry = getGeocodedCountryFunc
 }
 export function getGeocodedCountry(countryName: string): ${asMap ? 'GeocodedCountry' : 'Promise<GeocodedCountry>'} {
@@ -313,7 +313,7 @@ async function generateRegisterFunctionsTSFiles(
     console.log(`${indent}done! duration: ${durationToString(Date.now() - tstart)}`)
 }
 
-export async function generateTSfiles(geocodingDirname, usageCountryMap, indent = '', asMap = false) {
+export async function generateTSfiles(geocodingDirname, usageCountryMap, indent = '', asMap = true) {
     const tstart = Date.now()
     console.log(`${indent}Generating Country/State/City Map and Geojson Data Typescript files for usages: [${['all', ...Object.keys(usageCountryMap)].join(',')}]`)
     const countryStateCityGenerator = CountryStateCityMapGenerator(geocodingDirname)
