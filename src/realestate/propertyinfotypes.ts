@@ -2,16 +2,18 @@ import { ReactNode } from 'react'
 import { Card } from '../dashboardcomponents/datatypes'
 import {
     GeoAddress,
-    GeoCountryStateCityAddress,
-    Place,
     GeoCoordinate,
     GeodataSourceType
 } from '../geocoding/datatypes'
+import {
+    PlaceDistance,
+    GeocodedCountryStateCityAddress
+} from '../geocoding/geocodedcountrystatecitytypes'
 
 export const MaxPropertyInfoImageWidth = 325
 export interface GeoPropertyInfo {
-    propertyPlace: GeoCountryStateCityAddress
-    closestOceanPlace?: Place
+    propertyPlace: GeocodedCountryStateCityAddress
+    closestOceanPlace?: PlaceDistance
     displayString: string
 }
 

@@ -34,7 +34,7 @@ async function generateGeocoding(prefixes) {
         await generate(args.maxMilesDistance, args.regionFilter)
     }
     if (geocodingDirname) {
-        await splitCountryStateCityJson(geocodingDirname, UsageCountryMap)
+        await splitCountryStateCityJson(geocodingDirname)
         await generateTSfiles(geocodingDirname, UsageCountryMap)
     }
 }

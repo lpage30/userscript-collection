@@ -5,9 +5,9 @@ import * as turf from '@turf/turf'
 import { 
     getTl2025UsCoastlineGeojsonIndex,
     getUkcp18UkMarineCoastlineHiresGeojsonIndex
-} from './generated_registered_geojson_data'
+} from './generated_registered_geojson_data_functions'
 
-function getGeojsonIndex(geodataSource: GeodataSourceType, index: number): GeojsonIndex {
+function getGeojsonIndex(geodataSource: GeodataSourceType, index: number): Promise<GeojsonIndex> {
     if ('tl_2025_us_coastline' === geodataSource) return getTl2025UsCoastlineGeojsonIndex(index)
     if ('ukcp18_uk_marine_coastline_hires' === geodataSource) return getUkcp18UkMarineCoastlineHiresGeojsonIndex(index)
 }
@@ -60,7 +60,7 @@ class GeojsonIndexCache {
         if(result) {
             clearTimeout(result.evictionTimeout)
         } else {
-            const geojsonIndex = getGeojsonIndex(geodataSource, index)
+            const geojsonIndex = await getGeojsonIndex(geodataSource, index)
             result = {
                 geojsonIndex,
                 evictionTimeout: undefined,

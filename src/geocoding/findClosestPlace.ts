@@ -2,70 +2,43 @@ import {
     GeodataSourceType,
     GeoCoordinate,
     isValidGeoCoordinate,
-    CountryStateCity,
-    Distance,
-    GeoPlace,
-    Place,
     toGeoPoint,
-    measureDistance,
     GeojsonIndex,
-    CountryNameIsoCode,
-    StateNameIsoCode,
-    CityName,
-    isInPolygon
 } from './datatypes'
+import { 
+    GeocodedCountryStateCity,
+    Place,
+    PlaceDistance,
+    GeocodedCountryStateCityAddress, 
+    indexOfClosestOneInGeojson
+} from './geocodedcountrystatecitytypes'
 import { loadGeoJsonIndex } from './GeojsonIndex'
-import { getCountryNameIsoCodes, getCountry } from './generated_registered_geocoded_country_state_city_map'
+import { getCountryBaseInfo, getGeocodedCountry } from './generated_registered_country_state_city_map_functions'
 import * as turf from '@turf/turf'
 import { Units } from '@turf/turf'
 
-function getDistance(source: GeoCoordinate, destination: Partial<GeoCoordinate>, distanceUnits: Units = 'miles'): Distance | undefined {
-    if (!isValidGeoCoordinate(destination)) return undefined
-    return {
-        value: measureDistance(source, destination, distanceUnits),
-        units: distanceUnits
-    }
-}
 
-function getClosest<T extends CountryNameIsoCode | StateNameIsoCode | CityName>(geojson: GeojsonIndex, coordinate: GeoCoordinate, collection: T[]): T | undefined {
-    interface ClosestLocation {
-        distance: number
-        location?: T
-    }
-    // isolate to just best ones 1st
-    return collection
-        .filter(item => {
-            const coords = (item['containedCoordinates'] ?? [item as GeoCoordinate]).filter(isValidGeoCoordinate)
-            return coords.some((coord: GeoCoordinate) => isInPolygon(coord, geojson.polygon))
-        }).reduce((closest: ClosestLocation, item: T) => {
-            const distance = getDistance(coordinate, item as GeoCoordinate)
-            if (distance && distance.value < closest.distance) {
-                return {
-                    distance: distance.value,
-                    location: item
-                }
-            }
-            return closest
-
-        }, { distance: Number.MAX_VALUE } as ClosestLocation).location
-}
-async function findClosestCountryStateCity(geojson: GeojsonIndex, coordinate: GeoCoordinate): Promise<CountryStateCity | undefined> {
-    const foundCountry = getClosest<CountryNameIsoCode>(geojson, coordinate, getCountryNameIsoCodes())
-    if (foundCountry) {
-        const country = await getCountry(foundCountry.name)
-        const foundState = getClosest<StateNameIsoCode>(geojson, coordinate, foundCountry.states)
-        if (foundState) {
-            const state = country.states[foundState.name]
-            const foundCity = getClosest<CityName>(geojson, coordinate, foundState.cities)
-            if (foundCity) return { country, state, city: state.cities[foundCity.name] }
-            return { country, state }
+async function findClosestCountryStateCity(geojson: GeojsonIndex, coordinate: GeoCoordinate): Promise<GeocodedCountryStateCity | undefined> {
+    const countries = getCountryBaseInfo()
+    const countryResult = indexOfClosestOneInGeojson(geojson, coordinate, countries)
+    if (countryResult) {
+        const country = await getGeocodedCountry(countries[countryResult.index].name)
+        const states = Object.values(country.states)
+        const stateResult = indexOfClosestOneInGeojson(geojson, coordinate, states)
+        if (stateResult) {
+            const state = states[stateResult.index]
+            const cities = Object.values(state.cities)
+            const cityResult = indexOfClosestOneInGeojson(geojson, coordinate, cities)
+            return cityResult
+                ? { country, state, city: cities[cityResult.index] }
+                : { country, state }
         }
         return { country }
     }
     return undefined
 }
 
-function getGeojsonIndexes(geodataSource: GeodataSourceType, region: CountryStateCity): number[] {
+function getGeojsonIndexes(geodataSource: GeodataSourceType, region: GeocodedCountryStateCity): number[] {
     if (region.city && region.city.geocoding[geodataSource]) {
         if (0 < region.city.geocoding[geodataSource].geojsonIndexes.length) return [...region.city.geocoding[geodataSource].geojsonIndexes]
         if (0 < region.city.geocoding[geodataSource].distantGeojsonIndexes.length) return [...region.city.geocoding[geodataSource].distantGeojsonIndexes]
@@ -82,7 +55,7 @@ function getGeojsonIndexes(geodataSource: GeodataSourceType, region: CountryStat
 }
 
 
-export async function findClosestGeodataPlace(geodataSource: GeodataSourceType, source: GeoPlace, distanceUnits: Units = 'miles'): Promise<Place | undefined> {
+export async function findClosestGeodataPlace(geodataSource: GeodataSourceType, source: Place | GeocodedCountryStateCityAddress, distanceUnits: Units = 'miles'): Promise<PlaceDistance | undefined> {
     if (!isValidGeoCoordinate(source.coordinate)) return undefined
 
     interface ClosestPoint {
@@ -90,8 +63,8 @@ export async function findClosestGeodataPlace(geodataSource: GeodataSourceType, 
         distance: number
         nearestPoint: GeoCoordinate
     }
-
-    const { coordinate: { lat, lon }, region } = source
+    const { coordinate: { lat, lon }} = source
+    const region: GeocodedCountryStateCity = source['region'] ?? source
     const point = toGeoPoint({lat, lon})
     const geojsonIndices = getGeojsonIndexes(geodataSource, region)
     let closest: ClosestPoint = {

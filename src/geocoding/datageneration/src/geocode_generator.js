@@ -72,15 +72,7 @@ function findBestGeojsonIndex(lat, lon, namedIndexedGeojson, maxDistance) {
 
 function geocodeCountryStateCityMap(countryStateCityMap, countryStateCityMapGeocodeFilter, namedIndexedGeojson, maxMilesDistance, indent = '') {
     const { name: geodataName, indexedGeojson } = namedIndexedGeojson
-    const { filterCountries, filterStates, filterCities } = Object.values(countryStateCityMapGeocodeFilter)
-        .reduce((counts, value) => {
-            return {
-                filterCountries: counts.filterCountries + 1,
-                filterStates: counts.filterStates + Object.keys(value).length,
-                filterCities: counts.filterCities + Object.values(value).reduce((total, array) => total + array.length, 0)
-            }
-        }, { filterCountries: 0, filterStates: 0, filterCities: 0 })
-    console.log(`${indent}Geocoding ${filterCountries} countries, ${filterStates} states, ${0 === filterCities ? 'all cities in states' : `${filterCities} cities`} with ${geodataName} geojson`)
+    console.log(`${indent}Geocoding subset of country/state/cities with ${geodataName} geojson`)
     const tstart = Date.now()
     let counts = {
         geocodedCountries: 0, geocodedStates: 0, geocodedCities: 0
@@ -99,8 +91,8 @@ function geocodeCountryStateCityMap(countryStateCityMap, countryStateCityMapGeoc
     const requiredGeojsonIndexes = []
     const sourcePath = ['', '', '']
     let totalCities = 0
-    Object.entries(countryStateCityMapGeocodeFilter).forEach(([countryCode, stateCitiesMap]) => {
-        const country = countryStateCityMap[Country.getCountryByCode(countryCode).name]
+    Object.entries(countryStateCityMapGeocodeFilter).forEach(([countryName, stateCitiesMap]) => {
+        const country = countryStateCityMap[countryName]
         sourcePath[0] = country.name
         console.log(`${indent}\t${country.name} => ${Object.keys(stateCitiesMap).join(',')} states`)
         if (undefined === country.geocoding[geodataName]) {
@@ -110,8 +102,8 @@ function geocodeCountryStateCityMap(countryStateCityMap, countryStateCityMapGeoc
 
             }
         }
-        Object.entries(stateCitiesMap).forEach(([stateCode, cityArray]) => {
-            const state = country.states[State.getStatesOfCountry(countryCode).filter(({ isoCode, name }) => [isoCode, name].includes(stateCode))[0].name]
+        Object.entries(stateCitiesMap).forEach(([stateName, cityNameArray]) => {
+            const state = country.states[stateName]
             sourcePath[1] = state.name
             if (undefined === state.geocoding[geodataName]) {
                 state.geocoding[geodataName] = {
@@ -120,15 +112,11 @@ function geocodeCountryStateCityMap(countryStateCityMap, countryStateCityMapGeoc
 
                 }
             }
-            const stateCities = 0 === cityArray.length
-                ? City.getCitiesOfState(countryCode, state.isoCode)
-                : City.getCitiesOfState(countryCode, state.isoCode)
-                    .filter(({ name }) => cityArray.includes(name))
-            console.log(`${indent}\t\t${state.name} => ${stateCities.length} cities`)
+            console.log(`${indent}\t\t${state.name} => ${cityNameArray.length} cities`)
 
-            totalCities = totalCities + stateCities.length
-            stateCities.forEach(cityObj => {
-                const city = state.cities[cityObj.name]
+            totalCities = totalCities + cityNameArray.length
+            cityNameArray.forEach(cityName => {
+                const city = state.cities[cityName]
                 sourcePath[2] = city.name
                 if (undefined === city.geocoding[geodataName]) {
                     city.geocoding[geodataName] = {
@@ -317,7 +305,7 @@ export const GeocodeGenerator = (
         }
         console.log(`${indent}Geocoding World Country-State-City Map within ${maxMilesDistance} miles of regions [${regionFilter.join(', ')}] in ${geodataName} geodata`)
 
-        const CountryStateCityMap = await countryStateCityGenerator.loadMap(`${indent}\t`)
+        const CountryStateCityMap = await countryStateCityGenerator.loadGeocodedMap(`${indent}\t`)
         const geojsonIndexes = sortFilterIndexes(Object.values(CountryStateCityMap)
             .map(country => getRequiredGeojsonIndexes(country, geojsonFilenamePrefix)).flat())
         if (await exists(sortFilterIndexes(geojsonIndexes))) {
@@ -330,9 +318,9 @@ export const GeocodeGenerator = (
         const countryStateMapFilter = createCountryStateCitiesMapFilter(regionFilter, regionIsoCodeMap, `${indent}\t`)
         const namedIndexedGeojson = await loadNamedIndexedGeojson(`${indent}\t`)
 
-        const { geocodedCountryStateCityMap, requiredGeojsonIndexes } = geocodeCountryStateCityMap(CountryStateCityMap, countryStateMapFilter, namedIndexedGeojson, maxMilesDistance, `${indent}\t`)
+        const { geocodedCountryStateCityMap, requiredGeojsonIndexes } = geocodeCountryStateCityMap(CountryStateCityGeocodeExtensionMap, countryStateMapFilter, namedIndexedGeojson, maxMilesDistance, `${indent}\t`)
 
-        await countryStateCityGenerator.writeMap(geocodedCountryStateCityMap, `${indent}\t`)
+        await countryStateCityGenerator.writeGeocodedMap(geocodedCountryStateCityMap, `${indent}\t`)
         await writeIndexedGeojsonFiles(namedIndexedGeojson, requiredGeojsonIndexes, `${indent}\t`)
 
         const durationms = Date.now() - tstart

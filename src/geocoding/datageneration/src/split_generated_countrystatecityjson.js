@@ -23,26 +23,30 @@ async function exists(dirpath, prefix, suffix, count) {
     }
     return true
 }
-export async function splitCountryStateCityJson(geocodingDirname, usageCountryMap, indent = '') {
+export async function splitCountryStateCityJson(geocodingDirname, indent = '') {
     const tstart = Date.now()
-    console.log(`${indent}Splitting single Country/State/City json into 1 json per country`)
+    console.log(`${indent}Splitting single Country/State/City json into 2 jsons per country: base one and geocoded one`)
     const countryStateCityGenerator = CountryStateCityMapGenerator(geocodingDirname)
-    const CountryStateCityMap = await countryStateCityGenerator.loadMap(`${indent}\t`)
-    const countryInfoArray = []
-    const expectedFilecount = 1 + Object.keys(CountryStateCityMap)
+    const CountryStateCityMapBase = await countryStateCityGenerator.loadBaseMap(`${indent}\t`)
+    const CountryStateCityMapGeocodeExtension = await countryStateCityGenerator.loadGeocodedMap(`${indent}\t`)
+    const expectedFilecount = 1 + Object.keys(CountryStateCityMapBase)
     if (await exists(Path.join(geocodingDirname, GeocodedCountryCityStateDataDirname), 'geocoded_', '.json', expectedFilecount)) {
         console.log(`${indent} - skipping, ${expectedFilecount} files already exist within the same create time.`)
         return
     }
 
-    for (const country of Object.values(CountryStateCityMap)) {
-        const symbolname = normalizeName(country.name).toLowerCase()
-        const filename = `geocoded_${symbolname}.json`
-        countryInfoArray.push({ name: country.name, symbolname, filename })
+    for (const baseCountry of Object.values(CountryStateCityMapBase)) {
+        const geocodedCountry = CountryStateCityMapGeocodeExtension[baseCountry.name]
+        const symbolname = normalizeName(baseCountry.name).toLowerCase()
+        const baseFilename = `${symbolname}.json`
+        const extendedFilename = `geocoded_${symbolname}.json`
 
-        const filepath = Path.join(geocodingDirname, filename)
-        await fs.promises.writeFile(Path.join(geocodingDirname, GeocodedCountryCityStateDataDirname, filename), JSON.stringify(country), 'utf8')
-        console.log(`${indent}\tWrote ${country.name} => ${filename}`)
+        const baseFilepath = Path.join(geocodingDirname, GeocodedCountryCityStateDataDirname, baseFilename)
+        const extendedFilepath = Path.join(geocodingDirname, GeocodedCountryCityStateDataDirname, extendedFilename)
+        await fs.promises.writeFile(baseFilepath, JSON.stringify(baseCountry), 'utf8')
+        console.log(`${indent}\tWrote base ${baseCountry.name} => ${baseFilename}`)
+        await fs.promises.writeFile(extendedFilepath, JSON.stringify(geocodedCountry), 'utf8')
+        console.log(`${indent}\tWrote geocodeded-extension ${geocodedCountry.name} => ${extendedFilename}`)
     }
 
     console.log(`${indent}done! duration: ${durationToString(Date.now() - tstart)}`)

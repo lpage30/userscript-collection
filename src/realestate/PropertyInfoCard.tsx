@@ -1,6 +1,5 @@
 import React, { JSX, CSSProperties } from "react";
 import { PropertyInfo } from "./propertyinfotypes";
-import { toCityStateCountryString } from "../geocoding/datatypes";
 
 interface PropertyInfoCardProps {
   id?: string

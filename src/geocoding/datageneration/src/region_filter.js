@@ -1,6 +1,7 @@
+import { Country, State, City } from 'country-state-city'
 import { durationToString } from './functions.js'
 
-export function createCountryStateCitiesMapFilter(regionFilter, regionIsoCodeMap, indent = '') {
+export function createCountryStateCitiesMapFilter(countryStateCityMapBase, regionFilter, regionIsoCodeMap, indent = '') {
     const tstart = Date.now()
     console.log(`${indent}Creating Country/State/City Filter from provided Valid Regions filter: [${regionFilter.join(', ')}]`)
     const counts = {
@@ -11,17 +12,30 @@ export function createCountryStateCitiesMapFilter(regionFilter, regionIsoCodeMap
     const countryStatecityMapFilter = regionFilter
         .reduce((countryStateMap, region) => {
             const { countryCode, stateCities } = regionIsoCodeMap[region]
-            if ([undefined, null].includes(countryStateMap[countryCode])) {
+            const countryName = Country.getCountryByCode(countryCode).name
+            if ([undefined, null].includes(countryStateMap[countryName])) {
                 counts.country = counts.country + 1
-                countryStateMap[countryCode] = {}
+                countryStateMap[countryName] = {}
             }
             counts.state = counts.state + Object.keys(stateCities).length
-            Object.entries(stateCities).forEach(([state, cities]) => {
-                if ([undefined, null].includes(countryStateMap[countryCode][state])) {
-                    countryStateMap[countryCode][state] = []
+            console.log(`${indent}\t${countryName} => ${Object.keys(stateCitiesMap).join(',')} states`)
+
+            Object.entries(stateCities).forEach(([state, cityArray]) => {
+                const stateName = State.getStatesOfCountry(countryCode)
+                    .filter(({ isoCode, name }) => [isoCode, name].includes(stateCode))[0].name
+                if ([undefined, null].includes(countryStateMap[countryName][stateName])) {
+                    countryStateMap[countryName][stateName] = []
                 }
-                counts.cities = counts.cities + cities.length
-                countryStateMap[countryCode][state].push(...cities)
+                const stateCities = 0 === cityArray.length
+                    ? City.getCitiesOfState(countryCode, state.isoCode)
+                    : City.getCitiesOfState(countryCode, state.isoCode)
+                        .filter(({ name }) => cityArray.includes(name))
+
+                console.log(`${indent}\t\t${stateName} => ${stateCities.length} cities`)
+                counts.cities = counts.cities + stateCities.length
+                stateCities.forEach(cityObj => {
+                    countryStateMap[countryName][stateName].push(cityObj.name)
+                })
             })
             return countryStateMap
         }, {})

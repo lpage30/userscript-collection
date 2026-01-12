@@ -2,13 +2,16 @@ import React from 'react'
 import { toHashCode } from '../common/functions'
 import {
     GeoAddress,
-    GeoCountryStateCityAddress,
-    Place,
-    toGeoPlace,
-    toGeoCountryStateCityAddressString,
-    toCityStateCountryString,
-    toPlaceString,
 } from '../geocoding/datatypes'
+import {
+    toCityStateCountryString,
+} from '../geocoding/countrystatecitytypes'
+import {
+    PlaceDistance,
+    GeocodedCountryStateCityAddress,
+    toGeocodedCountryStateCityAddress
+
+} from '../geocoding/geocodedcountrystatecitytypes'
 import { classifyGeoCountryStateCity } from '../geocoding/countryStateCityGeoAddressClassifiers'
 import { findClosestGeodataPlace } from '../geocoding/findClosestPlace'
 import { PropertyInfo } from './propertyinfotypes'
@@ -38,9 +41,9 @@ export function toPropertyInfoCard(data: Partial<PropertyInfo>): PropertyInfo {
 
 export async function geocodePropertyInfoCard(data: PropertyInfo): Promise<PropertyInfo> {
     if (data.geoPropertyInfo) return data
-    const propertyPlace: GeoCountryStateCityAddress = await classifyGeoCountryStateCity(data as GeoAddress)
-    const closestOceanPlace: Place | undefined = await findClosestGeodataPlace(data.oceanGeodataSource, toGeoPlace(propertyPlace))
-    const DistanceToOcean = closestOceanPlace ? Math.round(closestOceanPlace.distance.value) : undefined
+    const propertyPlace: GeocodedCountryStateCityAddress = await toGeocodedCountryStateCityAddress(await classifyGeoCountryStateCity(data as GeoAddress))
+    const closestOceanPlace: PlaceDistance | undefined = await findClosestGeodataPlace(data.oceanGeodataSource, propertyPlace)
+    const DistanceToOcean = closestOceanPlace ? closestOceanPlace.distance.value : undefined
 
     const oceanDistance = DistanceToOcean
     ? `${DistanceToOcean.toLocaleString(undefined, {

@@ -71,10 +71,10 @@ export function createViteUserscriptDefineConfigFunction(
       root: __projectDirname,
       build: {
         cssCodeSplit: false,
-        cssMinify: false,
+        cssMinify: true,
         emptyOutDir: false,
         outDir: "dist",
-        minify: false,
+        minify: true,
         sourcemap: false,
         lib: {
           ...libObject,
