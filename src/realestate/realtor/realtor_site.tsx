@@ -16,10 +16,11 @@ import {
     deserializeImg,
     toSerializedElement,
     deserializeElement
-} from '../propertypagefunctions'
+} from '../serialize_deserialize_functions'
 import { GeoCoordinate, GeodataSourceType, parseAddress } from '../../geocoding/datatypes'
 
 import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
+import { cacheWrapper } from '../propertyinfocache'
 
 interface ScriptDescription {
     'baths_consolidated': string | null
@@ -139,17 +140,19 @@ export const RealtorSite: RealEstateSite = {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
             scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
-                let tBegin = Date.now()
                 const href = window.location.href
-                const properties: PropertyInfo[] = []
-                const scrapedProperties = JSON.parse(document.getElementById('__NEXT_DATA__').innerText).props.pageProps.properties.map(scrapeScriptData)
-                if (reportProgress) reportProgress(`Scraped ${scrapedProperties.length} properties ${toDurationString(Date.now() - tBegin)}`)
-                tBegin = Date.now()
-                for (const scrapedProperty of scrapedProperties) {
-                    properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(scrapedProperty), reportProgress))
+                const collectData = async (): Promise<PropertyInfo[]> => {
+                    const result: PropertyInfo[] = []
+                    const scrapedProperties = JSON.parse(document.getElementById('__NEXT_DATA__').innerText).props.pageProps.properties.map(scrapeScriptData)
+                    if (reportProgress) reportProgress(`Scraped ${scrapedProperties.length} properties ${toDurationString(Date.now() - tBegin)}`)
+                    const tBegin = Date.now()
+                    for (const scrapedProperty of scrapedProperties) {
+                        result.push(await geocodePropertyInfoCard(toPropertyInfoCard(scrapedProperty), reportProgress))
+                    }
+                    if (reportProgress) reportProgress(`Geocoded ${result.length} properties ${toDurationString(Date.now() - tBegin)}`)
+                    return result
                 }
-                if (reportProgress) reportProgress(`Geocoded ${properties.length} properties ${toDurationString(Date.now() - tBegin)}`)
-                return properties
+                return cacheWrapper(RealtorSite.name, href, collectData)
             },
 
         },
@@ -174,77 +177,76 @@ export const RealtorSite: RealEstateSite = {
             },
             scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
                 const href = window.location.href
-                const properties: PropertyInfo[] = []
-                let result: Partial<PropertyInfo> = {
-                    source: 'Realtor.com',
-                    oceanGeodataSource: 'tl_2025_us_coastline' as GeodataSourceType,
-                    currencySymbol: '$',
-                    href: () => href,
-                }
-                result.serializedElement = toSerializedElement({ queryString: 'div[data-testid="ldp-main-container"]' })
-                result.element = deserializeElement(result.serializedElement)
-                result.Price = parseNumber((await awaitQuerySelection('div[data-testid="ldp-list-price"]')).innerText)
-                result = {
-                    ...result, ...Array.from((await awaitQuerySelection('div[data-testid="ldp-home-facts"]')).querySelectorAll('li'))
-                        .map((e): Partial<PropertyInfo> => {
-                            const value = e.innerText.split('\n')[0]
-                            switch (e.dataset.testid) {
-                                case 'property-meta-beds':
-                                    return { Bedrooms: parseNumber(value) }
-                                case 'property-meta-baths':
-                                    return { Bathrooms: parseNumber(value) }
-                                case 'property-meta-sqft':
-                                    return { Sqft: parseNumber(value) }
-                                case 'property-meta-lot-size':
-                                    return { lotSize: parseNumber(value) }
-                                default:
-                                    return {}
-                            }
-                        }).reduce((propinfo, obj) => ({
-                            ...propinfo,
-                            ...obj,
-                        }), {} as Partial<PropertyInfo>)
-                }
-                const addrText = (document.querySelector('div[data-testid="address-line-ldp"]') as HTMLElement).innerText
-                result = {
-                    ...result,
-                    isLand: [null, undefined].includes(result.Bathrooms),
-                    ...parseAddress(addrText),
-                    country: 'United States'
-                }
-                const coordinate = Array.from(document.querySelectorAll('meta[property*="place:location"]'))
-                    .reduce((coordinate, e) => ({
-                        ...coordinate,
-                        [e.attributes.getNamedItem('property').value.split(':').slice(-1)[0].slice(0, 3)]: parseNumber(e.attributes.getNamedItem('content').value)
-                    }), {} as Partial<GeoCoordinate>)
+                const collectData = async (): Promise<PropertyInfo[]> => {
+                    let result: Partial<PropertyInfo> = {
+                        source: 'Realtor.com',
+                        oceanGeodataSource: 'tl_2025_us_coastline' as GeodataSourceType,
+                        currencySymbol: '$',
+                        href: () => href,
+                    }
+                    result.serializedElement = toSerializedElement({ queryString: 'div[data-testid="ldp-main-container"]' })
+                    result.element = deserializeElement(result.serializedElement)
+                    result.Price = parseNumber((await awaitQuerySelection('div[data-testid="ldp-list-price"]')).innerText)
+                    result = {
+                        ...result, ...Array.from((await awaitQuerySelection('div[data-testid="ldp-home-facts"]')).querySelectorAll('li'))
+                            .map((e): Partial<PropertyInfo> => {
+                                const value = e.innerText.split('\n')[0]
+                                switch (e.dataset.testid) {
+                                    case 'property-meta-beds':
+                                        return { Bedrooms: parseNumber(value) }
+                                    case 'property-meta-baths':
+                                        return { Bathrooms: parseNumber(value) }
+                                    case 'property-meta-sqft':
+                                        return { Sqft: parseNumber(value) }
+                                    case 'property-meta-lot-size':
+                                        return { lotSize: parseNumber(value) }
+                                    default:
+                                        return {}
+                                }
+                            }).reduce((propinfo, obj) => ({
+                                ...propinfo,
+                                ...obj,
+                            }), {} as Partial<PropertyInfo>)
+                    }
+                    const addrText = (document.querySelector('div[data-testid="address-line-ldp"]') as HTMLElement).innerText
+                    result = {
+                        ...result,
+                        isLand: [null, undefined].includes(result.Bathrooms),
+                        ...parseAddress(addrText),
+                        country: 'United States'
+                    }
+                    const coordinate = Array.from(document.querySelectorAll('meta[property*="place:location"]'))
+                        .reduce((coordinate, e) => ({
+                            ...coordinate,
+                            [e.attributes.getNamedItem('property').value.split(':').slice(-1)[0].slice(0, 3)]: parseNumber(e.attributes.getNamedItem('content').value)
+                        }), {} as Partial<GeoCoordinate>)
 
-                result.coordinate = Object.keys(coordinate).length === 2 ? coordinate as GeoCoordinate : undefined
+                    result.coordinate = Object.keys(coordinate).length === 2 ? coordinate as GeoCoordinate : undefined
 
-                result = {
-                    ...result, ...Array.from(document.querySelector('div[data-testid="ldp-highlighted-facts"]').querySelectorAll('li'))
-                        .map(e => e.innerText.split('\n').filter(t => 0 < t.length))
-                        .map(([name, value]): Partial<PropertyInfo> => {
-                            if (name.includes('Property type')) return { Type: value }
-                            if (name.includes('Year built')) return { Year: parseNumber(value) }
-                            if (name.includes('HOA fees')) return { HOA: parseNumber(value) }
-                            if (name.includes('Garage')) return { Garage: parseNumber(value) }
-                            return {}
-                        }).reduce((propinfo, obj) => ({
-                            ...propinfo,
-                            ...obj,
-                        }), {} as Partial<PropertyInfo>)
-                }
-                result.serializedPicture = toScaledPictureSerialized(document.querySelector('ul[data-testid="carousel-track"]').querySelector('li').querySelector('img'), MaxPropertyInfoImageWidth)
-                result.Picture = deserializeImg(result.serializedPicture, result)
+                    result = {
+                        ...result, ...Array.from(document.querySelector('div[data-testid="ldp-highlighted-facts"]').querySelectorAll('li'))
+                            .map(e => e.innerText.split('\n').filter(t => 0 < t.length))
+                            .map(([name, value]): Partial<PropertyInfo> => {
+                                if (name.includes('Property type')) return { Type: value }
+                                if (name.includes('Year built')) return { Year: parseNumber(value) }
+                                if (name.includes('HOA fees')) return { HOA: parseNumber(value) }
+                                if (name.includes('Garage')) return { Garage: parseNumber(value) }
+                                return {}
+                            }).reduce((propinfo, obj) => ({
+                                ...propinfo,
+                                ...obj,
+                            }), {} as Partial<PropertyInfo>)
+                    }
+                    result.serializedPicture = toScaledPictureSerialized(document.querySelector('ul[data-testid="carousel-track"]').querySelector('li').querySelector('img'), MaxPropertyInfoImageWidth)
+                    result.Picture = deserializeImg(result.serializedPicture, result)
 
-                const mapBtn = await awaitQuerySelection('button[data-testid="map-snapshot-map-btn"]')
-                if (mapBtn) {
-                    result.createMapButton = toCreateButtonFunction()
+                    const mapBtn = await awaitQuerySelection('button[data-testid="map-snapshot-map-btn"]')
+                    if (mapBtn) {
+                        result.createMapButton = toCreateButtonFunction()
+                    }
+                    return [await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress)]
                 }
-                if (reportProgress) reportProgress(`Scraped 1 Property`)
-                properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress))
-                if (reportProgress) reportProgress(`Geocoded 1 property`)
-                return properties
+                return cacheWrapper(RealtorSite.name, href, collectData)
             }
         },
     }

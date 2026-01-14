@@ -15,7 +15,7 @@ import {
 } from '../geocoding/geocodedcountrystatecitytypes'
 import { classifyGeoCountryStateCity } from '../geocoding/countryStateCityGeoAddressClassifiers'
 import { findClosestGeodataPlace } from '../geocoding/findClosestPlace'
-import { GeoPropertyInfo, PropertyInfo } from './propertyinfotypes'
+import { PropertyInfo } from './propertyinfotypes'
 import { PropertyInfoCard } from './PropertyInfoCard'
 import { reactToHTMLElement } from '../common/ui/renderRenderable'
 import { toDurationString } from '../common/datetime'
@@ -73,29 +73,25 @@ export function toPropertyInfoCard(data: Partial<PropertyInfo>): PropertyInfo {
 
 export async function geocodePropertyInfoCard(data: PropertyInfo, reportProgress?: (progress: string) => void): Promise<PropertyInfo> {
     if (data.geoPropertyInfo) return data
-    let geoPropertyInfo: GeoPropertyInfo = getCachedGeoPropertyInfo(data.source, data.elementId, reportProgress)
-    if ([undefined, null].includes(data.geoPropertyInfo)) {
-        const tstart = Date.now()
-        const propertyPlace: GeocodedCountryStateCityAddress = await toGeocodedCountryStateCityAddress(await classifyGeoCountryStateCity(data as GeoAddress))
-        const closestOceanPlace: PlaceDistance | undefined = await findClosestGeodataPlace(data.oceanGeodataSource, propertyPlace)
-        const oceanDistance = closestOceanPlace
-            ? `${closestOceanPlace.distance.value.toLocaleString(undefined, {
-                style: 'decimal',
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            })} miles to Ocean`
-            : undefined
-        const displayString = closestOceanPlace?.place?.region
-            ? `${oceanDistance} at ${toCityStateCountryString(closestOceanPlace.place.region)}`
-            : oceanDistance
-        geoPropertyInfo = {
-            propertyPlace,
-            closestOceanPlace,
-            displayString,
-        }
-        reportProgress(`Geocoded ${data.source} ${data.elementId}. ${toDurationString(Date.now() - tstart)}`)
-        cacheGeoPropertyInfo(data.source, data.elementId, geoPropertyInfo, reportProgress)
+    const tstart = Date.now()
+    const propertyPlace: GeocodedCountryStateCityAddress = await toGeocodedCountryStateCityAddress(await classifyGeoCountryStateCity(data as GeoAddress))
+    const closestOceanPlace: PlaceDistance | undefined = await findClosestGeodataPlace(data.oceanGeodataSource, propertyPlace)
+    const oceanDistance = closestOceanPlace
+        ? `${closestOceanPlace.distance.value.toLocaleString(undefined, {
+            style: 'decimal',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        })} miles to Ocean`
+        : undefined
+    const displayString = closestOceanPlace?.place?.region
+        ? `${oceanDistance} at ${toCityStateCountryString(closestOceanPlace.place.region)}`
+        : oceanDistance
+    const geoPropertyInfo = {
+        propertyPlace,
+        closestOceanPlace,
+        displayString,
     }
+    reportProgress(`Geocoded ${data.source} ${data.elementId}. ${toDurationString(Date.now() - tstart)}`)
     const DistanceToOcean = geoPropertyInfo.closestOceanPlace ? geoPropertyInfo.closestOceanPlace.distance.value : undefined
     const displayLinesArray = [...data.displayLinesArray, geoPropertyInfo.displayString]
 
@@ -114,11 +110,4 @@ export async function geocodePropertyInfoCard(data: PropertyInfo, reportProgress
         ...result,
         renderable
     }
-}
-
-export function serializeGeocoding(geoInfo: GeoPropertyInfo): string {
-    return JSON.stringify(geoInfo)
-}
-export function deserializeGeocoding(geoInfo: string): GeoPropertyInfo {
-    return JSON.parse(geoInfo)
 }

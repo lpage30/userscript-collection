@@ -16,4 +16,5 @@
 // @grant       GM_deleteValue
 // @grant       GM_addValueChangeListener
 // @grant       GM_removeValueChangeListener
+// @grant       GM_info
 // ==/UserScript==

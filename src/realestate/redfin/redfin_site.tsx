@@ -12,8 +12,9 @@ import { RealEstateSite, PropertyPageType } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
 import { toDurationString } from '../../common/datetime'
 
-import { toPictureSerialized, toScaledPictureSerialized, toScaledImgSerialized, deserializeImg, toSerializedElement, deserializeElement } from '../propertypagefunctions'
+import { toPictureSerialized, toScaledPictureSerialized, toScaledImgSerialized, deserializeImg, toSerializedElement, deserializeElement } from '../serialize_deserialize_functions'
 import { awaitQuerySelection, awaitQueryAll, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
+import { cacheWrapper } from '../propertyinfocache'
 
 interface ScriptAmenityFeature {
     '@type': string
@@ -170,9 +171,10 @@ export const RedfinSite: RealEstateSite = {
             },
             scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
                 const href = window.location.href
-                const properties: PropertyInfo[] = []
-                properties.push(...(await scrapeListing(reportProgress)))
-                return properties
+                const collectData = async (): Promise<PropertyInfo[]> => {
+                    return [...(await scrapeListing(reportProgress))]
+                }
+                return cacheWrapper(RedfinSite.name, href, collectData)
             }
         },
 
@@ -198,9 +200,10 @@ export const RedfinSite: RealEstateSite = {
             },
             scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
                 const href = window.location.href
-                const properties: PropertyInfo[] = []
-                properties.push(...(await scrapeListing(reportProgress)))
-                return properties
+                const collectData = async (): Promise<PropertyInfo[]> => {
+                    return [...(await scrapeListing(reportProgress))]
+                }
+                return cacheWrapper(RedfinSite.name, href, collectData)
             }
         },
 
@@ -219,28 +222,28 @@ export const RedfinSite: RealEstateSite = {
             },
             scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
                 const href = window.location.href
-                const properties: PropertyInfo[] = []
-                const element: HTMLElement = await awaitQuerySelection('div[class="detailsContent"]')
-                const result: Partial<PropertyInfo> = scrapeScriptData(JSON.parse(
-                    Array.from(element.querySelectorAll('script'))
-                        .filter(s => s.innerText.startsWith('{\"@context\"'))[0].innerText
-                ))
-                result.serializedElement = toSerializedElement({ queryString: 'div[class="detailsContent"]' })
-                result.element = deserializeElement(result.serializedElement)
-                result.serializedPicture = toScaledPictureSerialized(
-                    document.getElementById('MBImage').querySelector('img'),
-                    MaxPropertyInfoImageWidth
-                ) ?? result.serializedPicture
-                result.Picture = deserializeImg(result.serializedPicture, result)
 
-                const imgBtn = document.querySelector('div[class*="static-map"]').querySelector('img')
-                if (imgBtn) {
-                    result.createMapButton = toCreateButtonFunction()
+                const collectData = async (): Promise<PropertyInfo[]> => {
+                    const element: HTMLElement = await awaitQuerySelection('div[class="detailsContent"]')
+                    const result: Partial<PropertyInfo> = scrapeScriptData(JSON.parse(
+                        Array.from(element.querySelectorAll('script'))
+                            .filter(s => s.innerText.startsWith('{\"@context\"'))[0].innerText
+                    ))
+                    result.serializedElement = toSerializedElement({ queryString: 'div[class="detailsContent"]' })
+                    result.element = deserializeElement(result.serializedElement)
+                    result.serializedPicture = toScaledPictureSerialized(
+                        document.getElementById('MBImage').querySelector('img'),
+                        MaxPropertyInfoImageWidth
+                    ) ?? result.serializedPicture
+                    result.Picture = deserializeImg(result.serializedPicture, result)
+
+                    const imgBtn = document.querySelector('div[class*="static-map"]').querySelector('img')
+                    if (imgBtn) {
+                        result.createMapButton = toCreateButtonFunction()
+                    }
+                    return [await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress)]
                 }
-                if (reportProgress) reportProgress(`Scraped 1 Property`)
-                properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress))
-                if (reportProgress) reportProgress(`Geocoded 1 property`)
-                return properties
+                return cacheWrapper(RedfinSite.name, href, collectData)
             }
         }
     }

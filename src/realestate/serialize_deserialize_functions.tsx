@@ -1,7 +1,10 @@
 import React, { ReactNode, CSSProperties } from 'react'
-import { PropertyInfo } from './propertyinfotypes'
+import { PropertyInfo, GeoPropertyInfo } from './propertyinfotypes'
 import { scaleDimension } from '../common/ui/style_functions'
 import { getHeightWidth } from '../common/ui/style_functions'
+import { toCreateButtonFunction } from './propertyinfotype_functions'
+import { reactToHTMLElement } from '../common/ui/renderRenderable'
+import { PropertyInfoCard } from './PropertyInfoCard'
 
 const bpHomeCardPhotoImage: CSSProperties = {
     objectFit: 'cover',
@@ -138,4 +141,50 @@ export function toPictureSerialized(
         img ? { src: img.src } : undefined,
         img ? img.className : undefined
     )
+}
+
+function toSerializableProperty(property: PropertyInfo): Partial<PropertyInfo> {
+    return Object.entries(property).filter(([key]) => ![
+        'element',
+        'Picture',
+        'createMapButton',
+        'displayLines',
+        'label',
+        'color',
+        'href',
+        'renderable',
+    ].includes(key)).reduce((serializable: Partial<PropertyInfo>, [key, value]) => ({
+        ...serializable,
+        [key]: value
+    }), {} as Partial<PropertyInfo>)
+}
+
+function fromSerializableProperty(property: Partial<PropertyInfo>): PropertyInfo {
+    property.element = deserializeElement(property.serializedElement)
+    property.Picture = deserializeImg(property.serializedPicture, property)
+    if (property.hasCreateMapButton) {
+        property.createMapButton = toCreateButtonFunction()
+    }
+    property.displayLines = () => property.displayLinesArray
+    property.label = () => property.labelColorHref.label
+    property.color = () => property.labelColorHref.color
+    property.href = () => property.labelColorHref.href
+    property.renderable = reactToHTMLElement(property.elementId, <PropertyInfoCard
+        info={property as PropertyInfo} usage={'dashboard'} />
+    )
+    return property as PropertyInfo
+}
+export function serializeGeocoding(geoInfo: GeoPropertyInfo): string {
+    return JSON.stringify(geoInfo)
+}
+export function deserializeGeocoding(geoInfo: string): GeoPropertyInfo {
+    return JSON.parse(geoInfo)
+}
+
+export function serializeProperties(properties: PropertyInfo[]): string {
+    return JSON.stringify(properties.map(toSerializableProperty))
+}
+
+export function deserializeProperties(properties: string): PropertyInfo[] {
+    return JSON.parse(properties).map(fromSerializableProperty)
 }

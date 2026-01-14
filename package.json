@@ -33,6 +33,7 @@
     "country-state-city": "^3.2.1",
     "dompurify": "^3.3.0",
     "html-react-parser": "^5.2.7",
+    "idb": "^8.0.3",
     "primeicons": "^7.0.0",
     "primereact": "^10.9.7",
     "react": "^19.2.0",

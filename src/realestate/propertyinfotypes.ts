@@ -17,9 +17,6 @@ export interface GeoPropertyInfo {
     displayString: string
 }
 
-
-
-
 interface LabelColorHref {
     label: string
     color: string
@@ -51,5 +48,5 @@ export interface PropertyInfo extends Card, GeoAddress {
     serializedPicture?: string
     displayLinesArray: string[],
     labelColorHref: LabelColorHref
-    
+
 }

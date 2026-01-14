@@ -1,55 +1,51 @@
-// @grant       GM_setValue
-// @grant       GM_getValue
-// @grant       GM_deleteValue
-import { ONE_MINUTE } from '../common/datetime';
-import { GeoPropertyInfo } from './propertyinfotypes';
 import {
-    serializeGeocoding,
-    deserializeGeocoding,
-} from './propertyinfotype_functions';
+    IndexedDB_GM_getValue,
+    IndexedDB_GM_setValue,
+    IndexedDB_GM_deleteValue
+} from '../common/indexed_db_gmvalues';
+import { toHashCode } from '../common/functions';
+import { ONE_MINUTE } from '../common/datetime';
+import { PropertyInfo } from './propertyinfotypes';
+import {
+    serializeProperties,
+    deserializeProperties
+} from './serialize_deserialize_functions';
 
 const MaxDataAgems = 30 * ONE_MINUTE
 
-interface CacheProperties {
+interface CachedData {
     timestamp: number,
-    serializedProperties: string
-}
-interface CachedGeoPropertyInfo {
-    timestamp: number,
-    serializedGeoPropertyInfo: string
-}
-export function cacheGeoPropertyInfo(source: string, elementId: string, geoPropertyInfo: GeoPropertyInfo, reportProgress?: (progress: string) => void): void {
-    return
-    const now = Date.now()
-    const key = `${source}.${elementId}.geoPropertyInfo`
-    const serializedGeoPropertyInfo = serializeGeocoding(geoPropertyInfo)
-    const data: CachedGeoPropertyInfo = {
-        timestamp: now,
-        serializedGeoPropertyInfo,
-    }
-    if (reportProgress) reportProgress(`Caching ${serializedGeoPropertyInfo.length} bytes`)
-    try {
-        GM_setValue(key, data)
-        if (reportProgress) reportProgress(`Cached ${serializedGeoPropertyInfo.length} GeoPropertyInfo`)
-    } catch (e) {
-        console.error(`Failred writing to ${key}`, e)
-    }
+    serializedData: string
 }
 
-export function getCachedGeoPropertyInfo(source: string, elementId: string, reportProgress?: (progress: string) => void): GeoPropertyInfo | undefined {
-    return undefined
-    const now = Date.now()
-    const key = `${source}.${elementId}.geoPropertyInfo`
-    const dataString: string | undefined | null = GM_getValue(key)
-    if ([undefined, null].includes(dataString)) {
-        return undefined
+export async function cacheProperties(source: string, pageUrl: string, properties: PropertyInfo[]): Promise<void> {
+    const cacheData: CachedData = {
+        timestamp: Date.now(),
+        serializedData: serializeProperties(properties)
     }
-    const data: CachedGeoPropertyInfo = JSON.parse(dataString)
-    if (MaxDataAgems <= (now - data.timestamp)) {
-        GM_deleteValue(key)
-        return undefined
+    const cacheKey = `${source}.${toHashCode(pageUrl)}`
+    await IndexedDB_GM_setValue(cacheKey, cacheData)
+}
+
+export async function getCachedProperties(source: string, pageUrl: string): Promise<PropertyInfo[]> {
+    const cacheKey = `${source}.${toHashCode(pageUrl)}`
+    const cacheData: CachedData | undefined = await IndexedDB_GM_getValue(cacheKey)
+    if ([undefined, null].includes(cacheData)) {
+        return []
     }
-    const deserializedGeoPropertyInfo = deserializeGeocoding(data.serializedGeoPropertyInfo)
-    if (reportProgress) reportProgress(`Cache hit ${source} ${elementId} GeoPropertyInfo`)
-    return deserializedGeoPropertyInfo
+    if (MaxDataAgems <= (Date.now() - cacheData.timestamp)) {
+        await IndexedDB_GM_deleteValue(cacheKey)
+        return []
+    }
+    return deserializeProperties(cacheData.serializedData)
+}
+
+export async function cacheWrapper(source: string, pageUrl: string, collectData: () => Promise<PropertyInfo[]>): Promise<PropertyInfo[]> {
+    const cachedProperties = await getCachedProperties(source, pageUrl)
+    if (0 === cachedProperties.length) {
+        const properties = await collectData()
+        await cacheProperties(source, pageUrl, properties)
+        return properties
+    }
+    return cachedProperties
 }
