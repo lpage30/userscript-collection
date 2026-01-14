@@ -160,6 +160,7 @@ export function toDuration(timeValue: number, timeUnit: TIME_UNIT_TYPE): number 
       return timeValue
   }
 }
+export const toDurationString = (ms: number) => formatDuration(ms, { timeType: TIME_TYPE.MILLISECOND, timeFormat: TIME_FORMAT_TYPE.SHORT})
 export const toDate = (date: string | Date | number): Date | null => {
   if (isDate(date)) return date;
   if (isString(date)) return parseDate(date);

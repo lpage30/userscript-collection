@@ -138,7 +138,7 @@ export async function classifyGeoCountryStateCity(geoAddress: GeoAddress): Promi
                 // try using state name as a city. known to have issues with this with UK
                 const statecity = classifyGeoStateCity({ ...geoAddress, city: geoAddress.state }, country)
                 if (statecity) {
-                    console.log(`Found ${city.name} in ${state.name} using city = ${geoAddress.state} (state) for ${toGeoAddressString(geoAddress)}`)
+                    console.log(`Found ${statecity.city.name} in ${statecity.state.name} using ${geoAddress.state} (state)  as city for ${toGeoAddressString(geoAddress)}`)
                     return {
                         address: geoAddress.address,
                         city: statecity.city,

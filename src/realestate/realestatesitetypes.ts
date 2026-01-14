@@ -18,7 +18,7 @@ export interface RealestatePage {
     isMapToggleElement: (element: HTMLElement) => boolean
     awaitForPageLoad: () => Promise<void>
     insertContainerOnPage: (container: HTMLElement) => Promise<void>
-    scrapePage: () => Promise<PropertyInfo[]>
+    scrapePage: (reportProgress?: (progress: string) => void) => Promise<PropertyInfo[]>
     getMapToggleElements: (parentElement?: HTMLElement) => Promise<HTMLElement[]>
 }
 export interface RealEstateSite {

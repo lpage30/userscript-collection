@@ -1,19 +1,26 @@
-import { 
+import {
     PropertyInfo,
-    MaxPropertyInfoImageWidth 
+    MaxPropertyInfoImageWidth
 } from '../propertyinfotypes'
 import {
     toPropertyInfoCard,
     geocodePropertyInfoCard,
+    toCreateButtonFunction,
 } from '../propertyinfotype_functions'
 import { PropertyPageType, RealEstateSite } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
-import { toScaledPicture } from '../propertypagefunctions'
+import { toDurationString } from '../../common/datetime'
+import {
+    toPictureSerialized,
+    toScaledPictureSerialized,
+    deserializeImg,
+    toSerializedElement,
+    deserializeElement
+} from '../propertypagefunctions'
 import { GeoCoordinate, GeodataSourceType, parseAddress } from '../../geocoding/datatypes'
 
 import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
-import { ReactNode } from 'react'
-import { Button } from 'primereact/button'
+
 interface ScriptDescription {
     'baths_consolidated': string | null
     'baths_max': any
@@ -76,6 +83,8 @@ interface ScriptNextData {
     'virtual_tours': any
 }
 function scrapeScriptData(scriptData: ScriptNextData): Partial<PropertyInfo> {
+    const serializedElement = toSerializedElement({ elementId: `placeholder_property_${scriptData.property_id}` })
+    const element = deserializeElement(serializedElement)
     const result = {
         source: 'Realtor.com',
         oceanGeodataSource: 'tl_2025_us_coastline' as GeodataSourceType,
@@ -95,12 +104,15 @@ function scrapeScriptData(scriptData: ScriptNextData): Partial<PropertyInfo> {
         country: 'United States',
         coordinate: scriptData.location.address.coordinate ? { ...scriptData.location.address.coordinate } : undefined,
         href: () => `https://www.realtor.com/realestateandhomes-detail/${scriptData.permalink}`,
-        element: document.getElementById(`placeholder_property_${scriptData.property_id}`) as HTMLElement
+        serializedElement,
+        element,
     }
-    const Picture = toScaledPicture(result.element.querySelector('img'), MaxPropertyInfoImageWidth, result)
+    const serializedPicture = toPictureSerialized(result.element.querySelector('img[data-testid="picture-img"]'))
+    const Picture = deserializeImg(serializedPicture, result)
     return {
         ...result,
-        Picture
+        serializedPicture,
+        Picture,
     }
 }
 export const RealtorSite: RealEstateSite = {
@@ -126,11 +138,17 @@ export const RealtorSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+                let tBegin = Date.now()
+                const href = window.location.href
                 const properties: PropertyInfo[] = []
-                for (const scriptData of JSON.parse(document.getElementById('__NEXT_DATA__').innerText).props.pageProps.properties) {
-                    properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(scrapeScriptData(scriptData))))
+                const scrapedProperties = JSON.parse(document.getElementById('__NEXT_DATA__').innerText).props.pageProps.properties.map(scrapeScriptData)
+                if (reportProgress) reportProgress(`Scraped ${scrapedProperties.length} properties ${toDurationString(Date.now() - tBegin)}`)
+                tBegin = Date.now()
+                for (const scrapedProperty of scrapedProperties) {
+                    properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(scrapedProperty), reportProgress))
                 }
+                if (reportProgress) reportProgress(`Geocoded ${properties.length} properties ${toDurationString(Date.now() - tBegin)}`)
                 return properties
             },
 
@@ -154,15 +172,17 @@ export const RealtorSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
                 const href = window.location.href
+                const properties: PropertyInfo[] = []
                 let result: Partial<PropertyInfo> = {
                     source: 'Realtor.com',
                     oceanGeodataSource: 'tl_2025_us_coastline' as GeodataSourceType,
                     currencySymbol: '$',
-                    href: () => href
+                    href: () => href,
                 }
-                result.element = await awaitQuerySelection('div[data-testid="ldp-main-container"]')
+                result.serializedElement = toSerializedElement({ queryString: 'div[data-testid="ldp-main-container"]' })
+                result.element = deserializeElement(result.serializedElement)
                 result.Price = parseNumber((await awaitQuerySelection('div[data-testid="ldp-list-price"]')).innerText)
                 result = {
                     ...result, ...Array.from((await awaitQuerySelection('div[data-testid="ldp-home-facts"]')).querySelectorAll('li'))
@@ -214,37 +234,17 @@ export const RealtorSite: RealEstateSite = {
                             ...obj,
                         }), {} as Partial<PropertyInfo>)
                 }
-                result.Picture = toScaledPicture(document.querySelector('ul[data-testid="carousel-track"]').querySelector('li').querySelector('img'), MaxPropertyInfoImageWidth, result)
+                result.serializedPicture = toScaledPictureSerialized(document.querySelector('ul[data-testid="carousel-track"]').querySelector('li').querySelector('img'), MaxPropertyInfoImageWidth)
+                result.Picture = deserializeImg(result.serializedPicture, result)
 
                 const mapBtn = await awaitQuerySelection('button[data-testid="map-snapshot-map-btn"]')
                 if (mapBtn) {
-                    const mapClassName = Array.from(mapBtn.parentElement.classList).join(' ')
-                    result.createMapButton = (text: string, onClick: () => void): ReactNode => (
-                        <Button
-                            title={text}
-                            className={`app-button ${mapClassName}`}
-                            onClick={onClick}
-                            style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                padding: 0,
-                                margin: 0,
-                            }}
-                        >
-                            <div
-                                title={text}
-                                className={'map'}
-                            />
-                            <span
-                                className={'text-center'}
-                            >{text}</span>
-                        </Button>
-                    )
+                    result.createMapButton = toCreateButtonFunction()
                 }
-
-                return [await geocodePropertyInfoCard(toPropertyInfoCard(result))]
+                if (reportProgress) reportProgress(`Scraped 1 Property`)
+                properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress))
+                if (reportProgress) reportProgress(`Geocoded 1 property`)
+                return properties
             }
         },
     }

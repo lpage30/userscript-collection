@@ -17,6 +17,14 @@ export interface GeoPropertyInfo {
     displayString: string
 }
 
+
+
+
+interface LabelColorHref {
+    label: string
+    color: string
+    href: string
+}
 export interface PropertyInfo extends Card, GeoAddress {
     source: string
     currencySymbol: string,
@@ -33,9 +41,15 @@ export interface PropertyInfo extends Card, GeoAddress {
     lotSize?: number
     Picture?: ReactNode
     createMapButton?: (text: string, onClick: () => void) => ReactNode
-    elementId: string
     element?: HTMLElement
     coordinate?: GeoCoordinate
     DistanceToOcean?: number
     geoPropertyInfo?: GeoPropertyInfo
+    elementId: string
+    hasCreateMapButton: boolean
+    serializedElement?: string
+    serializedPicture?: string
+    displayLinesArray: string[],
+    labelColorHref: LabelColorHref
+    
 }

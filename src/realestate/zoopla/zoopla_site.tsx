@@ -1,20 +1,20 @@
 import {
-    PropertyInfo, 
+    PropertyInfo,
     MaxPropertyInfoImageWidth
 } from '../propertyinfotypes'
 import {
+    toCreateButtonFunction,
     toPropertyInfoCard,
     geocodePropertyInfoCard,
 } from '../propertyinfotype_functions'
 
 import { PropertyPageType, RealEstateSite } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
-import { toScaledImg } from '../propertypagefunctions'
+import { toScaledImgSerialized, toSerializedImg, deserializeImg, toSerializedElement, deserializeElement } from '../propertypagefunctions'
 import { parseAddress } from '../../geocoding/datatypes'
+import { toDurationString } from '../../common/datetime'
 
 import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
-import { ReactNode } from 'react'
-import { Button } from 'primereact/button'
 
 interface ScriptFeature {
     content: number
@@ -120,8 +120,10 @@ function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
     const href = `https://www.zoopla.co.uk/${scriptData.listingUris.detail}`
     result.href = () => href
     result.Price = parseNumber(scriptData.price)
-    result.Picture = toScaledImg(scriptData.image ? { src: scriptData.image.src, width: 244, height: 252 } : undefined, MaxPropertyInfoImageWidth, result)
-    result.element = document.getElementById(`listing_${scriptData.listingId}`)
+    result.serializedPicture = toSerializedImg(scriptData.image ? { src: scriptData.image.src } : undefined)
+    result.Picture = deserializeImg(result.serializedPicture, result)
+    result.serializedElement = toSerializedElement({ elementId: `listing_${scriptData.listingId}` })
+    result.element = deserializeElement(result.serializedElement)
     return result
 }
 const srcSetCoordinateRegex = new RegExp(/.*\/([-\.\d]+),([-\.\d]+).*/g)
@@ -149,7 +151,8 @@ function scrapeScriptSingleData(scriptData: ScriptSingleData, address: string, s
             lon: parseNumber(parsedSrcSet[1]),
         }
     }
-    result.Picture = toScaledImg(scriptData.image ? { src: scriptData.image, width: 800, height: 533 } : undefined, MaxPropertyInfoImageWidth, result)
+    result.serializedPicture = toScaledImgSerialized(scriptData.image ? { src: scriptData.image, width: 800, height: 533 } : undefined, MaxPropertyInfoImageWidth)
+    result.Picture = deserializeImg(result.serializedPicture, result)
     return result
 }
 
@@ -179,8 +182,11 @@ export const ZooplaSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (): Promise<PropertyInfo[]> => {
-                const regexReplacements: [RegExp,string][] = [
+            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+                let tBegin = Date.now()
+                const href = window.location.href
+                const properties: PropertyInfo[] = []
+                const regexReplacements: [RegExp, string][] = [
                     [/\{\\"/g, '{"'],
                     [/\\"\}/g, '"}'],
                     [/\[\\"/g, '["'],
@@ -190,7 +196,6 @@ export const ZooplaSite: RealEstateSite = {
                     [/,\\"/g, ',"'],
                     [/\\",/g, '",']
                 ]
-                const properties: PropertyInfo[] = []
                 const scriptDataArray: ScriptData[] =
                     window.location.href.startsWith('https://www.zoopla.co.uk/for-sale/map')
                         ? Array.from(document.querySelectorAll('script[id="__NEXT_DATA__"]'))
@@ -202,15 +207,19 @@ export const ZooplaSite: RealEstateSite = {
                             .filter(t => t.includes('lng'))
                             .map(t => JSON.parse(
                                 regexReplacements.reduce(
-                                    (jsonString, [regex, replacement]) => 
+                                    (jsonString, [regex, replacement]) =>
                                         jsonString.replace(regex, replacement),
                                     /^self.__next_f.push\(\[\d,[^\[]*(.*)\\n\"\]\)/.exec(t)[1]
                                 )
                             ))[0][3].regularListingsFormatted
+                if (reportProgress) reportProgress(`Scraped ${scriptDataArray.length} properties ${toDurationString(Date.now() - tBegin)}`)
+                tBegin = Date.now()
                 for (const scriptData of scriptDataArray) {
-                    properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(scrapeScriptData(scriptData))))
+                    properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(scrapeScriptData(scriptData)), reportProgress))
                 }
+                if (reportProgress) reportProgress(`Geocoded ${properties.length} properties ${toDurationString(Date.now() - tBegin)}`)
                 return properties
+
             },
 
         },
@@ -238,41 +247,29 @@ export const ZooplaSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+                const href = window.location.href
+                const properties: PropertyInfo[] = []
                 const result: Partial<PropertyInfo> = scrapeScriptSingleData(
                     Array.from(document.querySelectorAll('script')).filter(e => e.innerText.startsWith('{\"@context\"')).map(e => JSON.parse(e.innerText)).slice(-1)[0],
                     Array.from(document.querySelectorAll('address'))[0].innerText,
                     Array.from(document.querySelectorAll('source')).filter(e => e.srcset.startsWith('https://maps.zoopla.co.uk/styles/portal/static/')).map(e => e.srcset)[0]
                 )
+                result.serializedElement = toSerializedElement({
+                    elementIdPickChild: {
+                        elementId: 'main-content',
+                        childGrandchildIndexes: [0, 0]
+                    }
+                })
+                result.element = deserializeElement(result.serializedElement)
                 const mapBtns = Array.from(document.querySelectorAll('button')).filter(e => ['Map'].includes(e.innerText))
                 if (1 === mapBtns.length) {
-                    const mapClassName = Array.from(mapBtns[0].parentElement.classList).join(' ')
-                    result.createMapButton = (text: string, onClick: () => void): ReactNode => (
-                        <Button
-                            title={text}
-                            className={`app-button ${mapClassName}`}
-                            onClick={onClick}
-                            style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                padding: 0,
-                                margin: 0,
-                            }}
-                        >
-                            <div
-                                title={text}
-                                className={'map'}
-                            />
-                            <span
-                                className={'text-center'}
-                            >{text}</span>
-                        </Button>
-                    )
+                    result.createMapButton = toCreateButtonFunction()
                 }
-
-                return [await geocodePropertyInfoCard(toPropertyInfoCard(result))]
+                if (reportProgress) reportProgress(`Scraped 1 Property`)
+                properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress))
+                if (reportProgress) reportProgress(`Geocoded 1 property`)
+                return properties
             }
         },
     }

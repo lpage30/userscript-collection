@@ -5,7 +5,8 @@
   "scripts": {
     "clean": "npm run prebuild && rm -rf node_modules && rm -f package-lock.json",
     "prebuild": "rm -rf dist",
-    "build": "./vite-build-userscripts",
+    "build": "ImportJsonAsMap=false ./vite-build-userscripts",
+    "debug-build": "DEBUG=true npm run build",
     "update-modules": "ncu -u"
   },
   "repository": {

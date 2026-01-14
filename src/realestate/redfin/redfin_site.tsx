@@ -1,16 +1,18 @@
-import { ReactNode } from 'react'
-import { Button } from 'primereact/button'
 import {
     PropertyInfo,
     MaxPropertyInfoImageWidth
 } from '../propertyinfotypes'
 import {
+    toCreateButtonFunction,
     toPropertyInfoCard,
     geocodePropertyInfoCard,
 } from '../propertyinfotype_functions'
+
 import { RealEstateSite, PropertyPageType } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
-import { toScaledImg, toScaledPicture } from '../propertypagefunctions'
+import { toDurationString } from '../../common/datetime'
+
+import { toPictureSerialized, toScaledPictureSerialized, toScaledImgSerialized, deserializeImg, toSerializedElement, deserializeElement } from '../propertypagefunctions'
 import { awaitQuerySelection, awaitQueryAll, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 
 interface ScriptAmenityFeature {
@@ -103,11 +105,13 @@ function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
     const href = scriptData.url
     result.href = () => href
     const img = Array.isArray(scriptData.image) ? scriptData.image[0] : scriptData.image
-    result.Picture = toScaledImg(img ? { src: img.url, width: img.width, height: img.height } : undefined, MaxPropertyInfoImageWidth, result)
+    result.serializedPicture = toScaledImgSerialized(img ? { src: img.url, width: img.width, height: img.height } : undefined, MaxPropertyInfoImageWidth)
+    result.Picture = deserializeImg(result.serializedPicture, result)
     return result
 }
 
-async function scrapeListing(): Promise<PropertyInfo[]> {
+async function scrapeListing(reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> {
+    let tBegin = Date.now()
     const properties: PropertyInfo[] = []
     const elements = Array.from(await awaitQueryAll('div[class*="bp-Homecard "]'))
     const scriptData = Array.from(document.querySelectorAll('script'))
@@ -117,16 +121,22 @@ async function scrapeListing(): Promise<PropertyInfo[]> {
         .flat()
         .filter(data => !['BreadcrumbList', 'Product', 'Organization'].includes(data['@type']))
 
+    if (reportProgress) reportProgress(`Scraped ${scriptData.length} properties ${toDurationString(Date.now() - tBegin)}`)
+    tBegin = Date.now()
     for (let i = 0; i < Math.min(elements.length, scriptData.length); i = i + 1) {
         const property: Partial<PropertyInfo> = scrapeScriptData(scriptData[i])
         property.Price = property.Price ?? parseNumber(elements[i].innerText.split('\n').find(p => p.startsWith('$')))
         property.Bathrooms = property.Bathrooms ?? parseNumber(elements[i].innerText.split('\n').find(p => (/^[\d\.]+\s*bath?/ig).test(p)))
         property.Bedrooms = property.Bedrooms ?? parseNumber(elements[i].innerText.split('\n').find(p => (/^[\d\.]+\s*bed?/ig).test(p)))
-        property.element = elements[i]
-        property.Picture = toScaledPicture(elements[i].querySelector('img'), MaxPropertyInfoImageWidth, property)
+        property.serializedElement = toSerializedElement({ queryAllPickItemChild: { queryAllString: 'div[class*="bp-Homecard "]', itemChildGrandchildIndexes: [i] } })
+        property.element = deserializeElement(property.serializedElement)
+        property.serializedPicture = toPictureSerialized(elements[i].querySelector('img'))
+        property.Picture = deserializeImg(property.serializedPicture, property)
 
-        properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(property)))
+        properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(property), reportProgress))
     }
+    if (reportProgress) reportProgress(`Geocoded ${properties.length} properties ${toDurationString(Date.now() - tBegin)}`)
+
     return properties
 }
 
@@ -158,7 +168,12 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (): Promise<PropertyInfo[]> => scrapeListing(),
+            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+                const href = window.location.href
+                const properties: PropertyInfo[] = []
+                properties.push(...(await scrapeListing(reportProgress)))
+                return properties
+            }
         },
 
         [PropertyPageType.Listing]: {
@@ -168,7 +183,7 @@ export const RedfinSite: RealEstateSite = {
                 await awaitPageLoadByMutation()
                 await awaitElementById('region-content')
             },
-            getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {                
+            getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
                 (await awaitQuerySelection('div[class="ExposedLayoutButtonContainer"]')).querySelector('button').click()
                 const buttons = Array.from((await awaitQuerySelection('div[class*="ExposedLayoutMenu"]')).querySelectorAll('li[class="MenuItem"]'))
                     .reduce((obj, li) => ({ ...obj, [(li as HTMLElement).innerText]: li.querySelector('button') }), {} as LayoutMenuButtons)
@@ -181,7 +196,12 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (): Promise<PropertyInfo[]> => scrapeListing(),
+            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+                const href = window.location.href
+                const properties: PropertyInfo[] = []
+                properties.push(...(await scrapeListing(reportProgress)))
+                return properties
+            }
         },
 
         [PropertyPageType.Single]: {
@@ -197,84 +217,30 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+                const href = window.location.href
+                const properties: PropertyInfo[] = []
                 const element: HTMLElement = await awaitQuerySelection('div[class="detailsContent"]')
                 const result: Partial<PropertyInfo> = scrapeScriptData(JSON.parse(
                     Array.from(element.querySelectorAll('script'))
                         .filter(s => s.innerText.startsWith('{\"@context\"'))[0].innerText
                 ))
-                result.element = document.querySelector('div[class="detailsContent"]')
-                result.Picture = toScaledPicture(
+                result.serializedElement = toSerializedElement({ queryString: 'div[class="detailsContent"]' })
+                result.element = deserializeElement(result.serializedElement)
+                result.serializedPicture = toScaledPictureSerialized(
                     document.getElementById('MBImage').querySelector('img'),
-                    MaxPropertyInfoImageWidth,
-                    result
-                ) ?? result.Picture
+                    MaxPropertyInfoImageWidth
+                ) ?? result.serializedPicture
+                result.Picture = deserializeImg(result.serializedPicture, result)
 
                 const imgBtn = document.querySelector('div[class*="static-map"]').querySelector('img')
                 if (imgBtn) {
-                    result.createMapButton = (text: string, onClick: () => void): ReactNode => (
-                        <Button
-                            title={text}
-                            className={`app-button`}
-                            onClick={onClick}
-                            style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                padding: 0,
-                                margin: 0,
-                            }}
-                        >
-                            <div
-                                className={'static-map v2 addressBannerRevamp'}
-                            >
-                                <img
-                                    src={imgBtn.src}
-                                    title={text}
-                                    alt={text}
-                                    className={Array.from(imgBtn.classList).join(' ')}
-                                    height={`${MaxPropertyInfoImageWidth}px`}
-                                    width={`${MaxPropertyInfoImageWidth}px`}
-                                />
-                                <div
-                                    className={Array.from(imgBtn.nextElementSibling.classList).join(' ')}
-                                    style={{
-                                        position: 'absolute',
-                                        left: '50%',
-                                        top: '50%',
-                                        width: `${Math.round(12 / 200 * MaxPropertyInfoImageWidth)}px`,
-                                        height: `${Math.round(12 / 200 * MaxPropertyInfoImageWidth)}px`,
-                                        marginTop: `-${Math.round(30 / 200 * MaxPropertyInfoImageWidth)}px`,
-                                        marginLeft: `-${Math.round(15 / 200 * MaxPropertyInfoImageWidth)}px`,
-                                    }}
-                                >
-                                    <svg
-                                        className={Array.from(imgBtn.nextElementSibling.firstElementChild.classList).join(' ')}
-                                        style={{
-                                            height: `${Math.round(32 / 200 * MaxPropertyInfoImageWidth)}px`,
-                                            width: `${Math.round(30 / 200 * MaxPropertyInfoImageWidth)}px`,
-                                        }}
-                                    >
-                                        <svg
-                                            viewBox={`0 0 ${Math.round(24 / 200 * MaxPropertyInfoImageWidth)} ${Math.round(24 / 200 * MaxPropertyInfoImageWidth)}`}
-                                        >
-                                            <path
-                                                fillRule={'evenodd'}
-                                                clipRule={'evenodd'}
-                                                d={'M20 10a8 8 0 10-16 0c0 3.219 1.957 6.205 3.741 8.284a27.431 27.431 0 002.498 2.542c.373.334.753.667 1.154.968a.99.99 0 001.233-.014c.066-.052.508-.405 1.144-.988a29.1 29.1 0 002.493-2.582C18.039 16.116 20 13.128 20 10zm-8-3a3 3 0 110 6 3 3 0 010-6z'}
-                                            ></path>
-                                        </svg>
-                                    </svg>
-                                </div>
-                            </div>
-                            <span
-                                className={'text-center'}
-                            >{text}</span>
-                        </Button>
-                    )
-                    return [await geocodePropertyInfoCard(toPropertyInfoCard(result))]
+                    result.createMapButton = toCreateButtonFunction()
                 }
+                if (reportProgress) reportProgress(`Scraped 1 Property`)
+                properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress))
+                if (reportProgress) reportProgress(`Geocoded 1 property`)
+                return properties
             }
         }
     }

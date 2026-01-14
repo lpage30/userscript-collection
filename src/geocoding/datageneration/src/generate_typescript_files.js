@@ -35,7 +35,7 @@ ${countryMappingLines.join(',\n')}
             const { infoArrayLines, globImportLines } = baseCountryInfoArray
                 .map(({ name, filename, country }) => ([
                     `    { name: "${name}", isoCode: "${country.isoCode}", lat: ${country.lat}, lon: ${country.lon}, containedCoordinates: [${country.containedCoordinates.map(JSON.stringify).join(',')}] }`,
-                    `        case "${name}": return (await Object.values(import.meta.glob('./${GeocodedCountryCityStateDataDirname}/${filename}', { import: 'default' }))[0]()) as Country`
+                    `        case "${name}": return JSON.parse(await Object.values(import.meta.glob('./${GeocodedCountryCityStateDataDirname}/${filename}', { query: '?raw', import: 'default' }))[0]()) as Country`
                 ]))
                 .reduce((result, [infoArrayLine, globImportLine]) => ({
                     infoArrayLines: [...result.infoArrayLines, infoArrayLine],
@@ -98,7 +98,7 @@ ${countryMappingLines.join(',\n')}
         } else {
             const globImportLines = geocodedCountryInfoArray
                 .map(({ name, filename, country }) =>
-                    `        case "${name}": return (await Object.values(import.meta.glob('./${GeocodedCountryCityStateDataDirname}/${filename}', { import: 'default' }))[0]()) as GeneratedGeocodedCountry`
+                    `        case "${name}": return JSON.parse(await Object.values(import.meta.glob('./${GeocodedCountryCityStateDataDirname}/${filename}', { query: '?raw', import: 'default' }))[0]()) as GeneratedGeocodedCountry`
                 )
             typescript = `${typescript}
 import { GeocodedCountry, GeneratedGeocodedCountry, joinBaseAndGeocoded } from './geocodedcountrystatecitytypes'
@@ -148,7 +148,7 @@ export function getCountryBaseInfo(): CountryStateBase[] {
 }
 
 // import getCountry from a generated_<usage>_country_state_city_map.ts file
-let fGetCountry: ((countryName: string) => Promise<Country | undefined>') | undefined = undefined
+let fGetCountry: ((countryName: string) => Promise<Country | undefined>) | undefined = undefined
 export const registerGetCountry = (getCountryFunc: (countryName: string) => Promise<Country| undefined>) => {
     fGetCountry = getCountryFunc
 }
@@ -164,7 +164,7 @@ let fGetGeocodedCountry: ((countryName: string) => Promise<GeocodedCountry | und
 export const registerGetGeocodedCountry = (getGeocodedCountryFunc: (countryName: string) => Promise<GeocodedCountry | undefined>) => {
     fGetGeocodedCountry = getGeocodedCountryFunc
 }
-export function getGeocodedCountry(countryName: string): ${asMap ? 'GeocodedCountry' : 'Promise<GeocodedCountry>'} {
+export async function getGeocodedCountry(countryName: string): Promise<GeocodedCountry> {
     if(undefined === fGetGeocodedCountry) {
         throw new Error('fGetGeocodedCountry not set. Call registerGetGeocodedCountry() with imported, generated getGeocodedCountry func')
     }
@@ -183,7 +183,7 @@ const GeojsonTSGenerators = {
         console.log(`${indent}Generating ${indexes.length} ${geojsonFilenamePrefix} geojson index dynamic imports, get${geodataName}GeojsonIndex(index: number): any exports to ${Path.basename(tsFilepath)}`)
         const indexSwitchCaseGlobLines = indexes.map(index => {
             const geojsonindexName = toGeojsonIndexName(index)
-            return `        case ${index}: return {source: '${geojsonFilenamePrefix}', ...(await Object.values(import.meta.glob('./${GeojsonDataDirname}/${geojsonindexName}.json', { import: 'default' }))[0]()) as GeojsonIndex }`
+            return `        case ${index}: return {source: '${geojsonFilenamePrefix}', ...JSON.parse(await Object.values(import.meta.glob('./${GeojsonDataDirname}/${geojsonindexName}.json', { query: '?raw', import: 'default' }))[0]()) as GeojsonIndex }`
         })
         const typescript = `// ${indexSwitchCaseGlobLines.length} dynamic imported ${geojsonFilenamePrefix} indexes
 import { GeojsonIndex } from './datatypes'
@@ -313,7 +313,7 @@ async function generateRegisterFunctionsTSFiles(
     console.log(`${indent}done! duration: ${durationToString(Date.now() - tstart)}`)
 }
 
-export async function generateTSfiles(geocodingDirname, usageCountryMap, indent = '', asMap = true) {
+export async function generateTSfiles(geocodingDirname, usageCountryMap, indent, asMap) {
     const tstart = Date.now()
     console.log(`${indent}Generating Country/State/City Map and Geojson Data Typescript files for usages: [${['all', ...Object.keys(usageCountryMap)].join(',')}]`)
     const countryStateCityGenerator = CountryStateCityMapGenerator(geocodingDirname)

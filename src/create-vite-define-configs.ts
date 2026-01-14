@@ -2,6 +2,7 @@ import { LibraryOptions, PluginOption, defineConfig } from "vite";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+const debug = (process.env['DEBUG'] ?? '').trim().toLowerCase() === 'true'
 const dirname =
   typeof __dirname === "undefined"
     ? path.dirname(fileURLToPath(import.meta.url))
@@ -71,10 +72,10 @@ export function createViteUserscriptDefineConfigFunction(
       root: __projectDirname,
       build: {
         cssCodeSplit: false,
-        cssMinify: true,
+        cssMinify: !debug,
         emptyOutDir: false,
         outDir: "dist",
-        minify: true,
+        minify: !debug,
         sourcemap: false,
         lib: {
           ...libObject,

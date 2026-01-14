@@ -7,11 +7,13 @@ import { RedfinSite } from "./redfin/redfin_site";
 import { RealtorSite } from "./realtor/realtor_site";
 import { ZooplaSite } from "./zoopla/zoopla_site";
 import { awaitDelay, awaitElementById } from "../common/await_functions";
+import { LoadingPopup } from "../common/ui/LoadingPopup";
 import {
   renderInContainer,
 } from "../common/ui/renderRenderable";
 import { RealestateControlPanel } from "./RealestateControlPanel";
 import { getMaximumZIndex } from '../common/ui/style_functions';
+import { toDurationString } from '../common/datetime';
 
 const realestateSites: RealEstateSite[] = [
   RedfinSite,
@@ -59,11 +61,21 @@ export function toUserscript(site: RealEstateSite): Userscript {
       const renderableId = `${container.id}-panel`
       const page = Object.values(site.pages).find(page => page.isPage(href))
       if ([undefined, null].includes(page)) return
+      const tstartLoad = Date.now()
+      let updateProgress: (progress: string) => void | undefined
+      renderInContainer(container, <LoadingPopup
+        message={`Userscript Loading ${site.name} ${propertyPageTypeString(page.pageType)}...`}
+        isOpen={true}
+      />);
       const toggleMaps = async (parentElement?: HTMLElement) => {
         (await page.getMapToggleElements(parentElement)).forEach(element => element.click())
       }
       await awaitDelay(1000)
-      const properties = await page.scrapePage()
+      const reportProgress = (progress: string) => {
+        console.log(`Progress: ${progress}`)
+      }
+      const properties = await page.scrapePage(reportProgress)
+      console.log(`${site.name} ${propertyPageTypeString(page.pageType)} ${properties.length} properties: ${toDurationString(Date.now() - tstartLoad)}`)
       const title = `${site.name} (${properties[0].country}) ${propertyPageTypeString(page.pageType)}${PropertyPageType.Single === page.pageType ? ` ${properties[0].address}` : ''}`
       renderInContainer(container, <RealestateControlPanel
         id={renderableId}
