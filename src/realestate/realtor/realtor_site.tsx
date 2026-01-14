@@ -142,10 +142,11 @@ export const RealtorSite: RealEstateSite = {
             scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
                 const href = window.location.href
                 const collectData = async (): Promise<PropertyInfo[]> => {
+                    let tBegin = Date.now()
                     const result: PropertyInfo[] = []
                     const scrapedProperties = JSON.parse(document.getElementById('__NEXT_DATA__').innerText).props.pageProps.properties.map(scrapeScriptData)
                     if (reportProgress) reportProgress(`Scraped ${scrapedProperties.length} properties ${toDurationString(Date.now() - tBegin)}`)
-                    const tBegin = Date.now()
+                    tBegin = Date.now()
                     for (const scrapedProperty of scrapedProperties) {
                         result.push(await geocodePropertyInfoCard(toPropertyInfoCard(scrapedProperty), reportProgress))
                     }

@@ -186,6 +186,7 @@ export const ZooplaSite: RealEstateSite = {
             scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
                 const href = window.location.href
                 const collectData = async (): Promise<PropertyInfo[]> => {
+                    let tBegin = Date.now()
                     const result: PropertyInfo[] = []
                     const regexReplacements: [RegExp, string][] = [
                         [/\{\\"/g, '{"'],
@@ -214,7 +215,7 @@ export const ZooplaSite: RealEstateSite = {
                                     )
                                 ))[0][3].regularListingsFormatted
                     if (reportProgress) reportProgress(`Scraped ${scriptDataArray.length} properties ${toDurationString(Date.now() - tBegin)}`)
-                    const tBegin = Date.now()
+                    tBegin = Date.now()
                     for (const scriptData of scriptDataArray) {
                         result.push(await geocodePropertyInfoCard(toPropertyInfoCard(scrapeScriptData(scriptData)), reportProgress))
                     }
