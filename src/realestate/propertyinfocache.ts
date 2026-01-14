@@ -17,7 +17,12 @@ interface CachedData {
     timestamp: number,
     serializedData: string
 }
-
+async function cacheIndividualProperties(source: string, properties: PropertyInfo[]): Promise<void> {
+    for (const property of properties) {
+        const pageUrl = property.href('')
+        await cacheProperties(source, pageUrl, [property])
+    }
+}
 export async function cacheProperties(source: string, pageUrl: string, properties: PropertyInfo[]): Promise<void> {
     const cacheData: CachedData = {
         timestamp: Date.now(),
@@ -25,6 +30,10 @@ export async function cacheProperties(source: string, pageUrl: string, propertie
     }
     const cacheKey = `${source}.${toHashCode(pageUrl)}`
     await IndexedDB_GM_setValue(cacheKey, cacheData)
+    if (1 < properties.length || (1 == properties.length && pageUrl !== properties[0].href(''))) {
+        cacheIndividualProperties(source, properties)
+    }
+
 }
 
 export async function getCachedProperties(source: string, pageUrl: string): Promise<PropertyInfo[]> {
