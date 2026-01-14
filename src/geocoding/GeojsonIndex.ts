@@ -2,7 +2,7 @@ import { GeojsonIndex, GeodataSourceType } from './datatypes'
 import { MultiLineString, Feature } from 'geojson'
 import { ONE_MINUTE } from '../common/datetime'
 import * as turf from '@turf/turf'
-import { 
+import {
     getTl2025UsCoastlineGeojsonIndex,
     getUkcp18UkMarineCoastlineHiresGeojsonIndex
 } from './generated_registered_geojson_data_functions'
@@ -13,7 +13,7 @@ function getGeojsonIndex(geodataSource: GeodataSourceType, index: number): Promi
 }
 
 function toMultilineString(indices: GeojsonIndex[]): Feature<MultiLineString> {
-    const coordinates = indices.map(({lineString}) => lineString.geometry.coordinates)
+    const coordinates = indices.map(({ lineString }) => lineString.geometry.coordinates)
     return turf.multiLineString(coordinates)
 }
 type IndexCacheBlock = {
@@ -31,7 +31,7 @@ class GeojsonIndexCache {
             [index: number]: IndexCacheBlock
         },
         ukcp18_uk_marine_coastline_hires: {
-            [index: number]: IndexCacheBlock            
+            [index: number]: IndexCacheBlock
         }
     }
     private multilineStringCache: {
@@ -57,7 +57,7 @@ class GeojsonIndexCache {
 
     async loadIndex(geodataSource: GeodataSourceType, index: number): Promise<GeojsonIndex> {
         let result: IndexCacheBlock = this.indexCache[geodataSource][index]
-        if(result) {
+        if (result) {
             clearTimeout(result.evictionTimeout)
         } else {
             const geojsonIndex = await getGeojsonIndex(geodataSource, index)
@@ -82,7 +82,7 @@ class GeojsonIndexCache {
     async loadMultlineString(geodataSource: GeodataSourceType, indices: number[]): Promise<Feature<MultiLineString>> {
         const indexcsv = indices.sort().join(',')
         let result: MultilineCacheBlock = this.multilineStringCache[geodataSource][indexcsv]
-        if(result) {
+        if (result) {
             clearTimeout(result.evictionTimeout)
         } else {
             const multilineString = toMultilineString(await this.loadIndicies(geodataSource, indices))

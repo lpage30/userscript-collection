@@ -1,4 +1,4 @@
-import { 
+import {
     GeoCoordinate,
     toGeoCoordinateString,
     toNameRegex,
@@ -11,7 +11,7 @@ export interface CountryStateBase extends Partial<GeoCoordinate> {
     isoCode: string
     containedCoordinates: GeoCoordinate[]
 }
-export type CityBase = Omit<CountryStateBase, 'isoCode' | 'containedCoordinates' >
+export type CityBase = Omit<CountryStateBase, 'isoCode' | 'containedCoordinates'>
 
 export interface City extends CityBase {
     countryName: string
@@ -44,20 +44,20 @@ export const toCityStateCountryString = <C extends City = City, S extends State<
 ].filter(p => ![undefined, null].includes(p)).join(', ')
 
 
-export interface CountryStateCityAddress<C extends City = City, S extends State<C> = State<C>> extends CountryStateCity<C,S> {
+export interface CountryStateCityAddress<C extends City = City, S extends State<C> = State<C>> extends CountryStateCity<C, S> {
     address?: string
     coordinate?: GeoCoordinate
 }
 
-export const toCountryStateCityAddressString = <C extends City = City, S extends State<C> = State<C>>(address: CountryStateCityAddress<C,S>): string => [
+export const toCountryStateCityAddressString = <C extends City = City, S extends State<C> = State<C>>(address: CountryStateCityAddress<C, S>): string => [
     address.address ?? 'address not disclosed',
     toCityStateCountryString(address),
     toGeoCoordinateString(address.coordinate),
 ].filter(p => ![undefined, null].includes(p)).join(', ')
 
 export function isDataMatch<T extends CountryStateBase | CityBase>(text: string, data: T): boolean {
-    return (undefined !== data.name && toNameRegex(data.name).test(text)) || 
-    (undefined !== data['isoCode'] && toNameRegex(data['isoCode']).test(text))
+    return (undefined !== data.name && toNameRegex(data.name).test(text)) ||
+        (undefined !== data['isoCode'] && toNameRegex(data['isoCode']).test(text))
 }
 export interface IndexOfClosestOne { distance: number, index: number }
 export function indexOfClosestOne<T extends Partial<GeoCoordinate>>(

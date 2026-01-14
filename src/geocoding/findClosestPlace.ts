@@ -5,24 +5,24 @@ import {
     toGeoPoint,
     GeojsonIndex,
 } from './datatypes'
-import { 
+import {
     GeocodedCountryStateCity,
     Place,
     PlaceDistance,
-    GeocodedCountryStateCityAddress, 
+    GeocodedCountryStateCityAddress,
     indexOfClosestOneInGeojson
 } from './geocodedcountrystatecitytypes'
 import { loadGeoJsonIndex } from './GeojsonIndex'
-import { getCountryBaseInfo, getGeocodedCountry } from './generated_registered_country_state_city_map_functions'
+import { getGeocodedCountries } from './generated_registered_country_state_city_map_functions'
 import * as turf from '@turf/turf'
 import { Units } from '@turf/turf'
 
 
 async function findClosestCountryStateCity(geojson: GeojsonIndex, coordinate: GeoCoordinate): Promise<GeocodedCountryStateCity | undefined> {
-    const countries = getCountryBaseInfo()
+    const countries = await getGeocodedCountries()
     const countryResult = indexOfClosestOneInGeojson(geojson, coordinate, countries)
     if (countryResult) {
-        const country = await getGeocodedCountry(countries[countryResult.index].name)
+        const country = countries[countryResult.index]
         const states = Object.values(country.states)
         const stateResult = indexOfClosestOneInGeojson(geojson, coordinate, states)
         if (stateResult) {
@@ -63,9 +63,9 @@ export async function findClosestGeodataPlace(geodataSource: GeodataSourceType, 
         distance: number
         nearestPoint: GeoCoordinate
     }
-    const { coordinate: { lat, lon }} = source
+    const { coordinate: { lat, lon } } = source
     const region: GeocodedCountryStateCity = source['region'] ?? source
-    const point = toGeoPoint({lat, lon})
+    const point = toGeoPoint({ lat, lon })
     const geojsonIndices = getGeojsonIndexes(geodataSource, region)
     let closest: ClosestPoint = {
         geojson: undefined,

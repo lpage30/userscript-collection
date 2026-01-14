@@ -16,10 +16,10 @@ export interface GeoCoordinate {
 }
 export const isValidGeoCoordinate = (value: Partial<GeoCoordinate>): value is GeoCoordinate => undefined !== value && ![value.lat, value.lon].some(v => [null, undefined].includes(v))
 export const toGeoPoint = (value: GeoCoordinate) => turf.point([value.lon, value.lat])
-export const measureDistance = (source: GeoCoordinate, destination: GeoCoordinate, units: turf.Units = 'miles'): number  => turf.distance(toGeoPoint(source), toGeoPoint(destination), { units })
+export const measureDistance = (source: GeoCoordinate, destination: GeoCoordinate, units: turf.Units = 'miles'): number => turf.distance(toGeoPoint(source), toGeoPoint(destination), { units })
 export const isInPolygon = (value: GeoCoordinate, polygon: Feature<Polygon>) => turf.booleanPointInPolygon(toGeoPoint(value), polygon)
 
-export const toGeoCoordinateString = (coordinate: GeoCoordinate): string => 
+export const toGeoCoordinateString = (coordinate: GeoCoordinate): string =>
     coordinate ? `Lat: ${coordinate.lat}, Lon: ${coordinate.lon}` : 'Coordinates not disclosed'
 
 export const toGoogleMapsPlace = (coordinate: GeoCoordinate): string | undefined =>
@@ -51,9 +51,9 @@ export interface Distance {
 export const toDistanceString = (distance: Distance): string => `${distance.value.toFixed(2)} ${distance.units}`
 
 export function toNameRegex(name: string): RegExp {
-    return new RegExp(`^([,\\s]*|.*[,\\s]+)${name}([,\\s]*|[,\\s]+.*)$`,'ig')
+    return new RegExp(`^([,\\s]*|.*[,\\s]+)${name}([,\\s]*|[,\\s]+.*)$`, 'ig')
 }
-export function parseAddress(addressLine: string): { address: string, city?: string, state?: string, country?: string} {
+export function parseAddress(addressLine: string): { address: string, city?: string, state?: string, country?: string } {
     const address = addressLine
     const parts = address.split(',').map(t => t.trim()).filter(t => 0 < t.length)
     const city = 1 < parts.length ? parts[1] : undefined

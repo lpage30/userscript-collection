@@ -112,8 +112,8 @@ export const toPlaceString = (place: PlaceDistance): string => `${toDistanceStri
 
 
 export function indexOfClosestOneInGeojson<T extends Partial<GeoCoordinate>>(
-    geojson: GeojsonIndex, 
-    source: GeoCoordinate, 
+    geojson: GeojsonIndex,
+    source: GeoCoordinate,
     collection: T[]
 ): IndexOfClosestOne | undefined {
     const filteredIndices = collection.map((item, index) => {

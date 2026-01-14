@@ -6,7 +6,7 @@ import {
     measureDistance,
 } from './datatypes'
 import { Country, State, City, CountryStateCityAddress, indexOfClosestOne } from './countrystatecitytypes'
-import { getCountryBaseInfo, getCountry } from './generated_registered_country_state_city_map_functions'
+import { getCountries, getCountry } from './generated_registered_country_state_city_map_functions'
 import {
     classifyCountryText,
     classifyStateText,
@@ -33,17 +33,17 @@ function classifyStateCityCoordinates<C extends City = City, S extends State<C> 
 
 async function classifyGeoCountry(geoAddress: GeoAddress): Promise<Country> {
     if (geoAddress.country) {
-        const countryName = classifyCountryText(geoAddress.country)
-        if (countryName) return getCountry(countryName.name)
+        const country = await classifyCountryText(geoAddress.country)
+        if (country) return country
     }
+    const countries = await getCountries()
     if (isValidGeoCoordinate(geoAddress.coordinate)) {
-        const countries = getCountryBaseInfo()
         const countryResult = indexOfClosestOne(geoAddress.coordinate, countries)
         if (countryResult) return getCountry(countries[countryResult.index].name)
     }
     if (geoAddress.state) {
-        for (const name of getCountryBaseInfo().map(({ name }) => name)) {
-            const country = await getCountry(name)
+
+        for (const country of countries) {
             const states = findStateMatches(geoAddress.state, [country])
             if (0 < states.length) {
                 return country
@@ -51,11 +51,10 @@ async function classifyGeoCountry(geoAddress: GeoAddress): Promise<Country> {
         }
     }
     if (geoAddress.city) {
-        for (const name of getCountryBaseInfo().map(({ name }) => name)) {
-            const country = await getCountry(name)
+        for (const country of countries) {
             const cities = findCityMatches(geoAddress.city, [country])
             if (0 < cities.length) {
-                return getCountry(cities[0].countryName)
+                return country
             }
         }
     }

@@ -1,5 +1,5 @@
 import { CountryStateBase, CityBase, isDataMatch, Country, State, City, CountryStateCity } from './countrystatecitytypes'
-import { getCountryBaseInfo, getCountry } from './generated_registered_country_state_city_map_functions'
+import { getCountries } from './generated_registered_country_state_city_map_functions'
 
 export function findDataMatches<T extends CountryStateBase | CityBase>(text: string, data: T[]): T[] {
     return data.filter(result => isDataMatch(text, result))
@@ -16,11 +16,18 @@ export function findCityMatches<C extends City = City, S extends State<C> = Stat
             .map(state => findDataMatches(text, Object.values(state.cities))).flat()
         ).flat()
 }
-export const classifyCountryText = (text: string): CountryStateBase | undefined => findDataMatches(text, getCountryBaseInfo())[0]
+export const classifyCountryText = async (text: string): Promise<Country | undefined> => {
+    const countries = await getCountries()
+    return findDataMatches(text, countries)[0]
+}
 
-export const classifyStateText = <C extends City = City, S extends State<C> = State<C>>(text: string, country: Country<C, S>): State<C> | undefined => findDataMatches(text, Object.values(country.states))[0]
+export const classifyStateText = <C extends City = City, S extends State<C> = State<C>>(text: string, country: Country<C, S>): State<C> | undefined => {
+    return findDataMatches(text, Object.values(country.states))[0]
+}
 
-export const classifyCityText = <C extends City = City>(text: string, state: State<C>): C | undefined => findDataMatches(text, Object.values(state.cities))[0]
+export const classifyCityText = <C extends City = City>(text: string, state: State<C>): C | undefined => {
+    return findDataMatches(text, Object.values(state.cities))[0]
+}
 
 
 export function classifyStateCityText<C extends City = City, S extends State<C> = State<C>>(text: string, country: Country<C, S>): { state: State<C>, city: C } | undefined {
@@ -29,8 +36,7 @@ export function classifyStateCityText<C extends City = City, S extends State<C> 
 }
 
 export async function classifyCountryStateCityText(text: string): Promise<CountryStateCity | undefined> {
-    const countryBase: CountryStateBase = classifyCountryText(text)
-    const country = countryBase ? await getCountry(countryBase.name) : undefined
+    const country = await classifyCountryText(text)
     let state: State = country ? classifyStateText(text, country) : undefined
     let city: City = state ? classifyCityText(text, state) : undefined``
     if (undefined === state) {

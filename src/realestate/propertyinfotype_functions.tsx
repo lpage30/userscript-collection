@@ -19,7 +19,6 @@ import { PropertyInfo } from './propertyinfotypes'
 import { PropertyInfoCard } from './PropertyInfoCard'
 import { reactToHTMLElement } from '../common/ui/renderRenderable'
 import { toDurationString } from '../common/datetime'
-import { cacheGeoPropertyInfo, getCachedGeoPropertyInfo } from './propertyinfocache'
 
 export function toCreateButtonFunction(): (text: string, onClick: () => void) => ReactNode {
     return (text: string, onClick: () => void): ReactNode => (
