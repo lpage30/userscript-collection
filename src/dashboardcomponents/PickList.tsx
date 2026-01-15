@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PicklistItem } from './datatypes';
+import { PicklistItem, toCardElementId } from './datatypes';
 import { PersistenceClass } from './persistence';
 import { Button } from 'primereact/button';
 import { PickList, PickOption } from '../common/ui/picklist'
@@ -26,7 +26,7 @@ const Picklist: React.FC<PicklistProps> = ({
   onMouseOut
 }) => {
   const toItemIndex = (elementId: string | null, items: PicklistItem[]): number =>
-    elementId === null ? -1 : items.findIndex(item => item.elementId === elementId)
+    elementId === null ? -1 : items.findIndex((item, index) => (item.elementId ?? toCardElementId(index)) === elementId)
 
   const toExistingElementId = (elementId: string | null, items: PicklistItem[]): string | null => {
     if (toItemIndex(elementId, items) < 0) return null
@@ -47,10 +47,10 @@ const Picklist: React.FC<PicklistProps> = ({
   }, []);
   useEffect(() => {
     const applyMouseOverandOutToItemTemplateParent = async () => {
-      for(const item of items) {
+      for (const item of items) {
         const optionElement = await awaitElementById(`${item.elementId}-option`)
         let parentElement = optionElement.parentElement
-        while(parentElement && parentElement.tagName !== 'LI') { parentElement = parentElement.parentElement}
+        while (parentElement && parentElement.tagName !== 'LI') { parentElement = parentElement.parentElement }
         if (parentElement === null) {
           parentElement = optionElement
         }
@@ -64,7 +64,7 @@ const Picklist: React.FC<PicklistProps> = ({
   const openSelectedInPage = (page: string) => {
     let index = toItemIndex(selectedElementId, items)
     if (index < 0) index = 0
-    switch(page) {
+    switch (page) {
       case 'dashboard':
         if (onFocusInDashboard) {
           onFocusInDashboard(selectedElementId)
@@ -89,15 +89,15 @@ const Picklist: React.FC<PicklistProps> = ({
     }
   }
   interface PickOptionValue {
-      elementId: string;
-      color: string;
-      item: PicklistItem
+    elementId: string;
+    color: string;
+    item: PicklistItem
   }
   function render() {
-    const picklistLabelValue: PickOption<PickOptionValue>[] = items.map((item) => ({
+    const picklistLabelValue: PickOption<PickOptionValue>[] = items.map((item, index) => ({
       label: item.label(),
       value: {
-        elementId: item.elementId,
+        elementId: item.elementId ?? toCardElementId(index),
         color: item.color(),
         item,
       }
@@ -115,11 +115,11 @@ const Picklist: React.FC<PicklistProps> = ({
       >
         <tbody>
           <tr style={{ alignItems: 'center', verticalAlign: 'top' }}>
-            <td style={{display: 'flex'}}>
+            <td style={{ display: 'flex' }}>
               <PickList
                 options={picklistLabelValue}
-                value={picklistLabelValue.find(({value}) => value.elementId === selectedElementId)}
-                onChange={(value: PickOptionValue) => onItemSelect((value ?? {elementId: null}).elementId)}
+                value={picklistLabelValue.find(({ value }) => value.elementId === selectedElementId)}
+                onChange={(value: PickOptionValue) => onItemSelect((value ?? { elementId: null }).elementId)}
                 maxWidthPx={475}
                 style={{ width: '100%' }}
                 fixedWidth={false}
@@ -140,14 +140,14 @@ const Picklist: React.FC<PicklistProps> = ({
               />
             </td>
           </tr><tr style={{ alignItems: 'center', verticalAlign: 'top' }}>
-            <td style={{display: 'flex'}}>
-            {pageTypes.filter(page => page !== 'dashboard' || usingPage !== 'dashboard').map((name, index) => 
-                <Button 
-                  style={{marginLeft: 0 < index ? '3px' : '0px', marginTop: '3px'}}
+            <td style={{ display: 'flex' }}>
+              {pageTypes.filter(page => page !== 'dashboard' || usingPage !== 'dashboard').map((name, index) =>
+                <Button
+                  style={{ marginLeft: 0 < index ? '3px' : '0px', marginTop: '3px' }}
                   className="app-button"
                   onClick={() => openSelectedInPage(name)}
                 >Open {toTitleCase(name)}</Button>
-            )}
+              )}
             </td>
           </tr>
         </tbody>

@@ -130,15 +130,15 @@ export const DownDetectorDashboard: Userscript = {
       addedHeaderComponents={[
         {
           after: 'lastrow',
-          element: <ServiceDashboardPopupAndSummary
-            onServiceStatus={onServiceStatus}
-            companyHealthStatuses={cards.map(({ companyName, level }) => ({ companyName, healthStatus: level }))}
+          element: <LoadOutageBreakdowns
+            onOutageBreakdowns={onOutageBreakdowns}
           />
         },
         {
           after: 'lastrow',
-          element: <LoadOutageBreakdowns
-            onOutageBreakdowns={onOutageBreakdowns}
+          element: <ServiceDashboardPopupAndSummary
+            onServiceStatus={onServiceStatus}
+            companyHealthStatuses={cards.map(({ companyName, level }) => ({ companyName, healthStatus: level }))}
           />
         },
       ]}

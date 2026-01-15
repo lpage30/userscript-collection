@@ -289,7 +289,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         }
         className='p-dialog-maximized'
       >
-        {layoutItems(layout, sortedFilteredItems.sortedItems.map((_item, index) => index))}
+        {layoutItems(layout, sortedFilteredItems.filteredItems.map((_item, index) => index))}
       </Dialog>
     );
   };

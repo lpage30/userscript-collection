@@ -156,7 +156,7 @@ export const fromCardElementId = (elementId: string): number => parseInt(element
 
 export const toCardIndex = (elementId: string, pageName: string, items: Card[] | undefined): number | null => {
   const index = (items ?? []).findIndex(
-    (item) => item.elementId === elementId,
+    (item, index) => (item.elementId ?? toCardElementId(index)) === elementId,
   );
   return index < 0 ? null : index
 }
