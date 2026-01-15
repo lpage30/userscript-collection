@@ -79,13 +79,6 @@ export function sortServiceIncidents(status: ServiceStatus): ServiceStatus {
                 {text: r.name, status: r.statusLevel}, 
                 false,
             )
-            if (0 === statusCmpValue) {
-                return compareLocation(
-                    {text: l.name, location: l.location},
-                    {text: r.name, location: r.location},
-                    true,
-                )
-            }
             return statusCmpValue
         })
     }))
@@ -95,13 +88,6 @@ export function sortServiceIncidents(status: ServiceStatus): ServiceStatus {
             {text: r.name, status: r.statusLevel}, 
             false,
         )
-        if (0 === statusCmpValue) {
-            return compareLocation(
-                {text: l.name, location: l.location},
-                {text: r.name, location: r.location},
-                true,
-            )
-        }
         return statusCmpValue
     })
     return {
