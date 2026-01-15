@@ -17,6 +17,8 @@ export const AWSDependentCompanies = [
     'Facebook',
     'Instagram',
     'Spectrum',
+    'Verizon',
+    'T-Mobile',
 ].sort().filter((company, index, array) => index === 0 || array[index - 1] !== company)
 
 export const AzureDependentCompanies = [
@@ -76,6 +78,7 @@ export const GCPDependentCompanies = [
     'T-Mobile',
     'Discord',
     'Starlink',
+    'Verizon',
 ].sort().filter((company, index, array) => index === 0 || array[index - 1] !== company)
 
 export const CloudflareDependentCompanies = [
