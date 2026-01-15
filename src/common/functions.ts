@@ -201,6 +201,7 @@ export function toNumber(value: string | number | undefined | null): number {
 }
 
 export const parseNumber = (value: string) => value ? parseFloat(value.replace(/[^\d\.]/g, '')) : undefined
+
 export function normalizeName(name: string): string {
-    return name.replace(/\(|\)|'|-|\s|,|\./g, '_')
+    return name.replace(/\(|\)|'|-|\s|,|\.|\&/g, '_')
 }

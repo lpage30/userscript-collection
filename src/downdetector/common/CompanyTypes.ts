@@ -134,6 +134,7 @@ function toCompanyInfo(
   }
   const wrappedCompanyDivId = `${companyDiv.id}-wrapped`
   const wrappedCompanyDivInfoId = `${companyDiv.id}-info`
+  const wrappedCompanyDivBreakdownId = `${companyDiv.id}-breakdown`
   const pageInfo: CompanyPageInfo = {
     ['dashboard']: {
       href: 'https://downdetector.com/',
@@ -148,11 +149,16 @@ function toCompanyInfo(
   }
   const wrappedCompanyDiv = document.createElement('div')
   const infoDisplayDiv = document.createElement('div')
+  const breakdownDisplayDiv = document.createElement('div')
   wrappedCompanyDiv.id = wrappedCompanyDivId
   infoDisplayDiv.id = wrappedCompanyDivInfoId
   infoDisplayDiv.style.float = 'right'
+  breakdownDisplayDiv.id = wrappedCompanyDivBreakdownId
+  breakdownDisplayDiv.style.display = 'flex'
+  breakdownDisplayDiv.style.float = 'inline-end'
   wrappedCompanyDiv.appendChild(infoDisplayDiv)
   wrappedCompanyDiv.appendChild(companyDiv)
+  wrappedCompanyDiv.appendChild(breakdownDisplayDiv)
 
   return toCompanyMetadataCard({
     timestamp,

@@ -8,6 +8,14 @@ import { CNDStatusServices } from "./services/cdnStatusServices";
 import { Slack } from "./services/slack";
 import { Microsoft365 } from "./services/microsoft365";
 import { ServiceAPI, ServiceStatus, classifyServiceStatus, sortServiceIncidents } from "./statustypes";
+import { Userscript } from "../common/userscript";
+import { AWSHealthStatus } from "./userscripts/AWSHealthStatus";
+import { AzureHealthStatus } from "./userscripts/AzureHealthStatus";
+import { GCPHealthStatus } from "./userscripts/GCPHealthStatus";
+import { OCIHealthStatus } from "./userscripts/OCIHealthStatus";
+import { IBMHealthStatus } from "./userscripts/IBMHealthStatus";
+import { FastlyHealthStatus } from "./userscripts/FastlyHealthStatus";
+import { Microsoft365HealthStatus } from "../statusAPIs/userscripts/Microsoft365HealthStatus";
 
 class ServiceAPIsClass implements ServiceAPI {
     isLoading: boolean
@@ -63,3 +71,12 @@ class ServiceAPIsClass implements ServiceAPI {
     }
 }
 export const StatusAPIs: ServiceAPI = new ServiceAPIsClass()
+export const StatusAPIUserscripts: Userscript[] = [
+  AWSHealthStatus,
+  AzureHealthStatus,
+  GCPHealthStatus,
+  OCIHealthStatus,
+  IBMHealthStatus,
+  FastlyHealthStatus,
+  Microsoft365HealthStatus,
+]

@@ -20,12 +20,14 @@ import {
 import { LoadingPopup } from "../../common/ui/LoadingPopup";
 import Dashboard from "../../dashboardcomponents/Dashboard";
 import { Persistence } from "../../dashboardcomponents/persistence";
-import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
 import { ServiceStatus } from "../../statusAPIs/statustypes";
 import { setServiceStatus, getDependentServiceStatuses } from "../../statusAPIs/servicestatuscache";
 import { reactToHTMLString } from "../../common/ui/reactTrustedHtmlString";
-import { sortServiceByStatusIndicatorRank } from "../../statusAPIs/statusService";
-import { ServiceHealthStatusSpan } from "../../statusAPIs/ui/IndicatorStatusComponents";
+import { DependentServiceListingComponent } from "../../statusAPIs/ui/DependentServiceListing";
+import { OutageBreakdown, CompanyOutageBreakdownMap, mapCompanyToOutageBreakdown } from "../../geoblackout/outageBreakdownAPItypes";
+import { OutageBreakdownComponent } from "../../geoblackout/ui/OutageBreakdown";
+import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
+import { LoadOutageBreakdowns } from "../../geoblackout/ui/LoadOutageBreakdowns";
 
 export const DownDetectorDashboard: Userscript = {
   name: "DownDetectorDashboard",
@@ -58,21 +60,26 @@ export const DownDetectorDashboard: Userscript = {
       cards.forEach(card => {
         const serviceStatuses = getDependentServiceStatuses(card.companyName)
         if (serviceStatuses) {
-          const renderable = (
-            <>
-              <div
-                className="text-sm"
-                style={{ paddingLeft: `0px`, paddingRight: `3px` }}
-              >Dependent Services</div>
-              {serviceStatuses
-                .sort(sortServiceByStatusIndicatorRank)
-                .map(status => (ServiceHealthStatusSpan(status, 0, 3, true)))
-              }
-            </>
+          card.renderable.firstElementChild.innerHTML = reactToHTMLString(
+            <DependentServiceListingComponent serviceStatuses={serviceStatuses} />
           )
-          card.renderable.firstElementChild.innerHTML = reactToHTMLString(renderable)
         }
       })
+    }
+    const onOutageBreakdowns = (serviceOutages: OutageBreakdown[]) => {
+      const companyServiceMap: CompanyOutageBreakdownMap = mapCompanyToOutageBreakdown(
+        cards.map(({ companyName }) => companyName),
+        serviceOutages
+      )
+      cards.forEach(card => {
+        const service: OutageBreakdown | undefined = companyServiceMap[card.companyName]
+        if (service) {
+          card.renderable.lastElementChild.innerHTML = reactToHTMLString(
+            <OutageBreakdownComponent service={service} />
+          )
+        }
+      })
+
     }
 
     const persistence = Persistence('DownDetector', () => filterableItems)
@@ -93,13 +100,28 @@ export const DownDetectorDashboard: Userscript = {
       page={'dashboard'}
       getCards={() => cards}
       layout={'grid'}
-      addedHeaderComponent={{
-        after: 'lastrow',
-        element: <ServiceDashboardPopupAndSummary
-          onServiceStatus={onServiceStatus}
-          companyHealthStatuses={cards.map(({ companyName, level }) => ({ companyName, healthStatus: level }))}
-        />
+      cardStyle={{
+        borderTop: '1px solid #ddd',
+        borderLeft: '1px solid #ddd',
+        borderRight: '2px solid #bbb',
+        borderBottom: '2px solid #bbb;',
+        backgroundColor: '#fcfcfc',
       }}
+      addedHeaderComponents={[
+        {
+          after: 'lastrow',
+          element: <ServiceDashboardPopupAndSummary
+            onServiceStatus={onServiceStatus}
+            companyHealthStatuses={cards.map(({ companyName, level }) => ({ companyName, healthStatus: level }))}
+          />
+        },
+        {
+          after: 'lastrow',
+          element: <LoadOutageBreakdowns
+            onOutageBreakdowns={onOutageBreakdowns}
+          />
+        },
+      ]}
     />);
     await awaitElementById(container.id);
   },

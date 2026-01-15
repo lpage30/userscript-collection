@@ -92,7 +92,7 @@ export const ListedPropertyDashboard: React.FC<ListedPropertyDashboardProps> = (
     onClose={onClose}
     registerRefreshFunction={(refreshFunction) => refreshDashboardRef.current = refreshFunction}
     ignoreClickEvent={ignoreClickEvent}
-    addedHeaderComponent={addedHeaderComponent}
+    addedHeaderComponents={[addedHeaderComponent]}
   />
 }
 

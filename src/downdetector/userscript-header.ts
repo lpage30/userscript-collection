@@ -22,6 +22,8 @@
 // @include     https://cloud.ibm.com/status
 // @include     https://www.fastlystatus.com/
 // @include     https://status.cloud.microsoft/m365
+// @include     https://geoblackout.com/us/report/internet
+// @include     https://geoblackout.com/us/report/internet/*
 
 // @grant       GM_setValue
 // @grant       GM_getValue

@@ -17,6 +17,10 @@ import FilterSort from './FilterSort';
 import CardShell from './CardShell';
 
 export type DashboardLayout = 'vertical' | 'horizontal' | 'grid' | 'grid-2' | 'grid-3' | 'grid-4'
+export interface AddedHeaderComponent {
+  after: 'picklist' | 'infodisplay' | 'filtersort' | 'lastrow',
+  element: JSX.Element,
+}
 interface DashboardProps {
   title: string
   getPersistence: () => PersistenceClass
@@ -32,10 +36,7 @@ interface DashboardProps {
   registerRefreshContent?: (refreshContent: () => void) => void
   registerRefreshFunction?: (refreshFunction: (showDialog: boolean) => void) => void
   onClose?: () => void
-  addedHeaderComponent?: {
-    after: 'picklist' | 'infodisplay' | 'filtersort' | 'lastrow',
-    element: JSX.Element,
-  }
+  addedHeaderComponents?: AddedHeaderComponent[]
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -53,7 +54,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   registerRefreshContent,
   registerRefreshFunction,
   onClose,
-  addedHeaderComponent
+  addedHeaderComponents
 
 }) => {
   const persistence = useRef<PersistenceClass>(getPersistence())
@@ -245,14 +246,18 @@ const Dashboard: React.FC<DashboardProps> = ({
                     onMouseOver={onMouseOverElement}
                     onMouseOut={onMouseOutElement}
                   />
-                  {addedHeaderComponent && addedHeaderComponent.after === 'picklist' && <div style={{ float: 'left' }}>
-                    {addedHeaderComponent.element}
-                  </div>}
+                  {
+                    addedHeaderComponents && addedHeaderComponents
+                      .filter(({ after }) => after === 'picklist')
+                      .map(addedHeaderComponent => (<div style={{ float: 'left' }}>{addedHeaderComponent.element}</div>))
+                  }
                 </td><td style={{ width: '200px' }}>
                   <InfoDisplay registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay }} />
-                  {addedHeaderComponent && addedHeaderComponent.after === 'infodisplay' && <div>
-                    {addedHeaderComponent.element}
-                  </div>}
+                  {
+                    addedHeaderComponents && addedHeaderComponents
+                      .filter(({ after }) => after === 'infodisplay')
+                      .map(addedHeaderComponent => (<div>{addedHeaderComponent.element}</div>))
+                  }
                 </td><td>
                   <FilterSort
                     persistence={persistence.current}
@@ -261,17 +266,23 @@ const Dashboard: React.FC<DashboardProps> = ({
                     initialFilterSort={sortedFilteredItems.sortingFilter}
                     onChange={handlFilterSorting}
                   />
-                  {addedHeaderComponent && addedHeaderComponent.after === 'filtersort' && <div style={{ float: 'right' }}>
-                    {addedHeaderComponent.element}
-                  </div>}
+                  {
+                    addedHeaderComponents && addedHeaderComponents
+                      .filter(({ after }) => after === 'filtersort')
+                      .map(addedHeaderComponent => (<div style={{ float: 'right' }}>{addedHeaderComponent.element}</div>))
+                  }
                 </td>
               </tr>
-              {addedHeaderComponent && addedHeaderComponent.after === 'lastrow' &&
-                <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                  <td colSpan={3}>
-                    {addedHeaderComponent.element}
-                  </td>
-                </tr>
+              {
+                addedHeaderComponents && addedHeaderComponents
+                  .filter(({ after }) => 'lastrow' === after)
+                  .map((addedHeaderComponent) => (
+                    <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+                      <td colSpan={3}>
+                        {addedHeaderComponent.element}
+                      </td>
+                    </tr>
+                  ))
               }
 
             </tbody></table>

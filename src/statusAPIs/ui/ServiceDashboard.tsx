@@ -235,7 +235,7 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
 export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProps> = ({
   onServiceStatus,
   companyHealthStatuses,
-  statusesPerRow = 15
+  statusesPerRow = 10
 }) => {
   const [statuses, setStatuses] = useState<ServiceStatus[][]>([])
 
