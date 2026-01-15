@@ -89,12 +89,12 @@ export const DownDetectorDashboard: Userscript = {
           card.renderable.lastElementChild.innerHTML = reactToHTMLString(
             <OutageBreakdownComponent service={service} />
           )
-          delete companyServiceMap[card.companyName]
         }
       })
       if (outageMatchCount < serviceOutages.length) {
-        const missedServices = Object.values(companyServiceMap).map(({ service }) => service)
-        console.log(`onOutageBreakdowns> ${outageMatchCount}/${serviceOutages.length} matched. Unmatched OutageBreakdowns: [${missedServices.join(',')}`)
+        const matchedOutages = Object.values(companyServiceMap).map(({ service }) => service)
+        const unmatchedOutages = serviceOutages.map(({ service }) => service).filter(outage => !matchedOutages.includes(outage))
+        console.log(`onOutageBreakdowns> ${outageMatchCount}/${serviceOutages.length} matched. Unmatched OutageBreakdowns: [${unmatchedOutages.join(',')}]`)
       }
       if (0 < outageMatchCount) {
         persistence.storeDashboard(Date.now(), cards)
