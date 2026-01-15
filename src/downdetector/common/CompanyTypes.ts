@@ -8,15 +8,15 @@ export type HealthLevelType = (typeof HealthLevelTypes)[number];
 export const CompanyPageTypes = ['dashboard', 'status', 'map'] as const;
 export type CompanyPageType = (typeof CompanyPageTypes)[number];
 
-export const sortingFields = ['level', 'groupName', 'incidentRisk' ];
-export const filterableItems: FilterableItems = { 
-  level: { 
-    field: 'level', 
+export const sortingFields = ['level', 'groupName', 'incidentRisk'];
+export const filterableItems: FilterableItems = {
+  level: {
+    field: 'level',
     type: 'ValueExistence',
-    filter: { 
+    filter: {
       danger: true,
       warning: true,
-      success: true 
+      success: true
     }
   } as ItemFilter
 }
@@ -27,8 +27,8 @@ export type CompanyPageInfo = {
     elementId: string
   }
 } & {
-  [pageType in CompanyPageType]: { 
-    href: string, 
+  [pageType in CompanyPageType]: {
+    href: string,
   };
 }
 export interface IncidentReports {
@@ -44,13 +44,14 @@ export interface CompanyMetadata extends Card {
   incidentReports?: IncidentReports;
   incidentRisk: number
   pageInfo: CompanyPageInfo
+  displayLinesArray: string[]
 }
 
 export const toCard = (elementId: string, pageName: string, companies: CompanyMetadata[] | undefined): CompanyMetadata | null => {
   const index = toCardIndex(elementId, pageName, companies)
   return index === null ? companies[index] : null
 }
- 
+
 export interface CompanyStatusCard {
   renderable: HTMLElement;
   companyName: string;
@@ -64,41 +65,25 @@ function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata 
   metadata.rank = data.rank ?? 0
   metadata.level = data.level ?? 'success'
   metadata.companyName = data.companyName ?? ''
-  const nullIncidentReports = [null, undefined].includes(data.incidentReports) || Object.values(data.incidentReports).some(value => null === value)
-  metadata.incidentReports = nullIncidentReports ? { baseline15minAvg: 0, pastHr15minAvg: 0, incidentRiskPercent: 0 } : data.incidentReports
-  
+
+  metadata.incidentReports = data.incidentReports
   metadata.pageInfo = data.pageInfo ?? {
-      ['dashboard']: {
-        href: 'https://downdetector.com/',
-        elementId: ''
-      },
-      ['status']: {
-        href: '',
-      },
-      ['map']: {
-        href: '',
-      }
+    ['dashboard']: {
+      href: 'https://downdetector.com/',
+      elementId: ''
+    },
+    ['status']: {
+      href: '',
+    },
+    ['map']: {
+      href: '',
+    }
   }
   metadata.incidentRisk = data.incidentRisk ?? 0
   metadata.renderable = data.renderable ?? null
-  metadata.displayLines = () => {
-    let result = [
-      `${metadata.companyName}`
-    ]
-    if (nullIncidentReports) {
-      console.log(`Warning: ${metadata.companyName} - has null IncidentReports`)
-      return [
-        ...result,
-        'missing incident data'
-      ]
-    }
-    return [
-      ...result,
-      `Incident Spike: ${metadata.incidentReports.pastHr15minAvg}`,
-      `Incident Baseline: ${metadata.incidentReports.baseline15minAvg}`,
-      `IncidentRisk: ${metadata.incidentReports.incidentRiskPercent.toFixed(2)}%`
-    ];
-  }
+  metadata.displayLinesArray = [...(data.displayLinesArray ?? [])]
+
+  metadata.displayLines = () => metadata.displayLinesArray
   metadata.groupName = metadata.companyName
   metadata.label = () => `#${metadata.rank} ${metadata.companyName}`
   metadata.color = () => metadata.level === 'danger' ? 'red' : metadata.level === 'warning' ? 'yellow' : 'lightblue'
@@ -121,8 +106,8 @@ function toCompanyInfo(
   let incidentReports: IncidentReports | undefined = undefined
   let incidentRiskPercent = 0
   if (!isNaN(pastHourIncidentTotal) && !isNaN(pastDayIncidentTotal)) {
-    const baseline15minAvg = Math.trunc(pastDayIncidentTotal/96)
-    const pastHr15minAvg = Math.trunc(pastHourIncidentTotal/4)
+    const baseline15minAvg = Math.trunc(pastDayIncidentTotal / 96)
+    const pastHr15minAvg = Math.trunc(pastHourIncidentTotal / 4)
     incidentRiskPercent = pastHr15minAvg / baseline15minAvg * 100
     incidentReports = {
       baseline15minAvg,
@@ -160,6 +145,21 @@ function toCompanyInfo(
   wrappedCompanyDiv.appendChild(companyDiv)
   wrappedCompanyDiv.appendChild(breakdownDisplayDiv)
 
+
+  const nullIncidentReports = [null, undefined].includes(incidentReports) || Object.values(incidentReports).some(value => null === value)
+  incidentReports = nullIncidentReports ? { baseline15minAvg: 0, pastHr15minAvg: 0, incidentRiskPercent: 0 } : incidentReports
+
+  const displayLinesArray = [companyName]
+  if (nullIncidentReports) {
+    console.log(`Warning: ${companyName} - has null IncidentReports`)
+    displayLinesArray.push('missing incident data')
+  } else {
+    displayLinesArray.push(...[
+      `Incident Spike: ${incidentReports.pastHr15minAvg}`,
+      `Incident Baseline: ${incidentReports.baseline15minAvg}`,
+      `IncidentRisk: ${incidentReports.incidentRiskPercent.toFixed(2)}%`
+    ])
+  }
   return toCompanyMetadataCard({
     timestamp,
     rank,
@@ -168,7 +168,8 @@ function toCompanyInfo(
     incidentReports,
     pageInfo,
     incidentRisk: incidentRiskPercent,
-    renderable: wrappedCompanyDiv
+    renderable: wrappedCompanyDiv,
+    displayLinesArray,
   })
 }
 

@@ -10,6 +10,10 @@ export interface OutageBreakdown {
     service: string
     data: OutageBreakdownData[]
 }
+export function breakdownDataToString(data: OutageBreakdownData): string {
+    return `${data.type} ${data.percentage}%(${data.alertCount})`
+}
+
 function normalizeCompanyNameForService(companyName: string): string {
     return normalizeName(companyName).replace(/_/g, '').trim().toLowerCase()
 }

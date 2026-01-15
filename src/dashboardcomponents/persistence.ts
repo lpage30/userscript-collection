@@ -16,11 +16,11 @@ export class PersistenceClass {
   private dashboardVariableName: string
   private getInitialFilter: () => FilterableItems
   constructor(variableNamePrefix: string, getInitialFilter: () => FilterableItems) {
-      this.selectedElementIdVariableName = `${variableNamePrefix}_selected_element_id`
-      this.sortVariableName = `${variableNamePrefix}_sortings`
-      this.filterVariableName = `${variableNamePrefix}_filters`
-      this.dashboardVariableName = `${variableNamePrefix}_dashboard`
-      this.getInitialFilter = getInitialFilter
+    this.selectedElementIdVariableName = `${variableNamePrefix}_selected_element_id`
+    this.sortVariableName = `${variableNamePrefix}_sortings`
+    this.filterVariableName = `${variableNamePrefix}_filters`
+    this.dashboardVariableName = `${variableNamePrefix}_dashboard`
+    this.getInitialFilter = getInitialFilter
   }
   storeSelectedElementId(elementId: string) {
     GM_setValue(this.selectedElementIdVariableName, JSON.stringify({
@@ -29,15 +29,15 @@ export class PersistenceClass {
     }));
   }
   loadSelectedElementId(): string | null {
-      let selected = GM_getValue(this.selectedElementIdVariableName);
-      if (selected) {
-        selected = JSON.parse(selected)
-      }
-      if (selected && selected.timestamp < Date.now() - StaleDuration) {
-          GM_deleteValue(this.selectedElementIdVariableName);
-          selected = null;
-      }
-      return selected ? selected.elementId : null;
+    let selected = GM_getValue(this.selectedElementIdVariableName);
+    if (selected) {
+      selected = JSON.parse(selected)
+    }
+    if (selected && selected.timestamp < Date.now() - StaleDuration) {
+      GM_deleteValue(this.selectedElementIdVariableName);
+      selected = null;
+    }
+    return selected ? selected.elementId : null;
   }
   storeSorting(sortings: ItemSort[]) {
     GM_setValue(this.sortVariableName, JSON.stringify(sortings));
@@ -66,7 +66,7 @@ export class PersistenceClass {
   storeDashboard<T extends Card>(timestamp: number, cards: T[]) {
     GM_setValue(this.dashboardVariableName, JSON.stringify({
       timestamp,
-      cards: cards.map((card: T) => ({...card, renderable: card.renderable.innerHTML } as any)),
+      cards: cards.map((card: T) => ({ ...card, renderable: card.renderable.innerHTML } as any)),
     }));
   }
   private parseDashboard<T extends Card>(tooOldTimestamp: number, dashboardJSON: string | null): T[] | null {
@@ -79,7 +79,7 @@ export class PersistenceClass {
       dashboard = null;
     }
     if (dashboard) {
-      return dashboard.cards.map((card: any) => ({...card, renderable: htmlStringToElement(card.elementId, card.renderable)} as T))
+      return dashboard.cards.map((card: any) => ({ ...card, renderable: htmlStringToElement(card.elementId, card.renderable) } as T))
     }
     return dashboard === null ? null : dashboard.cards;
   }
@@ -90,13 +90,13 @@ export class PersistenceClass {
 
   awaitDashboard<T extends Card>(): Promise<T[] | null> {
     return new Promise<T[] | null>(resolve => {
-        const listenerId = GM_addValueChangeListener(
-            this.dashboardVariableName,
-            (name: string, oldValue: any, newValue: any, remote: boolean) => {
-                GM_removeValueChangeListener(listenerId ?? "");
-                resolve(this.parseDashboard(Date.now() - StaleDuration, newValue))
-            }
-        )
+      const listenerId = GM_addValueChangeListener(
+        this.dashboardVariableName,
+        (name: string, oldValue: any, newValue: any, remote: boolean) => {
+          GM_removeValueChangeListener(listenerId ?? "");
+          resolve(this.parseDashboard(Date.now() - StaleDuration, newValue))
+        }
+      )
     })
   }
 

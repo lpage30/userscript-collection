@@ -24,7 +24,12 @@ import { ServiceStatus } from "../../statusAPIs/statustypes";
 import { setServiceStatus, getDependentServiceStatuses } from "../../statusAPIs/servicestatuscache";
 import { reactToHTMLString } from "../../common/ui/reactTrustedHtmlString";
 import { DependentServiceListingComponent } from "../../statusAPIs/ui/DependentServiceListing";
-import { OutageBreakdown, CompanyOutageBreakdownMap, mapCompanyToOutageBreakdown } from "../../geoblackout/outageBreakdownAPItypes";
+import {
+  OutageBreakdown,
+  CompanyOutageBreakdownMap,
+  mapCompanyToOutageBreakdown,
+  breakdownDataToString
+} from "../../geoblackout/outageBreakdownAPItypes";
 import { OutageBreakdownComponent } from "../../geoblackout/ui/OutageBreakdown";
 import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
 import { LoadOutageBreakdowns } from "../../geoblackout/ui/LoadOutageBreakdowns";
@@ -71,14 +76,29 @@ export const DownDetectorDashboard: Userscript = {
         cards.map(({ companyName }) => companyName),
         serviceOutages
       )
+      let outageMatchCount = 0
       cards.forEach(card => {
         const service: OutageBreakdown | undefined = companyServiceMap[card.companyName]
         if (service) {
+          outageMatchCount = outageMatchCount + 1
+          card.displayLinesArray = [
+            `${card.companyName}`,
+            ...service.data.map(breakdownDataToString)
+          ]
+          card.displayLines = () => card.displayLinesArray
           card.renderable.lastElementChild.innerHTML = reactToHTMLString(
             <OutageBreakdownComponent service={service} />
           )
+          delete companyServiceMap[card.companyName]
         }
       })
+      if (outageMatchCount < serviceOutages.length) {
+        const missedServices = Object.values(companyServiceMap).map(({ service }) => service)
+        console.log(`onOutageBreakdowns> ${outageMatchCount}/${serviceOutages.length} matched. Unmatched OutageBreakdowns: [${missedServices.join(',')}`)
+      }
+      if (0 < outageMatchCount) {
+        persistence.storeDashboard(Date.now(), cards)
+      }
 
     }
 

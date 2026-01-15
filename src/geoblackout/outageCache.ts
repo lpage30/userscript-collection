@@ -8,7 +8,7 @@ export const StaleDuration = 10 * ONE_MINUTE;
 
 export class OutageCacheClass {
     private serviceVariableName = 'geoblackout-outage-cache'
-    storeBreakdowns(breakdowns: OutageBreakdown[]) {        
+    storeBreakdowns(breakdowns: OutageBreakdown[]) {
         GM_setValue(this.serviceVariableName, JSON.stringify({
             timestamp: Date.now(),
             breakdowns
@@ -20,11 +20,11 @@ export class OutageCacheClass {
             timestampStatus = JSON.parse(timestampStatus)
         }
         if (timestampStatus && timestampStatus.timestamp < Date.now() - StaleDuration) {
-            GM_deleteValue(variableName);
+            GM_deleteValue(this.serviceVariableName);
             timestampStatus = null;
         }
-        return timestampStatus ? timestampStatus.breakdowns : null;    
+        return timestampStatus ? timestampStatus.breakdowns : null;
     }
-    
+
 }
 export const OutageCache = new OutageCacheClass()

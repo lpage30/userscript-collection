@@ -62,8 +62,8 @@ const Picklist: React.FC<PicklistProps> = ({
   })
 
   const openSelectedInPage = (page: string) => {
-    const index = toItemIndex(selectedElementId, items)
-    if (index < 0) return
+    let index = toItemIndex(selectedElementId, items)
+    if (index < 0) index = 0
     switch(page) {
       case 'dashboard':
         if (onFocusInDashboard) {
@@ -146,8 +146,7 @@ const Picklist: React.FC<PicklistProps> = ({
                   style={{marginLeft: 0 < index ? '3px' : '0px', marginTop: '3px'}}
                   className="app-button"
                   onClick={() => openSelectedInPage(name)}
-                  disabled={toItemIndex(selectedElementId, items) < 0}
-                >Open for {toTitleCase(name)}</Button>
+                >Open {toTitleCase(name)}</Button>
             )}
             </td>
           </tr>
