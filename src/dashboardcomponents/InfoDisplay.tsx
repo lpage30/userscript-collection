@@ -1,4 +1,4 @@
-import React, { useState} from "react";
+import React, { useState, JSX, CSSProperties } from "react";
 import { InfoDisplayItem } from './datatypes'
 import "../common/ui/styles.scss";
 
@@ -33,17 +33,13 @@ export const InfoDisplay: React.FC<InfoDisplayProps> = ({ registerDisplayTrigger
     ><tbody>
     {
       displayLines.map((line, index) => {
-        const centerTRStyle = { alignItems: 'center', verticalAlign: 'center' }
-        const centerTDClassname = "text-sm text-center"
-        let TRStyle = undefined
-        let TDClassname = 'text-sm'
-        if (index === 0 || !line.includes(': ')) {
-          TRStyle = centerTRStyle
-          TDClassname = centerTDClassname
+        let cell: JSX.Element = <td className={'text-sm'} style={{paddingLeft: '2rem'}}>{line}</td>
+        if (index === 0) {
+          cell = <th className={'text-sm'} style={{paddingLeft: '4rem'}}><h6>{line}</h6></th>
         }
         return (
-          <tr style={TRStyle}>
-            <td className={TDClassname} style={{paddingLeft: '10px'}}>{line}</td>
+          <tr style={{verticalAlign: 'center'}}>
+            {cell}
           </tr>
         )
       })

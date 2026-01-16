@@ -38,6 +38,7 @@ interface DashboardProps {
   onClose?: () => void
   addedHeaderComponents?: AddedHeaderComponent[]
   closeable?: boolean
+  infoDisplayRowSpan?: number
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -56,7 +57,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   registerRefreshFunction,
   onClose,
   addedHeaderComponents,
-  closeable = true
+  closeable = true,
+  infoDisplayRowSpan = 1,
 
 }) => {
   const persistence = useRef<PersistenceClass>(getPersistence())
@@ -254,7 +256,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       .filter(({ after }) => after === 'picklist')
                       .map(addedHeaderComponent => (<div style={{ float: 'left' }}>{addedHeaderComponent.element}</div>))
                   }
-                </td><td style={{ width: '200px' }}>
+                </td><td style={{ width: '200px' }} rowSpan={infoDisplayRowSpan}>
                   <InfoDisplay registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay }} />
                   {
                     addedHeaderComponents && addedHeaderComponents

@@ -76,7 +76,12 @@ export const DownDetectorDashboard: Userscript = {
         borderBottom: '2px solid #bbb;',
         backgroundColor: '#fcfcfc',
       }}
+      infoDisplayRowSpan={3}
       addedHeaderComponents={[
+        {
+          after: 'lastrow',
+          element: <div>&nbsp;&nbsp;</div>
+        },
         {
           after: 'lastrow',
           element: <LoadOutageBreakdowns

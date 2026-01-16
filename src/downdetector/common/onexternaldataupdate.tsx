@@ -1,5 +1,5 @@
 import React from 'react'
-import { CompanyMetadata } from './CompanyTypes';
+import { CompanyMetadata, toDisplayLines, getWrappedCompanyServiceInfoDiv, getWrappedCompanyBreakdownDiv  } from './CompanyTypes';
 import { PersistenceClass } from '../../dashboardcomponents/persistence';
 
 import { ServiceStatus } from "../../statusAPIs/statustypes";
@@ -29,7 +29,7 @@ export function createOnExternalDataUpdates(
         companyCards.forEach(card => {
             const serviceStatuses = getDependentServiceStatuses(card.companyName)
             if (serviceStatuses) {
-                card.renderable.firstElementChild.innerHTML = reactToHTMLString(
+                getWrappedCompanyServiceInfoDiv(card.renderable).innerHTML = reactToHTMLString(
                     <DependentServiceListingComponent serviceStatuses={serviceStatuses} />
                 )
             }
@@ -45,12 +45,9 @@ export function createOnExternalDataUpdates(
             const service: OutageBreakdown | undefined = companyServiceMap[card.companyName]
             if (service) {
                 outageMatchCount = outageMatchCount + 1
-                card.displayLinesArray = [
-                    `${card.companyName}`,
-                    ...service.data.map(breakdownDataToString)
-                ]
+                card.displayLinesArray = toDisplayLines(card, service.data.map(breakdownDataToString))
                 card.displayLines = () => card.displayLinesArray
-                card.renderable.lastElementChild.innerHTML = reactToHTMLString(
+                getWrappedCompanyBreakdownDiv(card.renderable).innerHTML = reactToHTMLString(
                     <OutageBreakdownComponent service={service} />
                 )
             }

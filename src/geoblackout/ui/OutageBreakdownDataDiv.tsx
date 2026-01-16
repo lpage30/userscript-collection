@@ -1,6 +1,6 @@
 import React, { JSX, CSSProperties } from "react";
 import "../../common/ui/styles.scss";
-import { OutageBreakdownData } from "../outageBreakdownAPItypes";
+import { OutageBreakdownData, breakdownDataToElement } from "../outageBreakdownAPItypes";
 
 export function OutageBreakdownDataDiv(
     outageBreakdownData: OutageBreakdownData,
@@ -15,6 +15,6 @@ export function OutageBreakdownDataDiv(
         <div
             className="text-sm"
             style={style}
-        ><b>{outageBreakdownData.type}</b> {`${outageBreakdownData.percentage}`}%({`${outageBreakdownData.alertCount}`})</div>
+        >{breakdownDataToElement(outageBreakdownData)}</div>
     )
 }

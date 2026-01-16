@@ -10,6 +10,7 @@ import {
 import { awaitDelay } from "../../common/await_functions";
 import { SortedFilteredItems, sortAndFilterItems, ItemFilter, ItemSort, FilterableItems } from "../../dashboardcomponents/datatypes";
 import { PersistenceClass } from "../../dashboardcomponents/persistence";
+import { CompanyTitle } from "../common/CompanyTitle";
 import Picklist from "../../dashboardcomponents/PickList";
 import FilterSort from "../../dashboardcomponents/FilterSort";
 import InfoDisplay from "../../dashboardcomponents/InfoDisplay";
@@ -108,7 +109,11 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
           ><tbody>
               <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
                 <td colSpan={3} className="text-center">
-                  <h2>DownDetector {page == 'status' ? 'Status' : 'Heatmap'}: {company.companyName}</h2>
+                  <CompanyTitle 
+                    titleType={'page'}
+                    company={company.company}
+                    prefix={`DownDetector ${page == 'status' ? 'Status' : 'Heatmap'}:`}
+                  />
                 </td>
               </tr>
               <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>

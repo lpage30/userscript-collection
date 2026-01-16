@@ -1,6 +1,9 @@
+import React from 'react'
 import { Card, FilterableItems, ItemFilter, toCardIndex } from '../../dashboardcomponents/datatypes';
 import { PersistenceClass, StaleDuration } from '../../dashboardcomponents/persistence';
 import { toTitleCase } from '../../common/functions';
+import { CompanyTitle } from './CompanyTitle';
+import { reactToHTMLString } from '../../common/ui/reactTrustedHtmlString';
 
 export const HealthLevelTypes = ['danger', 'warning', 'success'] as const;
 export type HealthLevelType = (typeof HealthLevelTypes)[number];
@@ -34,7 +37,7 @@ export type CompanyPageInfo = {
 export interface IncidentReports {
   baseline15minAvg: number
   pastHr15minAvg: number
-  incidentRiskPercent: number
+  incidentRiskFactor: number
 }
 export interface CompanyMetadata extends Card {
   timestamp: number;
@@ -91,11 +94,41 @@ function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata 
   return metadata as CompanyMetadata
 
 }
-function toCompanyInfo(
-  timestamp: number,
-  rank: number,
-  companyDiv: HTMLElement,
-): CompanyMetadata {
+export function toDisplayLines(company: CompanyMetadata, newLines: string[] = []): string[] {
+  const nullIncidentReports = Object.values(company.incidentReports).every(v => -1 === v)
+  if (nullIncidentReports) {
+    console.log(`Warning: ${company.companyName} - has null IncidentReports`)
+  }
+  return [
+    company.companyName,
+    ...(nullIncidentReports ? [] : [`IncidentRiskFactor: ${company.incidentReports.incidentRiskFactor}`]),
+    ...newLines.map(t => t.trim()),
+    ...(nullIncidentReports
+      ? ['missing incident data']
+      : [`Incident Spike: ${company.incidentReports.pastHr15minAvg}`,
+        `Incident Baseline: ${company.incidentReports.baseline15minAvg}`,
+      ]
+    )
+  ]
+}
+export const getWrappedCompanyTitleDiv = (wrappedCompanyDiv: HTMLElement): HTMLElement => {
+  return wrappedCompanyDiv.firstElementChild as HTMLElement
+}
+export const getWrappedCompanyServiceInfoDiv = (wrappedCompanyDiv: HTMLElement): HTMLElement => {
+  return getWrappedCompanyTitleDiv(wrappedCompanyDiv).nextElementSibling as HTMLElement
+}
+export const getWrappedCompanyCompanyDiv = (wrappedCompanyDiv: HTMLElement): HTMLElement => {
+  return getWrappedCompanyServiceInfoDiv(wrappedCompanyDiv).nextElementSibling as HTMLElement
+}
+export const getWrappedCompanyBreakdownDiv = (wrappedCompanyDiv: HTMLElement): HTMLElement => {
+  return wrappedCompanyDiv.lastElementChild as HTMLElement
+}
+export
+  function toCompanyInfo(
+    timestamp: number,
+    rank: number,
+    companyDiv: HTMLElement,
+  ): CompanyMetadata {
   const svg = companyDiv.querySelector('svg');
   const statusAnchor = companyDiv.querySelector('a')!;
 
@@ -104,21 +137,22 @@ function toCompanyInfo(
   const pastHourIncidentTotal = parseInt(companyDiv.dataset.hour)
   const pastDayIncidentTotal = parseInt(companyDiv.dataset.day)
   let incidentReports: IncidentReports | undefined = undefined
-  let incidentRiskPercent = 0
+  let incidentRiskFactor = 0
   if (!isNaN(pastHourIncidentTotal) && !isNaN(pastDayIncidentTotal)) {
     const baseline15minAvg = Math.trunc(pastDayIncidentTotal / 96)
     const pastHr15minAvg = Math.trunc(pastHourIncidentTotal / 4)
-    incidentRiskPercent = pastHr15minAvg / baseline15minAvg * 100
+    incidentRiskFactor = Math.floor(Math.abs(pastHr15minAvg-baseline15minAvg)/baseline15minAvg)
     incidentReports = {
       baseline15minAvg,
       pastHr15minAvg,
-      incidentRiskPercent
+      incidentRiskFactor
     }
   } else {
     console.error(`${companyName} has empty dataset hour/day hour(${companyDiv.dataset.hour}) day(${companyDiv.dataset.day})`)
   }
   const wrappedCompanyDivId = `${companyDiv.id}-wrapped`
-  const wrappedCompanyDivInfoId = `${companyDiv.id}-info`
+  const wrappedCompanyDivTitleId = `${companyDiv.id}-title`
+  const wrappedCompanyDivServiceInfoId = `${companyDiv.id}-serviceinfo`
   const wrappedCompanyDivBreakdownId = `${companyDiv.id}-breakdown`
   const pageInfo: CompanyPageInfo = {
     ['dashboard']: {
@@ -133,43 +167,47 @@ function toCompanyInfo(
     }
   }
   const wrappedCompanyDiv = document.createElement('div')
-  const infoDisplayDiv = document.createElement('div')
+  const titleDisplayDiv = document.createElement('div')
+  const serviceInfoDisplayDiv = document.createElement('div')
   const breakdownDisplayDiv = document.createElement('div')
   wrappedCompanyDiv.id = wrappedCompanyDivId
-  infoDisplayDiv.id = wrappedCompanyDivInfoId
-  infoDisplayDiv.style.float = 'right'
+
+  titleDisplayDiv.id = wrappedCompanyDivTitleId
+  wrappedCompanyDiv.appendChild(titleDisplayDiv)
+
+  serviceInfoDisplayDiv.id = wrappedCompanyDivServiceInfoId
+  serviceInfoDisplayDiv.style.float = 'right'
+  wrappedCompanyDiv.appendChild(serviceInfoDisplayDiv)
+
+  wrappedCompanyDiv.appendChild(companyDiv)
+
   breakdownDisplayDiv.id = wrappedCompanyDivBreakdownId
   breakdownDisplayDiv.style.display = 'flex'
   breakdownDisplayDiv.style.float = 'inline-end'
-  wrappedCompanyDiv.appendChild(infoDisplayDiv)
-  wrappedCompanyDiv.appendChild(companyDiv)
   wrappedCompanyDiv.appendChild(breakdownDisplayDiv)
 
 
   const nullIncidentReports = [null, undefined].includes(incidentReports) || Object.values(incidentReports).some(value => null === value)
-  incidentReports = nullIncidentReports ? { baseline15minAvg: 0, pastHr15minAvg: 0, incidentRiskPercent: 0 } : incidentReports
-
-  const displayLinesArray = [companyName]
-  if (nullIncidentReports) {
-    console.log(`Warning: ${companyName} - has null IncidentReports`)
-    displayLinesArray.push('missing incident data')
-  } else {
-    displayLinesArray.push(...[
-      `Incident Spike: ${incidentReports.pastHr15minAvg}`,
-      `Incident Baseline: ${incidentReports.baseline15minAvg}`,
-      `IncidentRisk: ${incidentReports.incidentRiskPercent.toFixed(2)}%`
-    ])
-  }
-  return toCompanyMetadataCard({
+  incidentReports = nullIncidentReports ? { baseline15minAvg: -1, pastHr15minAvg: -1, incidentRiskFactor: -1 } : incidentReports
+  const company: Partial<CompanyMetadata> = {
     timestamp,
     rank,
     level,
     companyName,
     incidentReports,
     pageInfo,
-    incidentRisk: incidentRiskPercent,
+    incidentRisk: incidentRiskFactor < 0 /*nullreport*/ ? 0 : incidentRiskFactor,
     renderable: wrappedCompanyDiv,
-    displayLinesArray,
+  }
+  getWrappedCompanyTitleDiv(company.renderable).innerHTML = reactToHTMLString(
+    <CompanyTitle
+      titleType={'card'}
+      company={company as CompanyMetadata}
+    />
+  )
+  return toCompanyMetadataCard({
+    ...company,
+    displayLinesArray: toDisplayLines(company as CompanyMetadata)
   })
 }
 

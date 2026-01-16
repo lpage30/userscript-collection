@@ -1,3 +1,4 @@
+import React, { JSX } from 'react'
 import { normalizeName } from '../common/functions'
 
 export interface OutageBreakdownData {
@@ -11,7 +12,10 @@ export interface OutageBreakdown {
     data: OutageBreakdownData[]
 }
 export function breakdownDataToString(data: OutageBreakdownData): string {
-    return `${data.type} ${data.percentage}%(${data.alertCount})`
+    return `${data.type}: ${data.percentage}%`
+}
+export function breakdownDataToElement(data: OutageBreakdownData): JSX.Element {
+    return <><b>{data.type}</b> {`${data.percentage}`}%</>
 }
 
 function normalizeCompanyNameForService(companyName: string): string {
