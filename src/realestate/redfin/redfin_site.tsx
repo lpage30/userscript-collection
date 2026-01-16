@@ -111,7 +111,7 @@ function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
     return result
 }
 
-async function scrapeListing(reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> {
+async function scrapeListing(reportProgress: (progress: string) => void): Promise<PropertyInfo[]> {
     let tBegin = Date.now()
     const properties: PropertyInfo[] = []
     const elements = Array.from(await awaitQueryAll('div[class*="bp-Homecard "]'))
@@ -122,7 +122,8 @@ async function scrapeListing(reportProgress?: (progress: string) => void): Promi
         .flat()
         .filter(data => !['BreadcrumbList', 'Product', 'Organization'].includes(data['@type']))
 
-    if (reportProgress) reportProgress(`Scraped ${scriptData.length} properties ${toDurationString(Date.now() - tBegin)}`)
+    if (reportProgress) reportProgress(`Scraped ${scriptData.length
+        } properties ${toDurationString(Date.now() - tBegin)} `)
     tBegin = Date.now()
     for (let i = 0; i < Math.min(elements.length, scriptData.length); i = i + 1) {
         const property: Partial<PropertyInfo> = scrapeScriptData(scriptData[i])
@@ -136,7 +137,7 @@ async function scrapeListing(reportProgress?: (progress: string) => void): Promi
 
         properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(property), reportProgress))
     }
-    if (reportProgress) reportProgress(`Geocoded ${properties.length} properties ${toDurationString(Date.now() - tBegin)}`)
+    if (reportProgress) reportProgress(`Geocoded ${properties.length} properties ${toDurationString(Date.now() - tBegin)} `)
 
     return properties
 }
@@ -169,12 +170,12 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean): Promise<PropertyInfo[]> => {
                 const href = window.location.href
                 const collectData = async (): Promise<PropertyInfo[]> => {
                     return [...(await scrapeListing(reportProgress))]
                 }
-                return cacheWrapper(RedfinSite.name, href, collectData)
+                return cacheWrapper(RedfinSite.name, href, collectData, force)
             }
         },
 
@@ -198,12 +199,12 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean): Promise<PropertyInfo[]> => {
                 const href = window.location.href
                 const collectData = async (): Promise<PropertyInfo[]> => {
                     return [...(await scrapeListing(reportProgress))]
                 }
-                return cacheWrapper(RedfinSite.name, href, collectData)
+                return cacheWrapper(RedfinSite.name, href, collectData, force)
             }
         },
 
@@ -220,7 +221,7 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean): Promise<PropertyInfo[]> => {
                 const href = window.location.href
 
                 const collectData = async (): Promise<PropertyInfo[]> => {
@@ -243,7 +244,7 @@ export const RedfinSite: RealEstateSite = {
                     }
                     return [await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress)]
                 }
-                return cacheWrapper(RedfinSite.name, href, collectData)
+                return cacheWrapper(RedfinSite.name, href, collectData, force)
             }
         }
     }

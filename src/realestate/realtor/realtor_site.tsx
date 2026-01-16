@@ -139,7 +139,7 @@ export const RealtorSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean): Promise<PropertyInfo[]> => {
                 const href = window.location.href
                 const collectData = async (): Promise<PropertyInfo[]> => {
                     let tBegin = Date.now()
@@ -153,7 +153,7 @@ export const RealtorSite: RealEstateSite = {
                     if (reportProgress) reportProgress(`Geocoded ${result.length} properties ${toDurationString(Date.now() - tBegin)}`)
                     return result
                 }
-                return cacheWrapper(RealtorSite.name, href, collectData)
+                return cacheWrapper(RealtorSite.name, href, collectData, force)
             },
 
         },
@@ -176,7 +176,7 @@ export const RealtorSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean): Promise<PropertyInfo[]> => {
                 const href = window.location.href
                 const collectData = async (): Promise<PropertyInfo[]> => {
                     let result: Partial<PropertyInfo> = {
@@ -247,7 +247,7 @@ export const RealtorSite: RealEstateSite = {
                     }
                     return [await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress)]
                 }
-                return cacheWrapper(RealtorSite.name, href, collectData)
+                return cacheWrapper(RealtorSite.name, href, collectData, force)
             }
         },
     }

@@ -183,7 +183,7 @@ export const ZooplaSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean): Promise<PropertyInfo[]> => {
                 const href = window.location.href
                 const collectData = async (): Promise<PropertyInfo[]> => {
                     let tBegin = Date.now()
@@ -221,7 +221,7 @@ export const ZooplaSite: RealEstateSite = {
                     }
                     return result
                 }
-                return cacheWrapper(ZooplaSite.name, href, collectData)
+                return cacheWrapper(ZooplaSite.name, href, collectData, force)
 
             },
 
@@ -250,7 +250,7 @@ export const ZooplaSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress?: (progress: string) => void): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean): Promise<PropertyInfo[]> => {
                 const href = window.location.href
                 const collectData = async (): Promise<PropertyInfo[]> => {
                     const result: Partial<PropertyInfo> = scrapeScriptSingleData(
@@ -271,7 +271,7 @@ export const ZooplaSite: RealEstateSite = {
                     }
                     return [await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress)]
                 }
-                return cacheWrapper(ZooplaSite.name, href, collectData)
+                return cacheWrapper(ZooplaSite.name, href, collectData, force)
             }
         },
     }

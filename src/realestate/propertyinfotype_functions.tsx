@@ -52,9 +52,12 @@ export function toPropertyInfoCard(data: Partial<PropertyInfo>): PropertyInfo {
     }
     result.hasCreateMapButton = undefined !== result.createMapButton
     result.displayLinesArray = [
-        `${result.currencySymbol}${result.Price.toLocaleString('en-US')}@${result.address}`,
-        `${result.Bedrooms} Beds, ${result.Bathrooms} baths`,
-        `${result.Sqft} sqft`,
+        result.isLand ? 'Land' : 'Property',
+        `${result.currencySymbol}${result.Price.toLocaleString('en-US')}`,
+        ...(result.isLand 
+            ? [`${result.lotSize ?? result.Sqft ?? '--'} sqft lot`]
+            : [`${result.Bedrooms} Beds, ${result.Bathrooms} baths`, `${result.Sqft} sqft`]),
+        `${result.address}`,
     ].filter(t => undefined !== t)
     // InfoDisplay
     result.displayLines = () => result.displayLinesArray

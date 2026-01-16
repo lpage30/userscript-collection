@@ -12,7 +12,7 @@ import {
 } from './datatypes';
 import { PersistenceClass } from './persistence';
 import Picklist from './PickList';
-import InfoDisplay from './InfoDisplay';
+import InfoDisplay, { Padding } from './InfoDisplay';
 import FilterSort from './FilterSort';
 import CardShell from './CardShell';
 
@@ -39,6 +39,9 @@ interface DashboardProps {
   addedHeaderComponents?: AddedHeaderComponent[]
   closeable?: boolean
   infoDisplayRowSpan?: number
+  infoDisplayTextPaddingLeft?: Padding
+  infoDisplayTitlePaddingLeft?: Padding
+
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -59,7 +62,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   addedHeaderComponents,
   closeable = true,
   infoDisplayRowSpan = 1,
-
+  infoDisplayTextPaddingLeft,
+  infoDisplayTitlePaddingLeft,
 }) => {
   const persistence = useRef<PersistenceClass>(getPersistence())
 
@@ -257,7 +261,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                       .map(addedHeaderComponent => (<div style={{ float: 'left' }}>{addedHeaderComponent.element}</div>))
                   }
                 </td><td style={{ width: '200px' }} rowSpan={infoDisplayRowSpan}>
-                  <InfoDisplay registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay }} />
+                  <InfoDisplay
+                    registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay }}
+                    textPaddingLeft={infoDisplayTextPaddingLeft}
+                    titlePaddingLeft={infoDisplayTitlePaddingLeft}
+                  />
                   {
                     addedHeaderComponents && addedHeaderComponents
                       .filter(({ after }) => after === 'infodisplay')

@@ -11,8 +11,8 @@ export interface OutageBreakdown {
     service: string
     data: OutageBreakdownData[]
 }
-export function breakdownDataToString(data: OutageBreakdownData): string {
-    return `${data.type}: ${data.percentage}%`
+export function breakdownDataToString(data: OutageBreakdownData[]): string[] {
+    return data.map(d => `${d.type}: ${d.percentage}% (${d.alertCount})`)
 }
 export function breakdownDataToElement(data: OutageBreakdownData): JSX.Element {
     return <><b>{data.type}</b> {`${data.percentage}`}%</>

@@ -77,6 +77,7 @@ export const DownDetectorDashboard: Userscript = {
         backgroundColor: '#fcfcfc',
       }}
       infoDisplayRowSpan={3}
+      infoDisplayTextPaddingLeft={{ value: 0.5, type: 'rem'}}
       addedHeaderComponents={[
         {
           after: 'lastrow',

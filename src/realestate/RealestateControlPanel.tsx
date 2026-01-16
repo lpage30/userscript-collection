@@ -1,9 +1,12 @@
-import React, { ReactNode, useRef, useState, BaseSyntheticEvent } from 'react'
+import React, { ReactNode, useRef, useState, BaseSyntheticEvent, JSX } from 'react'
+import "../common/ui/styles.scss";
 import { PropertyInfo } from './propertyinfotypes';
 import { PropertyInfoCard } from './PropertyInfoCard';
 import { Button } from 'primereact/button';
 import { ControlPanel } from '../common/ui/control_panel'
-import { ListedPropertyDashboardPopup, ListedPropertyContainerId } from './ListedPropertyDashboard';
+import { ListedPropertyDashboardPopup } from './ListedPropertyDashboard';
+import { createSpinningContentElement } from '../common/ui/style_functions'
+
 
 interface RealestateControlPanelProps {
     id: string
@@ -12,6 +15,7 @@ interface RealestateControlPanelProps {
     toggleMapDisplay: (parentElement?: HTMLElement) => void
     properties: PropertyInfo[]
     ignoreDashboardClickEvent?: (e: BaseSyntheticEvent) => boolean
+    loadProperties?: (force: boolean) => Promise<PropertyInfo[]>
 }
 export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
     id,
@@ -19,14 +23,32 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
     title,
     toggleMapDisplay,
     properties,
-    ignoreDashboardClickEvent
+    ignoreDashboardClickEvent,
+    loadProperties
 }) => {
-    const [state, setState] = useState<PropertyInfo[]>(properties)
+    const [state, setState] = useState<{
+        isLoadingProperties: boolean,
+        properties: PropertyInfo[]
+    }>({
+        isLoadingProperties: false,
+        properties
+    })
     const closeListing = useRef(null)
+    const refreshDashboard = useRef(null)
     const toggleMapTitle = 'Toggle Map Display'
 
-    const getMapButton = (getParentElement?: () => HTMLElement): ReactNode => {
-        if (0 < state.length && state[0].createMapButton) {
+    const reloadProperties = async (issueRefreshDashboard: boolean) => {
+        if (undefined === loadProperties) return
+        setState({ ...state, isLoadingProperties: true })
+        const newProperties = await loadProperties(true)
+        setState({
+            isLoadingProperties: false,
+            properties: newProperties,
+        })
+        if (issueRefreshDashboard && refreshDashboard.current) refreshDashboard.current(true)
+    }
+    const getMapButton = (getParentElement?: () => HTMLElement): JSX.Element => {
+        if (0 < state.properties.length && state.properties[0].createMapButton) {
             return state[0].createMapButton(toggleMapTitle, () => toggleMapDisplay(getParentElement ? getParentElement() : undefined))
         }
         return (
@@ -35,6 +57,24 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
                 onClick={() => toggleMapDisplay(getParentElement ? getParentElement() : undefined)}
             >{toggleMapTitle}</Button>
         )
+    }
+
+    const getReloadPropertiesButton = (usage: 'dashboard' | 'controlpanel'): JSX.Element => {
+        let loadPropertiesButtonContent: string | JSX.Element = 'Reload Properties'
+        if (state.isLoadingProperties) {
+
+            loadPropertiesButtonContent = createSpinningContentElement({
+                popupElementType: 'NoPopup',
+                spinnerSize: 'small',
+                content: {
+                    content: 'Reloading Properties'
+                }
+            })
+        }
+        return <Button
+            className={'app-button'}
+            onClick={() => reloadProperties('dashboard' === usage)}
+            disabled={state.isLoadingProperties}>{loadPropertiesButtonContent}</Button>
     }
     const getContent = () => {
         return (
@@ -48,31 +88,31 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
             }}
             ><tbody>
                     <>
-                        {1 < state.length &&
+                        {1 < state.properties.length &&
                             <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><ListedPropertyDashboardPopup
-                                title={`${title} (${state.length})`}
+                                title={`${title} (${state.properties.length})`}
                                 siteName={siteName}
-                                properties={state}
-                                onDashboardClose={() => setState([...properties])}
+                                properties={state.properties}
+                                onDashboardClose={() => setState({ ...state, properties: [...properties] })}
                                 registerClose={(closeDashboard: () => void) => {
                                     closeListing.current = closeDashboard
                                 }}
-                                ignoreDashboardClickEvent={ignoreDashboardClickEvent}
-                                addedDashboardHeaderComponent={{
-                                    after: 'picklist',
-                                    element: <div style={{ display: 'flex' }}>
-                                        <Button
-                                            className="app-button"
-                                            onClick={() => { if (closeListing.current) closeListing.current() }}
-                                        >Close Listing</Button>
-                                    </div>
+                                registerRefreshFunction={(refreshFunction: (showDialog: boolean) => void) => {
+                                    refreshDashboard.current = refreshFunction
                                 }}
+                                ignoreDashboardClickEvent={ignoreDashboardClickEvent}
+                                addedDashboardHeaderComponent={loadProperties ? {
+                                    after: 'picklist',
+                                    element: getReloadPropertiesButton('dashboard')
+
+                                } : undefined}
                             /></td></tr>
                         }
-                        {1 === state.length &&
-                            <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state[0]} usage={'controlpanel'}/></td></tr>
+                        {1 === state.properties.length &&
+                            <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state[0]} usage={'controlpanel'} /></td></tr>
                         }
                         <tr><td style={{ padding: 5, margin: 0 }} className={'text-center'}>{getMapButton()}</td></tr>
+                        {loadProperties && <tr><td style={{ padding: 5, margin: 0 }} className={'text-center'}>{getReloadPropertiesButton('controlpanel')}</td></tr>}
                     </>
                 </tbody></table>
         )

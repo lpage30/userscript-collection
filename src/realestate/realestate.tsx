@@ -62,11 +62,12 @@ export function toUserscript(site: RealEstateSite): Userscript {
       const page = Object.values(site.pages).find(page => page.isPage(href))
       if ([undefined, null].includes(page)) return
       const tstartLoad = Date.now()
-      let updateProgress: (progress: string) => void | undefined
+
       renderInContainer(container, <LoadingPopup
         message={`Userscript Loading ${site.name} ${propertyPageTypeString(page.pageType)}...`}
         isOpen={true}
       />);
+
       const toggleMaps = async (parentElement?: HTMLElement) => {
         (await page.getMapToggleElements(parentElement)).forEach(element => element.click())
       }
@@ -74,7 +75,9 @@ export function toUserscript(site: RealEstateSite): Userscript {
       const reportProgress = (progress: string) => {
         console.log(`Progress: ${progress}`)
       }
-      const properties = await page.scrapePage(reportProgress)
+      const loadProperties = (force: boolean) => page.scrapePage(reportProgress, force)
+
+      const properties = await loadProperties(false)
       console.log(`${site.name} ${propertyPageTypeString(page.pageType)} ${properties.length} properties: ${toDurationString(Date.now() - tstartLoad)}`)
       const title = `${site.name} (${properties[0].country}) ${propertyPageTypeString(page.pageType)}${PropertyPageType.Single === page.pageType ? ` ${properties[0].address}` : ''}`
       renderInContainer(container, <RealestateControlPanel
@@ -83,6 +86,7 @@ export function toUserscript(site: RealEstateSite): Userscript {
         title={title}
         toggleMapDisplay={toggleMaps}
         properties={properties}
+        loadProperties={loadProperties}
       />
       )
       await awaitElementById(container.id)

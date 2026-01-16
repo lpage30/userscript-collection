@@ -1,4 +1,5 @@
 import React, { useState, ReactNode, CSSProperties, useEffect } from 'react'
+import "./styles.scss";
 import { Dialog } from 'primereact/dialog'
 import { awaitElementById } from '../await_functions'
 import { getHeightWidth } from './style_functions'

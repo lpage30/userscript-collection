@@ -45,7 +45,7 @@ export function createOnExternalDataUpdates(
             const service: OutageBreakdown | undefined = companyServiceMap[card.companyName]
             if (service) {
                 outageMatchCount = outageMatchCount + 1
-                card.displayLinesArray = toDisplayLines(card, service.data.map(breakdownDataToString))
+                card.displayLinesArray = toDisplayLines(card, breakdownDataToString(service.data))
                 card.displayLines = () => card.displayLinesArray
                 getWrappedCompanyBreakdownDiv(card.renderable).innerHTML = reactToHTMLString(
                     <OutageBreakdownComponent service={service} />

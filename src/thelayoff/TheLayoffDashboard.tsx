@@ -42,7 +42,7 @@ export const TheLayoffDashboard: Userscript = {
       })
     })
     return result
-  },  
+  },
   createContainer: async (href: string): Promise<HTMLElement> => {
     return createRenderableContainerAsChild(
       document.body,
@@ -55,8 +55,8 @@ export const TheLayoffDashboard: Userscript = {
     let refreshCards: () => void | null = null
 
     const getCompanyNames = () => {
-      const bookmarkedNames = getCompanyBookmarks().map(({name}) => name)
-      const currentCardNames = getCards().map(({company}) => company)
+      const bookmarkedNames = getCompanyBookmarks().map(({ name }) => name)
+      const currentCardNames = getCards().map(({ company }) => company)
       return [...bookmarkedNames, ...currentCardNames]
         .sort()
         .filter((name, index, array) => index === 0 || array[index - 1] !== name)
@@ -95,6 +95,7 @@ export const TheLayoffDashboard: Userscript = {
           onClick={() => loadAndRefreshContent()}
         >Refresh Cards</Button>
       }]}
+      infoDisplayRowSpan={2}
 
     />);
     await awaitElementById(container.id);

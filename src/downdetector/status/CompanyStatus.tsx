@@ -126,8 +126,11 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
                     onMouseOver={onMouseOverElement}
                     onMouseOut={onMouseOutElement}
                   />
-                </td><td style={{ width: '200px' }}>
-                  <InfoDisplay registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay }} />
+                </td><td style={{ width: '200px' }} rowSpan={2}>
+                  <InfoDisplay
+                    registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay }}
+                    textPaddingLeft={{ value: 0.5, type: 'rem'}}
+                  />
                 </td><td>
                   <FilterSort
                     persistence={persistence}

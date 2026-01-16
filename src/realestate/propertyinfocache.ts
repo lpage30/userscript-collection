@@ -49,8 +49,9 @@ export async function getCachedProperties(source: string, pageUrl: string): Prom
     return deserializeProperties(cacheData.serializedData)
 }
 
-export async function cacheWrapper(source: string, pageUrl: string, collectData: () => Promise<PropertyInfo[]>): Promise<PropertyInfo[]> {
-    const cachedProperties = await getCachedProperties(source, pageUrl)
+export async function cacheWrapper(source: string, pageUrl: string, collectData: () => Promise<PropertyInfo[]>, force?: boolean): Promise<PropertyInfo[]> {
+    const skipCacheRead = undefined !== force && force === true
+    const cachedProperties = skipCacheRead ? [] : await getCachedProperties(source, pageUrl)
     if (0 === cachedProperties.length) {
         const properties = await collectData()
         await cacheProperties(source, pageUrl, properties)

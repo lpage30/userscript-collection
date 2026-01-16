@@ -1,4 +1,5 @@
 import React, { useState, JSX, useRef, BaseSyntheticEvent } from 'react'
+import "../common/ui/styles.scss";
 import { Button } from 'primereact/button';
 import { PropertyInfo } from './propertyinfotypes'
 import Dashboard from '../dashboardcomponents/Dashboard'
@@ -11,8 +12,8 @@ export const getFilterableItems = (propertyInfo: PropertyInfo[]): FilterableItem
   {
     Price: {
       field: 'Price',
-      type: 'ValueRange', 
-      displayData: { 
+      type: 'ValueRange',
+      displayData: {
         step: 50000,
         prefix: propertyInfo[0].currencySymbol,
         formatValue: (value: number) => value.toLocaleString(undefined)
@@ -29,7 +30,7 @@ export const getFilterableItems = (propertyInfo: PropertyInfo[]): FilterableItem
     DistanceToOcean: {
       field: 'DistanceToOcean',
       type: 'ValueRange',
-      displayData: { 
+      displayData: {
         suffix: ' mi',
         step: 0.25,
         formatValue: (value: number) => value.toLocaleString(undefined, {
@@ -48,54 +49,6 @@ export const getFilterableItems = (propertyInfo: PropertyInfo[]): FilterableItem
     } as unknown as ItemFilter,
   })
 
-interface ListedPropertyDashboardProps {
-  title: string
-  siteName: string
-  properties: PropertyInfo[]
-  onClose: () => void
-  registerRefreshFunction?: (refreshFunction: (showDialog: boolean) => void) => void
-  ignoreClickEvent?: (e: BaseSyntheticEvent) => boolean
-  addedHeaderComponent?: {
-    after: 'picklist' | 'infodisplay' | 'filtersort' | 'lastrow',
-    element: JSX.Element,
-  }
-}
-interface ListedPropertyDashboardState {
-  properties: PropertyInfo[]
-}
-
-export const ListedPropertyDashboard: React.FC<ListedPropertyDashboardProps> = ({
-  title,
-  siteName,
-  properties,
-  onClose,
-  registerRefreshFunction,
-  ignoreClickEvent,
-  addedHeaderComponent
-}) => {
-  const refreshDashboardRef = useRef<(showDialog: boolean) => void>(null)
-  const filterableItems = getFilterableItems(properties)
-  if (registerRefreshFunction) registerRefreshFunction((showDialog: boolean) => {
-    if (refreshDashboardRef.current) refreshDashboardRef.current(showDialog)
-  })
-
-  return <Dashboard
-    title={title}
-    getPersistence={() => Persistence(siteName, () => filterableItems)}
-    pageTypes={['dashboard']}
-    getFilterableItems={() => filterableItems}
-    sortingFields={sortingFields}
-    page={'dashboard'}
-    getCards={() => properties}
-    cardStyle={{ height: '520px', width: '600px' }}
-    layout={'grid-2'}
-    onClose={onClose}
-    registerRefreshFunction={(refreshFunction) => refreshDashboardRef.current = refreshFunction}
-    ignoreClickEvent={ignoreClickEvent}
-    addedHeaderComponents={[addedHeaderComponent]}
-  />
-}
-
 interface ListedPropertyDashboardPopupProps {
   title: string
   siteName: string
@@ -103,6 +56,7 @@ interface ListedPropertyDashboardPopupProps {
   onDashboardClose: () => void
   registerOpen?: (closeDashboard: () => void) => void
   registerClose?: (closeDashboard: () => void) => void
+  registerRefreshFunction?: (refreshFunction: (showDialog: boolean) => void) => void
   ignoreDashboardClickEvent?: (e: BaseSyntheticEvent) => boolean
   addedDashboardHeaderComponent?: {
     after: 'picklist' | 'infodisplay' | 'filtersort' | 'lastrow',
@@ -111,7 +65,8 @@ interface ListedPropertyDashboardPopupProps {
 
 }
 interface ListedPropertyDashboardPopupState {
-  visible: boolean
+  visible: boolean,
+  properties: PropertyInfo[]
 }
 
 export const ListedPropertyDashboardPopup: React.FC<ListedPropertyDashboardPopupProps> = ({
@@ -122,13 +77,18 @@ export const ListedPropertyDashboardPopup: React.FC<ListedPropertyDashboardPopup
   addedDashboardHeaderComponent,
   registerOpen,
   registerClose,
+  registerRefreshFunction,
   ignoreDashboardClickEvent,
-
 }) => {
   const refreshDashboardRef = useRef<(showDialog: boolean) => void>(null)
   const [state, setState] = useState<ListedPropertyDashboardPopupState>({
-    visible: false
+    visible: false,
+    properties
   })
+  if (registerRefreshFunction) registerRefreshFunction((showDialog: boolean) => {
+    if (refreshDashboardRef.current) refreshDashboardRef.current(showDialog)
+  })
+
   const openDashboard = () => {
     setState({ ...state, visible: true })
     if (refreshDashboardRef.current) refreshDashboardRef.current(true)
@@ -151,24 +111,31 @@ export const ListedPropertyDashboardPopup: React.FC<ListedPropertyDashboardPopup
   if (registerOpen) {
     registerOpen(openDashboard)
   }
+
   const render = () => {
+    const filterableItems = getFilterableItems(state.properties)
     return (<>
       <Button
         className={'app-button'}
         onClick={toggleDashboard}
       >Toggle {title}</Button>
-      {state.visible && <ListedPropertyDashboard
+      {state.visible && <Dashboard
         title={title}
-        siteName={siteName}
-        properties={properties}
+        getPersistence={() => Persistence(siteName, () => filterableItems)}
+        pageTypes={['dashboard']}
+        getFilterableItems={() => filterableItems}
+        sortingFields={sortingFields}
+        page={'dashboard'}
+        getCards={() => state.properties}
+        cardStyle={{ height: '520px', width: '600px' }}
+        layout={'grid-2'}
         onClose={closeDashboard}
-        registerRefreshFunction={(refreshFunction: (showDialog: boolean) => void) => {
-          refreshDashboardRef.current = refreshFunction
-        }}
+        registerRefreshFunction={(refreshFunction) => refreshDashboardRef.current = refreshFunction}
         ignoreClickEvent={ignoreDashboardClickEvent}
-        addedHeaderComponent={addedDashboardHeaderComponent}
-      />
-      }
+        addedHeaderComponents={[addedDashboardHeaderComponent]}
+        infoDisplayRowSpan={2}
+        infoDisplayTextPaddingLeft={{ value: 0.5, type: 'rem' }}
+      />}
     </>)
   }
   return render()

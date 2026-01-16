@@ -6,7 +6,7 @@ export enum PropertyPageType {
     Single = 2,
 }
 export const propertyPageTypeString = (type: PropertyPageType): string => {
-    switch(type) {
+    switch (type) {
         case PropertyPageType.Feed: return 'Property Feed'
         case PropertyPageType.Listing: return 'Property Listing'
         default: return 'Single Property'
@@ -18,7 +18,7 @@ export interface RealestatePage {
     isMapToggleElement: (element: HTMLElement) => boolean
     awaitForPageLoad: () => Promise<void>
     insertContainerOnPage: (container: HTMLElement) => Promise<void>
-    scrapePage: (reportProgress?: (progress: string) => void) => Promise<PropertyInfo[]>
+    scrapePage: (reportProgress: (progress: string) => void, force?: boolean) => Promise<PropertyInfo[]>
     getMapToggleElements: (parentElement?: HTMLElement) => Promise<HTMLElement[]>
 }
 export interface RealEstateSite {
