@@ -1,4 +1,4 @@
-import { ReactNode } from 'react'
+import { JSX } from 'react'
 import { Card } from '../dashboardcomponents/datatypes'
 import {
     GeoAddress,
@@ -37,7 +37,7 @@ export interface PropertyInfo extends Card, GeoAddress {
     Sqft?: number
     lotSize?: number
     Picture?: ReactNode
-    createMapButton?: (text: string, onClick: () => void) => ReactNode
+    createMapButton?: (text: string, onClick: () => void) => JSX.Element
     element?: HTMLElement
     coordinate?: GeoCoordinate
     DistanceToOcean?: number

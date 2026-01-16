@@ -49,7 +49,7 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
     }
     const getMapButton = (getParentElement?: () => HTMLElement): JSX.Element => {
         if (0 < state.properties.length && state.properties[0].createMapButton) {
-            return state[0].createMapButton(toggleMapTitle, () => toggleMapDisplay(getParentElement ? getParentElement() : undefined))
+            return state.properties[0].createMapButton(toggleMapTitle, () => toggleMapDisplay(getParentElement ? getParentElement() : undefined))
         }
         return (
             <Button
@@ -109,7 +109,7 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
                             /></td></tr>
                         }
                         {1 === state.properties.length &&
-                            <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state[0]} usage={'controlpanel'} /></td></tr>
+                            <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state.properties[0]} usage={'controlpanel'} /></td></tr>
                         }
                         <tr><td style={{ padding: 5, margin: 0 }} className={'text-center'}>{getMapButton()}</td></tr>
                         {loadProperties && <tr><td style={{ padding: 5, margin: 0 }} className={'text-center'}>{getReloadPropertiesButton('controlpanel')}</td></tr>}

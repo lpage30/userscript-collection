@@ -122,7 +122,7 @@ const PropertyInfoDashboardCard: React.FC<Omit<PropertyInfoCardProps, 'usage'>> 
           <span style={bpHomeCardStatsData}>{baths} baths</span>
           <span style={bpHomeCardStatsData}>{sqft} sq ft</span>
         </div>
-        <a href={info.href('')} target={'_target'} style={{textDecoration: 'none', color: 'inherit'}}>
+        <a href={info.href('')} target={'_target'} style={{ textDecoration: 'none', color: 'inherit' }}>
           <span style={bpHomeCardAddress}>{info.address}</span>
           {info.geoPropertyInfo && <span style={bpHomeCardAddress}>{info.geoPropertyInfo.displayString}</span>}
         </a>
