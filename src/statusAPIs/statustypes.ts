@@ -1,4 +1,4 @@
-import { StatusLevel, classifyStatus, compareFunction as compareStatusLevel, determineOverallStatusLevel} from './statusService'
+import { StatusLevel, classifyStatus, compareFunction as compareStatusLevel, determineOverallStatusLevel } from './statusService'
 
 export type IndicatorType = 'major' | 'minor' | string
 export type ImpactType = 'critical' | 'minor' | 'none' | string
@@ -22,7 +22,7 @@ export interface Incident {
     status: StatusType
     updated: number
     updates: IncidentUpdate[]
-    statusLevel?: StatusLevel    
+    statusLevel?: StatusLevel
 }
 
 export interface ServiceStatus {
@@ -32,6 +32,11 @@ export interface ServiceStatus {
     status: Status
     incidents: Incident[]
 }
+export const isServiceStatusForAnyCompanies = (status: ServiceStatus, companyNames: string[]) => {
+    return companyNames.some(companyName => companyName.includes(status.serviceName)) ||
+        status.dependentCompanies.some(name => companyNames.some(companyName => companyName.includes(name)))
+}
+export const isServiceStatusForCompany = (status: ServiceStatus, companyName: string) => isServiceStatusForAnyCompanies(status, [companyName])
 
 export interface ServiceAPI {
     isLoading: boolean
@@ -75,8 +80,8 @@ export function sortServiceIncidents(status: ServiceStatus): ServiceStatus {
         ...incident,
         updates: incident.updates.sort((l: IncidentUpdate, r: IncidentUpdate) => {
             const statusCmpValue = compareStatusLevel(
-                {text: l.name, status: l.statusLevel},
-                {text: r.name, status: r.statusLevel}, 
+                { text: l.name, status: l.statusLevel },
+                { text: r.name, status: r.statusLevel },
                 false,
             )
             return statusCmpValue
@@ -84,8 +89,8 @@ export function sortServiceIncidents(status: ServiceStatus): ServiceStatus {
     }))
     incidents = incidents.sort((l: Incident, r: Incident) => {
         const statusCmpValue = compareStatusLevel(
-            {text: l.name, status: l.statusLevel},
-            {text: r.name, status: r.statusLevel}, 
+            { text: l.name, status: l.statusLevel },
+            { text: r.name, status: r.statusLevel },
             false,
         )
         return statusCmpValue

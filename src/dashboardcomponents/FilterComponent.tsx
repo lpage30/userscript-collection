@@ -12,7 +12,6 @@ import {
 import { Checkbox } from 'primereact/checkbox';
 import { PickList, PickOption } from '../common/ui/picklist'
 import { Calendar } from 'primereact/calendar';
-import { InputNumber } from 'primereact/inputnumber';
 import { toDate } from '../common/datetime';
 import { NumberSpinner } from '../common/ui/NumberSpinner';
 import '../common/ui/styles.scss';

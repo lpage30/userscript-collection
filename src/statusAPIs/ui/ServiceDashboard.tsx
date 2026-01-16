@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, JSX, CSSProperties } from 'react'
 import { Dialog } from 'primereact/dialog'
 import { Button } from 'primereact/button'
-import { ServiceStatus, CompanyHealthStatus } from '../statustypes'
+import { ServiceStatus, CompanyHealthStatus, isServiceStatusForAnyCompanies } from '../statustypes'
 import { ServiceHealthStatusSpan } from './IndicatorStatusComponents'
 import { StatusAPIs } from '../statusAPIs'
 import ServiceStatusComponent from './ServiceStatusComponent'
@@ -86,6 +86,7 @@ const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
         appendTo={'self'}
         showHeader={true}
         closable={true}
+        showCloseIcon={true}
         position={'center'}
         visible={state.visible}
         onHide={() => hideDialog()}
@@ -232,15 +233,25 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
   return render()
 }
 
-export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProps> = ({
+interface ServiceDashboardPopupAndSummaryProps extends ServiceDashboardPopupProps {
+  isolatedCompanyNames?: string[]
+}
+
+export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupAndSummaryProps> = ({
   onServiceStatus,
   companyHealthStatuses,
-  statusesPerRow = 10
+  statusesPerRow = 10,
+  isolatedCompanyNames,
 }) => {
   const [statuses, setStatuses] = useState<ServiceStatus[][]>([])
 
   const setServiceStatus = (serviceStatus: ServiceStatus[]) => {
     const displayStatus = [...serviceStatus]
+      .filter(status => {
+        return undefined === isolatedCompanyNames ||
+          0 === isolatedCompanyNames.length ||
+          isServiceStatusForAnyCompanies(status, isolatedCompanyNames)
+      })
       .sort(sortServiceByStatusIndicatorRank)
       .reduce((rows, status, index) => {
         if (0 === (index % statusesPerRow)) {
@@ -286,7 +297,7 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupProp
             }}
           ><tbody>
               <tr style={{ alignItems: 'center', verticalAlign: 'bottom' }}>
-                <td style={{ textAlign: 'right' }}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Service Color Legend:</span></td>
+                <td style={{ textAlign: 'right' }}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Legend:</span></td>
                 <td><div style={{ display: 'flex', alignItems: 'center' }}>
                   {
                     getSortedStatusLevels()

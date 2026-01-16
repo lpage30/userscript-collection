@@ -47,15 +47,20 @@ Collection of userscripts for various purposes
     - https://downdetector.com/status/<company-name>/
     - https://downdetector.com/status/<company-name>/map
 - Also added functions to fetch health status of major cloud resources with a mapping to companies that rely on them so perhaps you could say 'oh this site depends on cloudflare, and it is having a major outage'
+- Also added fetch of a breakdown of outages from geoblackout. This data is joined with downdetector data and service data to provide greater insight around the services listed by down detector
+- Wanted to see downdetector listings without all the surrounding ads etc.. And then also wanted to have a better understanding of why things may be down (added service health fetches), and then also wanted to know the breakdown of what is really down in that service (added geoblackout fetches).
+   This way you can see the service/company's down detector graph, see health of services it relies upon, and see the breakdown of what parts are seen as having issues. This info carries through to the downdetector company status and status-map pages.
 
 ## TheLayoff
 - userscript for pages on TheLayoff.com
 - Aggregates them into an easier to read dashboard with sorting, wanted to see only certain sites, and get to the guts of things without too many clicks.. meh
+- wanted to see postings in one place without a lot of stuff inbetween. Also wanted to isolate ones by company etc..
 
 ## Realestate
-- userscript for redfin/realtor
+- userscript for redfin/realtor/zoopla(uk)
 - looking for realestate along ocean, so wanted to toggle map on different pages
 - also scrapes info when on single property page so you don't have to dig for it
+- Wanted to look through open properties and know their closeness to the ocean.s
 
 ## Geocoding
 - Country-State-City data: npm 'country-state-city' provides an exhaustive organized collection of world-wide mappings Country => States => Cities with lat/lon for the centroids of the country/state/city

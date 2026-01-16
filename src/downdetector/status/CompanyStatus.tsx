@@ -13,6 +13,9 @@ import { PersistenceClass } from "../../dashboardcomponents/persistence";
 import Picklist from "../../dashboardcomponents/PickList";
 import FilterSort from "../../dashboardcomponents/FilterSort";
 import InfoDisplay from "../../dashboardcomponents/InfoDisplay";
+import { createOnExternalDataUpdates } from "../common/onexternaldataupdate";
+import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
+import { LoadOutageBreakdowns } from "../../geoblackout/ui/LoadOutageBreakdowns";
 
 interface CompanyStatusProps {
   persistence: PersistenceClass
@@ -23,14 +26,14 @@ interface CompanyStatusProps {
   page: CompanyPageType
 }
 const CompanyStatus: React.FC<CompanyStatusProps> = ({
-  persistence, 
+  persistence,
   pageTypes,
   filterableItems,
   sortingFields,
   company,
   page
 }) => {
-  const triggerInfoDisplayRef = useRef<(data: CompanyMetadata | null ) => void>(null)
+  const triggerInfoDisplayRef = useRef<(data: CompanyMetadata | null) => void>(null)
   const containerRef = useRef(null);
   const containerupdatedRef = useRef(false);
   const [sortedFilteredItems, setSortedFilteredItems] = useState<
@@ -69,7 +72,7 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
     const company = toCard(elementId, page, sortedFilteredItems.filteredItems)
     if (company && triggerInfoDisplayRef.current) {
       triggerInfoDisplayRef.current(company)
-    }    
+    }
   }
   const onMouseOutElement = (elementId: string) => {
     if (company.company && triggerInfoDisplayRef.current) {
@@ -80,6 +83,7 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
   const render = () => {
     const { sortedItems, filteredItems, sortingFilter } =
       sortedFilteredItems;
+    const { onServiceStatus, onOutageBreakdowns } = createOnExternalDataUpdates([company.company, ...filteredItems], persistence)
     return (
       <Dialog
         appendTo={'self'}
@@ -88,6 +92,8 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
         modal
         visible={visible}
         onHide={() => setVisible(false)}
+        closable={true}
+        showCloseIcon={true}
         style={{ width: "90vw", height: "90vh" }}
         header={
           <table
@@ -98,40 +104,57 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
               marginTop: '0',
               marginBottom: 'auto',
               width: '100%',
-          }}
+            }}
           ><tbody>
-            <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-              <td colSpan={3} className="text-center">
-                <h2>DownDetector {page == 'status' ? 'Status' : 'Heatmap'}: {company.companyName}</h2>
-              </td>
-            </tr>
-            <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-              <td>
-                <Picklist
-                  persistence={persistence}
-                  pageTypes={pageTypes}
-                  usingPage={page}
-                  items={filteredItems}
-                  onMouseOver={onMouseOverElement}
-                  onMouseOut={onMouseOutElement}
+              <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+                <td colSpan={3} className="text-center">
+                  <h2>DownDetector {page == 'status' ? 'Status' : 'Heatmap'}: {company.companyName}</h2>
+                </td>
+              </tr>
+              <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+                <td>
+                  <Picklist
+                    persistence={persistence}
+                    pageTypes={pageTypes}
+                    usingPage={page}
+                    items={filteredItems}
+                    onMouseOver={onMouseOverElement}
+                    onMouseOut={onMouseOutElement}
+                  />
+                </td><td style={{ width: '200px' }}>
+                  <InfoDisplay registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay }} />
+                </td><td>
+                  <FilterSort
+                    persistence={persistence}
+                    getFilterableItems={() => filterableItems}
+                    sortingFields={sortingFields}
+                    initialFilterSort={sortedFilteredItems.sortingFilter}
+                    onChange={handlFilterSorting}
+                  />
+                </td>
+              </tr>
+              <tr><td colSpan={2}>
+                <LoadOutageBreakdowns
+                  onOutageBreakdowns={(outages) => {
+                    onOutageBreakdowns(outages)
+                    const foundCompany = filteredItems.find(({ companyName }) => companyName === company.company?.companyName)
+                    company.company = foundCompany ?? company.company
+                    triggerInfoDisplayRef.current(company.company)
+                  }}
                 />
-              </td><td style={{width: '200px'}}>
-                <InfoDisplay registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay}}/>
-              </td><td>
-                <FilterSort
-                  persistence={persistence}
-                  getFilterableItems={() => filterableItems}
-                  sortingFields={sortingFields}
-                  initialFilterSort={sortedFilteredItems.sortingFilter}
-                  onChange={handlFilterSorting}
+              </td></tr>
+              <tr><td colSpan={2}>
+                <ServiceDashboardPopupAndSummary
+                  onServiceStatus={onServiceStatus}
+                  companyHealthStatuses={filteredItems.map(({ companyName, level }) => ({ companyName, healthStatus: level }))}
+                  isolatedCompanyNames={[company.companyName]}
                 />
-              </td>
-            </tr>
-          </tbody></table>
+              </td></tr>
+            </tbody></table>
         }
         className="p-dialog-maximized"
       >
-        <div id="company-status" ref={containerRef} onClick={(e) => { 
+        <div id="company-status" ref={containerRef} onClick={(e) => {
           if (e.currentTarget.firstElementChild) {
             if (company.company) {
               window.location.href = company.company.pageInfo[page === 'status' ? 'map' : 'status'].href

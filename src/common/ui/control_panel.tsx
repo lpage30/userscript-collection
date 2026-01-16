@@ -49,6 +49,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
         resizable={true}
         maximizable={maximizable ?? false}
         closable={canHide}
+        showCloseIcon={canHide}
         style={{ ...(style ?? {}), ...dimensions, position: 'absolute' }}
     >
         {content}

@@ -37,6 +37,7 @@ interface DashboardProps {
   registerRefreshFunction?: (refreshFunction: (showDialog: boolean) => void) => void
   onClose?: () => void
   addedHeaderComponents?: AddedHeaderComponent[]
+  closeable?: boolean
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -54,7 +55,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   registerRefreshContent,
   registerRefreshFunction,
   onClose,
-  addedHeaderComponents
+  addedHeaderComponents,
+  closeable = true
 
 }) => {
   const persistence = useRef<PersistenceClass>(getPersistence())
@@ -211,7 +213,8 @@ const Dashboard: React.FC<DashboardProps> = ({
       <Dialog
         appendTo={'self'}
         showHeader={true}
-        closable={[undefined, null].includes(onClose)}
+        closable={closeable}
+        showCloseIcon={closeable}
         position={'center'}
         visible={visible}
         onHide={() => {
