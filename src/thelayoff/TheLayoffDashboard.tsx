@@ -72,9 +72,14 @@ export const TheLayoffDashboard: Userscript = {
     const getPersistence = () => {
       return Persistence('TheLayoff', () => getFilterableItems(getCompanyNames))
     }
+    const onCancelLoading = () => {
+      renderInContainer(container, undefined)
+    }
+
     renderInContainer(container, <LoadingPopup
       isOpen={true}
       message={`Loading ${getCompanyBookmarks().length} Company Bookmarks...`}
+      onCancel={onCancelLoading}
     />);
     cards = await loadPosts(false)
     container.innerHTML = ""

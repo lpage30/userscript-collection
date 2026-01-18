@@ -62,10 +62,14 @@ export function toUserscript(site: RealEstateSite): Userscript {
       const page = Object.values(site.pages).find(page => page.isPage(href))
       if ([undefined, null].includes(page)) return
       const tstartLoad = Date.now()
-
+      const onCancelLoading = () => {
+        renderInContainer(container, undefined)
+      }
+  
       renderInContainer(container, <LoadingPopup
         message={`Userscript Loading ${site.name} ${propertyPageTypeString(page.pageType)}...`}
         isOpen={true}
+        onCancel={onCancelLoading}
       />);
 
       const toggleMaps = async (parentElement?: HTMLElement) => {

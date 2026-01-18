@@ -7,20 +7,35 @@ export interface LoadingPopupProps {
     message?: string;
     spinnerSize?: 'small' | 'medium' | 'large';
     registerSetProgress?: (setProgress: (progressMessage: string) => void) => void;
+    onCancel?: () => void
 }
 
 export function LoadingPopup({
     isOpen,
     message = 'Loading...',
     spinnerSize = 'medium',
-    registerSetProgress
+    registerSetProgress,
+    onCancel,
 }: LoadingPopupProps) {
-    const [progress, setProgress] = useState('')
-    if (registerSetProgress) registerSetProgress((progressMessage: string) => setProgress(progressMessage))
-    if (!isOpen) return null
+    const [state, setState] = useState<{ progress: string, visible: boolean}>({
+        progress: '',
+        visible: isOpen
+    })
+    if (registerSetProgress) registerSetProgress((progressMessage: string) => {
+        setState({...state, progress: progressMessage})
+    })
+    const cancelPopup = onCancel
+    ? () => {
+        setState({...state, visible: false})
+        onCancel()
+    }
+    : undefined
+
+    if (!state.visible) return null
     return createSpinningContentElement({
         popupElementType: 'div',
         spinnerSize,
+        onCancel: cancelPopup,
         content: {
             content: (
                 <>
@@ -31,13 +46,13 @@ export function LoadingPopup({
                         fontWeight: 'var(--font-medium)',
                         margin: 0,
                     }}>{message}</p>
-                    {0 < progress.length && <p style={{
+                    {0 < state.progress.length && <p style={{
                         fontSize: 'var(--text-base)',
                         color: 'var(--text-primary)',
                         textAlign: 'center',
                         fontWeight: 'var(--font-medium)',
                         margin: 0,
-                    }}>{progress}</p>
+                    }}>{state.progress}</p>
                     }
                 </>
             ),

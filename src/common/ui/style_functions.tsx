@@ -1,4 +1,4 @@
-import React, { CSSProperties, JSX } from "react";
+import React, { CSSProperties, JSX, useState } from "react";
 import './styles.scss'
 
 export interface BlinkingContentParameters {
@@ -54,6 +54,140 @@ export function createBlinkingContentElement(params?: BlinkingContentParameters)
             </div>
     }
 }
+export interface SpinningCircleParameters {
+    spinnerSize?: 'small' | 'medium' | 'large'
+    spinnerDelay?: string
+    onCancel?: () => void // only when popupElementType === 'div'
+}
+export function SpinningCircle(params: SpinningCircleParameters) {
+    const [hover, setHover] = useState(false)
+    const {
+        spinnerSize = params.onCancel ? 'large' : 'medium',
+        spinnerDelay = '1s',
+        onCancel
+    } = params ?? {}
+
+    const spinnerSizeMap = {
+        small: 30,
+        medium: 50,
+        large: 80,
+    }
+    const buttonWidth = spinnerSizeMap[spinnerSize]
+    const buttonHeight = Math.floor(spinnerSizeMap[spinnerSize] / 2)
+    const containerWidth = onCancel ? Math.max(spinnerSizeMap[spinnerSize], buttonWidth) : spinnerSizeMap[spinnerSize]
+    const containerHeight = spinnerSizeMap[spinnerSize] + (onCancel ? buttonHeight : 0)
+    const spinnerTop = 0
+    const spinnerLeft = Math.floor((containerWidth - spinnerSizeMap[spinnerSize]) / 2)
+    const buttonTop = spinnerTop + spinnerSizeMap[spinnerSize]
+    const buttonLeft = Math.floor((containerWidth - buttonWidth) / 2)
+    const containerStyle: CSSProperties = {
+        position: 'relative',
+        width: `${containerWidth}px`,
+        height: `${containerHeight}px`,
+        padding: 0,
+        margin: 0,
+    }
+    const spinningCircleStyle: CSSProperties = {
+        top: `${spinnerTop}px`,
+        left: `${spinnerLeft}px`,
+        width: `${spinnerSizeMap[spinnerSize]}px`,
+        height: `${spinnerSizeMap[spinnerSize]}px`,
+        border: `4px solid var(--border-light)`,
+        borderTop: `4px solid var(--primary-color)`,
+        borderRadius: '50%',
+        animation: `spin ${spinnerDelay} linear infinite`,
+    }
+    const buttonStyle: CSSProperties = {
+        top: `${buttonTop}`,
+        left: `${buttonLeft}px`,
+        width: `${buttonWidth}px`,
+        height: `${buttonHeight}px`,
+        padding: 0,
+        margin: 0,
+        color: 'white',
+        fontSize: '10px',
+        fontFamily: 'verdana',
+        overflow: 'visible',
+        whiteSpace: 'nowrap',
+        backgroundColor: '#ff4d4d',
+        border: `4px outset #ff4d4d`,
+    }
+    const hoverButtonStyle: CSSProperties = {
+        ...buttonStyle,
+        backgroundColor: '#e60000',
+        border: `4px inset #e60000`
+    }
+    const render = () => {
+        const spinnerStyleElement = (
+            <style>
+                {
+                    `
+                    @keyframes spin {
+                        to {
+                            transform: rotate(360deg);
+                        }
+                    }
+                    `
+                }
+            </style>
+        )
+        if (onCancel) {
+            return (
+                <button
+                    style={containerStyle}
+                    onMouseEnter={() => setHover(true)}
+                    onMouseLeave={() => setHover(false)}
+                    title={'click to cancel'}
+                    onClick={onCancel}
+                >
+                    {spinnerStyleElement}
+                    <div style={spinningCircleStyle} />
+                    <div style={hover ? hoverButtonStyle : buttonStyle}>cancel</div>
+                </button>
+            )
+        }
+        return (
+            <div style={containerStyle}>
+                {spinnerStyleElement}
+                <div style={spinningCircleStyle} />
+            </div>
+        )
+    }
+    return render()
+
+}
+export function CloseContainerButton(params: { onClose: () => void }) {
+    const [hover, setHover] = useState(false)
+    const closeButtonStyle: CSSProperties = {
+        /* Positions the button relative to the container */
+        position: 'absolute',
+        /* Places it in the top right corner */
+        top: '10px',
+        right: '10px',
+        backgroundColor: '#ff4d4d',
+        color: 'white',
+        border: 'none',
+        borderRadius: '50%',
+        width: '30px',
+        height: '30px',
+        cursor: 'pointer',
+        fontSize: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+    }
+    const hoverCloseButtonStyle: CSSProperties = {
+        ...closeButtonStyle,
+        backgroundColor: '#e60000'
+    }
+    return <button
+        style={hover ? hoverCloseButtonStyle : closeButtonStyle}
+        onClick={params.onClose}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+    >X</button>
+}
+
 interface SpinningContentType {
     content: any
     containerElementType?: 'NoContainer' | 'div'
@@ -65,26 +199,18 @@ export interface SpinningContentParameters {
     spinnerDelay?: string
     backgroundColor?: string
     content?: SpinningContentType
+    onCancel?: () => void // only when popupElementType === 'div'
 }
 
 export function createSpinningContentElement(params?: SpinningContentParameters): JSX.Element {
     const {
         popupElementType = 'NoPopup',
-        spinnerSize = 'medium',
-        spinnerDelay = '1s',
         backgroundColor = 'rgba(0, 0, 0, 0.5)'
     } = params ?? {}
     const {
         content = null,
-        containerElementType = 'NoContainer',
         contentContainerStyle = null
     } = (params ?? {}).content ?? {}
-
-    const spinnerSizeMap = {
-        small: 30,
-        medium: 50,
-        large: 80,
-    }
 
     const popupParentElementStyle: CSSProperties = {
         position: "fixed",
@@ -98,67 +224,25 @@ export function createSpinningContentElement(params?: SpinningContentParameters)
         justifyContent: "center",
         zIndex: 9999,
     }
-    const childSpinnerStyle: CSSProperties = {
-        width: `${spinnerSizeMap[spinnerSize]}px`,
-        height: `${spinnerSizeMap[spinnerSize]}px`,
-        border: `4px solid var(--border-light)`,
-        borderTop: `4px solid var(--primary-color)`,
-        borderRadius: '50%',
-        animation: `spin ${spinnerDelay} linear infinite`,
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 8888,
-    }
-    const childSpinnerStyleElement: JSX.Element = (
-        <style>
-            {
-                `@keyframes spin {
-                    to {
-                        transform: rotate(360deg);
-                    }
-                }`
-            }
-        </style>
-
-    )
-    let spinningElement: JSX.Element = (
-        <>
-            <div style={childSpinnerStyle} />
-            {content}
-        </>
-    )
-    switch (containerElementType) {
-        case 'div':
-            spinningElement = (
-                <div style={contentContainerStyle}>
-                    {spinningElement}
-                </div>
-            )
-            break
-        default:
-            break
-    }
-    spinningElement = (
-        <>
-            {childSpinnerStyleElement}
-            {spinningElement}
-        </>
-    )
 
     switch (popupElementType) {
         case 'div':
-            spinningElement = (
-                <div
-                    style={popupParentElementStyle}
-                >
-                    {spinningElement}
+            return (
+                <div style={popupParentElementStyle}>
+                    <div style={contentContainerStyle}>
+                        <SpinningCircle spinnerSize={params.spinnerSize} spinnerDelay={params.spinnerDelay} onCancel={params.onCancel} />
+                        {content}
+                    </div>
                 </div>
             )
-            break
         default:
-            break
+            return (
+                <>
+                    <SpinningCircle spinnerSize={params.spinnerSize} spinnerDelay={params.spinnerDelay} onCancel={params.onCancel} />
+                    {content}
+                </>
+            )
     }
-    return spinningElement
 }
 export interface ElementInfo {
     element: Element
@@ -195,14 +279,14 @@ export function getMaximumZIndex(): number {
     return Array.from(document.querySelectorAll('*'))
         .map(value => getElementInfo(value))
         .filter(element => isDisplayedElement(element) && ![undefined, 'auto'].includes(element.computedStyle.getPropertyValue('z-index')))
-        .reduce((maxZIndex, {computedStyle}) => {
+        .reduce((maxZIndex, { computedStyle }) => {
             const zIndex = parseInt(computedStyle.getPropertyValue('z-index'))
             return zIndex > maxZIndex ? zIndex : maxZIndex
         }, 0)
 }
 export function padToAlign(maxLength: number, curLength: number): JSX.Element {
-    const rem =(maxLength - curLength)/2
-    return maxLength === curLength ? null : (<span style={{ display: 'inline-block', width: `${rem}rem`}}></span>)
+    const rem = (maxLength - curLength) / 2
+    return maxLength === curLength ? null : (<span style={{ display: 'inline-block', width: `${rem}rem` }}></span>)
 }
 export function getHeightWidth(element: HTMLElement): { height: number, width: number } {
     const { width, height } = element.getBoundingClientRect()
@@ -212,5 +296,5 @@ export function scaleDimension(srcDim: { height: number, width: number }, fixedS
     if (isWidth) {
         return { height: Math.round(fixedSideLength * (srcDim.height / srcDim.width)), width: fixedSideLength }
     }
-    return { height: fixedSideLength, width: Math.round(fixedSideLength * (srcDim.width/srcDim.height)) }
+    return { height: fixedSideLength, width: Math.round(fixedSideLength * (srcDim.width / srcDim.height)) }
 }

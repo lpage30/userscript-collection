@@ -49,8 +49,12 @@ export const DownDetectorDashboard: Userscript = {
     );
   },
   renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
+    const onCancelLoading = () => {
+      renderInContainer(container, undefined)
+    }
     renderInContainer(container, <LoadingPopup
       isOpen={true}
+      onCancel={onCancelLoading}
     />);
     const persistence = Persistence('DownDetector', () => filterableItems)
     const cards = processCompanyDashboardCards(
