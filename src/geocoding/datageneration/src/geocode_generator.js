@@ -3,11 +3,10 @@ import * as turf from '@turf/turf'
 import shp from 'shpjs'
 import Path from 'path'
 import fs from 'fs'
-import { durationToString, toJsonFilename, toTitleCase, sortFilterIndexes } from './functions.js'
+import { durationToString, sortFilterIndexes } from './functions.js'
 import { createCountryStateCitiesMapFilter } from './region_filter.js'
 import { CountryStateCityMapGenerator, getRequiredGeojsonIndexes } from './countrystatecitymap_generator.js'
-
-export const GeojsonDataDirname = 'geojsondata'
+import { GeoDataOutput } from './DataOutput.js'
 
 function geojsonToIndexedGeojson(geojson) {
     if (geojson.features.every(feature => 'MultiPolygon' === feature.geometry.type)) {
@@ -32,12 +31,12 @@ function geojsonToIndexedGeojson(geojson) {
         }))
 }
 
-function findBestGeojsonIndex(lat, lon, namedIndexedGeojson, maxDistance) {
+function findBestGeojsonIndex(lat, lon, datasourcedIndexedGeojson, maxDistance) {
     if ([lat, lon].some(v => null == v || undefined == v || isNaN(v))) return undefined
 
     try {
         const source = turf.point([lon, lat])
-        const geojsonIndex = namedIndexedGeojson.indexedGeojson
+        const geojsonIndex = datasourcedIndexedGeojson.indexedGeojson
             .find(data => turf.booleanPointInPolygon(source, data.polygon))
         if (undefined !== geojsonIndex) {
             return {
@@ -45,7 +44,7 @@ function findBestGeojsonIndex(lat, lon, namedIndexedGeojson, maxDistance) {
             }
         }
         const maxDistanceCircle = turf.circle(source, maxDistance, { units: 'miles' })
-        const { data } = namedIndexedGeojson.indexedGeojson
+        const { data } = datasourcedIndexedGeojson.indexedGeojson
             .filter(data => turf.booleanIntersects(maxDistanceCircle, data.polygon))
             .reduce((minDistanceIndex, data) => {
                 const destination = turf.nearestPointOnLine(data.lineString, source).geometry;
@@ -65,14 +64,22 @@ function findBestGeojsonIndex(lat, lon, namedIndexedGeojson, maxDistance) {
         }
         return undefined
     } catch (e) {
-        throw new Error(`Failed Finding: ${namedIndexedGeojson.name}@lat(${lat})lon(${lon}). ${e}`)
+        throw new Error(`Failed Finding: ${namedIndexedGeojson.datasourceName}@lat(${lat})lon(${lon}). ${e}`)
     }
 }
 
 
-function geocodeCountryStateCityMap(countryStateCityMap, countryStateCityMapGeocodeFilter, namedIndexedGeojson, maxMilesDistance, indent = '') {
-    const { name: geodataName, indexedGeojson } = namedIndexedGeojson
-    console.log(`${indent}Geocoding subset of country/state/cities with ${geodataName} geojson`)
+function geocodeCountryStateCityMap(countryStateCityMap, countryStateCityMapGeocodeFilter, datasourcedIndexedGeojson, maxMilesDistance, indent = '') {
+    const { datasourceName, indexedGeojson } = datasourcedIndexedGeojson
+    console.log(`${indent}Geocoding subset of country/state/cities with ${datasourceName} geojson`)
+    const { filterCountries, filterStates, filterCities } = Object.values(countryStateCityMapGeocodeFilter).reduce((filterCounts, country) => {
+        return Object.values(country).reduce((filterCounts2, state) => ({
+            ...filterCounts2,
+            filterStates: filterCounts2.filterStates + 1,
+            filterCities: filterCounts2.filterCities + state.length
+        }), { ...filterCounts, filterCountries: filterCounts.filterCountries + 1 })
+    }, { filterCountries: 0, filterStates: 0, filterCities: 0 })
+
     const tstart = Date.now()
     let counts = {
         geocodedCountries: 0, geocodedStates: 0, geocodedCities: 0
@@ -83,7 +90,7 @@ function geocodeCountryStateCityMap(countryStateCityMap, countryStateCityMapGeoc
     let logtime = tstart
     const logProgress = (sourcePath, cities = -1, forceLog = false) => {
         if (forceLog || 30000 < (Date.now() - logtime)) {
-            const totalCities = -1 === cities ? (0 === filterCities ? 'all' : `${filterCities.length}`) : `${cities}`
+            const totalCities = -1 === cities ? (0 === filterCities ? 'all' : `${filterCities}`) : `${cities}`
             console.log(`${indent}${'\t'.repeat(sourcePath.length)}${sourcePath.join('-')}[${durationToString(Date.now() - tstart)}]> Progress: ${statusCounts.countries}/${filterCountries} countries(${counts.geocodedCountries}), ${statusCounts.states}/${filterStates} states(${counts.geocodedStates}), and ${statusCounts.cities}/${totalCities} cities(${counts.geocodedCities}))`)
             logtime = Date.now()
         }
@@ -95,8 +102,8 @@ function geocodeCountryStateCityMap(countryStateCityMap, countryStateCityMapGeoc
         const country = countryStateCityMap[countryName]
         sourcePath[0] = country.name
         console.log(`${indent}\t${country.name} => ${Object.keys(stateCitiesMap).join(',')} states`)
-        if (undefined === country.geocoding[geodataName]) {
-            country.geocoding[geodataName] = {
+        if (undefined === country.geocoding[datasourceName]) {
+            country.geocoding[datasourceName] = {
                 geojsonIndexes: [],
                 distantGeojsonIndexes: []
 
@@ -105,42 +112,43 @@ function geocodeCountryStateCityMap(countryStateCityMap, countryStateCityMapGeoc
         Object.entries(stateCitiesMap).forEach(([stateName, cityNameArray]) => {
             const state = country.states[stateName]
             sourcePath[1] = state.name
-            if (undefined === state.geocoding[geodataName]) {
-                state.geocoding[geodataName] = {
+            const cities = Object.values(state.cities).filter(({ name }) => 0 === cityNameArray.length || cityNameArray.includes(name))
+            if (undefined === state.geocoding[datasourceName]) {
+                state.geocoding[datasourceName] = {
                     geojsonIndexes: [],
                     distantGeojsonIndexes: []
 
                 }
             }
-            console.log(`${indent}\t\t${state.name} => ${cityNameArray.length} cities`)
 
-            totalCities = totalCities + cityNameArray.length
-            cityNameArray.forEach(cityName => {
-                const city = state.cities[cityName]
+            console.log(`${indent}\t\t${state.name} => ${cities.length} cities`)
+
+            totalCities = totalCities + cities.length
+            cities.forEach(city => {
                 sourcePath[2] = city.name
-                if (undefined === city.geocoding[geodataName]) {
-                    city.geocoding[geodataName] = {
+                if (undefined === city.geocoding[datasourceName]) {
+                    city.geocoding[datasourceName] = {
                         geojsonIndexes: [],
                         distantGeojsonIndexes: []
 
                     }
                 }
-                const bestIndex = findBestGeojsonIndex(city.lat, city.lon, namedIndexedGeojson, maxMilesDistance)
+                const bestIndex = findBestGeojsonIndex(city.lat, city.lon, datasourcedIndexedGeojson, maxMilesDistance)
                 if (undefined !== bestIndex && [bestIndex.geojsonIndex, bestIndex.distantGeojsonIndex].some(v => undefined !== v)) {
                     counts = {
                         ...counts,
                         geocodedCities: counts.geocodedCities + 1
                     }
                     if (undefined !== bestIndex.geojsonIndex) {
-                        city.geocoding[geodataName].geojsonIndexes.push(bestIndex.geojsonIndex)
-                        state.geocoding[geodataName].geojsonIndexes.push(bestIndex.geojsonIndex)
-                        country.geocoding[geodataName].geojsonIndexes.push(bestIndex.geojsonIndex)
+                        city.geocoding[datasourceName].geojsonIndexes.push(bestIndex.geojsonIndex)
+                        state.geocoding[datasourceName].geojsonIndexes.push(bestIndex.geojsonIndex)
+                        country.geocoding[datasourceName].geojsonIndexes.push(bestIndex.geojsonIndex)
                         requiredGeojsonIndexes.push(bestIndex.geojsonIndex)
                     }
                     if (undefined !== bestIndex.distantGeojsonIndex) {
-                        city.geocoding[geodataName].distantGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
-                        state.geocoding[geodataName].distantGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
-                        country.geocoding[geodataName].distantGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
+                        city.geocoding[datasourceName].distantGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
+                        state.geocoding[datasourceName].distantGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
+                        country.geocoding[datasourceName].distantGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
                         requiredGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
                     }
                 }
@@ -150,52 +158,52 @@ function geocodeCountryStateCityMap(countryStateCityMap, countryStateCityMapGeoc
                 }
                 logProgress(sourcePath, totalCities)
             })
-            const bestIndex = findBestGeojsonIndex(state.lat, state.lon, namedIndexedGeojson, maxMilesDistance)
+            const bestIndex = findBestGeojsonIndex(state.lat, state.lon, datasourcedIndexedGeojson, maxMilesDistance)
             if (undefined !== bestIndex && [bestIndex.geojsonIndex, bestIndex.distantGeojsonIndex].some(v => undefined !== v)) {
                 counts = {
                     ...counts,
                     geocodedStates: counts.geocodedStates + 1
                 }
                 if (undefined !== bestIndex.geojsonIndex) {
-                    state.geocoding[geodataName].geojsonIndexes.push(bestIndex.geojsonIndex)
-                    country.geocoding[geodataName].geojsonIndexes.push(bestIndex.geojsonIndex)
+                    state.geocoding[datasourceName].geojsonIndexes.push(bestIndex.geojsonIndex)
+                    country.geocoding[datasourceName].geojsonIndexes.push(bestIndex.geojsonIndex)
                     requiredGeojsonIndexes.push(bestIndex.geojsonIndex)
                 }
                 if (undefined !== bestIndex.distantGeojsonIndex) {
-                    state.geocoding[geodataName].distantGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
-                    country.geocoding[geodataName].distantGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
+                    state.geocoding[datasourceName].distantGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
+                    country.geocoding[datasourceName].distantGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
                     requiredGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
                 }
             }
-            state.geocoding[geodataName].geojsonIndexes = state.geocoding[geodataName].geojsonIndexes.sort((l, r) => l - r)
+            state.geocoding[datasourceName].geojsonIndexes = state.geocoding[datasourceName].geojsonIndexes.sort((l, r) => l - r)
                 .filter((i, n, a) => 0 === n || i !== a[n - 1])
-            state.geocoding[geodataName].distantGeojsonIndexes = state.geocoding[geodataName].distantGeojsonIndexes.sort((l, r) => l - r)
-                .filter((i, n, a) => (0 === n || i !== a[n - 1]) && !state.geocoding[geodataName].geojsonIndexes.includes(i))
+            state.geocoding[datasourceName].distantGeojsonIndexes = state.geocoding[datasourceName].distantGeojsonIndexes.sort((l, r) => l - r)
+                .filter((i, n, a) => (0 === n || i !== a[n - 1]) && !state.geocoding[datasourceName].geojsonIndexes.includes(i))
             statusCounts = {
                 ...statusCounts,
                 states: statusCounts.states + 1
             }
             logProgress(sourcePath.slice(0, 2), totalCities, true)
         })
-        const bestIndex = findBestGeojsonIndex(country.lat, country.lon, namedIndexedGeojson, maxMilesDistance)
+        const bestIndex = findBestGeojsonIndex(country.lat, country.lon, datasourcedIndexedGeojson, maxMilesDistance)
         if (undefined !== bestIndex && [bestIndex.geojsonIndex, bestIndex.distantGeojsonIndex].some(v => undefined !== v)) {
             counts = {
                 ...counts,
                 geocodedCountries: counts.geocodedCountries + 1
             }
             if (undefined !== bestIndex.geojsonIndex) {
-                country.geocoding[geodataName].geojsonIndexes.push(bestIndex.geojsonIndex)
+                country.geocoding[datasourceName].geojsonIndexes.push(bestIndex.geojsonIndex)
                 requiredGeojsonIndexes.push(bestIndex.geojsonIndex)
             }
             if (undefined !== bestIndex.distantGeojsonIndex) {
-                country.geocoding[geodataName].distantGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
+                country.geocoding[datasourceName].distantGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
                 requiredGeojsonIndexes.push(bestIndex.distantGeojsonIndex)
             }
         }
-        country.geocoding[geodataName].geojsonIndexes = country.geocoding[geodataName].geojsonIndexes.sort((l, r) => l - r)
+        country.geocoding[datasourceName].geojsonIndexes = country.geocoding[datasourceName].geojsonIndexes.sort((l, r) => l - r)
             .filter((i, n, a) => 0 === n || i !== a[n - 1])
-        country.geocoding[geodataName].distantGeojsonIndexes = country.geocoding[geodataName].distantGeojsonIndexes.sort((l, r) => l - r)
-            .filter((i, n, a) => (0 === n || i !== a[n - 1]) && !country.geocoding[geodataName].geojsonIndexes.includes(i))
+        country.geocoding[datasourceName].distantGeojsonIndexes = country.geocoding[datasourceName].distantGeojsonIndexes.sort((l, r) => l - r)
+            .filter((i, n, a) => (0 === n || i !== a[n - 1]) && !country.geocoding[datasourceName].geojsonIndexes.includes(i))
         statusCounts = {
             ...statusCounts,
             countries: statusCounts.countries + 1
@@ -206,74 +214,56 @@ function geocodeCountryStateCityMap(countryStateCityMap, countryStateCityMapGeoc
         geocodedCountryStateCityMap: countryStateCityMap,
         requiredGeojsonIndexes: requiredGeojsonIndexes.sort((l, r) => l - r).filter((v, i, a) => 0 === i || v != a[i - 1]),
     }
-    console.log(`${indent}done! Geocoded (${counts.geocodedCountries}/${statusCounts.countries} countries, ${counts.geocodedStates}/${statusCounts.states} states, and ${counts.geocodedCities}/${statusCounts.cities} cities) ${result.requiredGeojsonIndexes.length}/${indexedGeojson.length} ${geodataName} geojsonIndices. (${durationToString(Date.now() - tstart)})`)
+    console.log(`${indent}done! Geocoded (${counts.geocodedCountries}/${statusCounts.countries} countries, ${counts.geocodedStates}/${statusCounts.states} states, and ${counts.geocodedCities}/${statusCounts.cities} cities) ${result.requiredGeojsonIndexes.length}/${indexedGeojson.length} ${datasourceName} geojsonIndices. (${durationToString(Date.now() - tstart)})`)
     return result
 
 }
 
 export const GeocodeGenerator = (
-    geocodingDirname,
-    shapefilenamePrefix,
-    shapefilenameSuffix,
-    regionIsoCodeMap,
+    countryDataInput,
+    geoDataInput,
 ) => {
-    if (!fs.existsSync(geocodingDirname)) {
-        throw new Error(`GeocodeGenerator: directory ${geocodingDirname} does not exist`)
-    }
-    const geojsonFilenamePrefix = shapefilenamePrefix.replace(/-/g, '_')
-    const countryStateCityGenerator = CountryStateCityMapGenerator(geocodingDirname)
-    const geodataDirpath = Path.join(geocodingDirname, 'datageneration', 'geodata')
-    const geojsonDataDirname = 'geojsondata'
-    const geojsonDataDirpath = Path.join(geocodingDirname, geojsonDataDirname)
-    const toGeojsonFilenamePrefix = (index) => `${geojsonFilenamePrefix}_${index}`
-    const toGeojsonFilepath = (index) => Path.join(geojsonDataDirpath, `${toGeojsonFilenamePrefix(index)}.json`)
-    const toGeojsonImportpath = (index) => `./${geojsonDataDirname}/${toGeojsonFilenamePrefix(index)}.json`
-    const shapefilename = `${shapefilenamePrefix}.${shapefilenameSuffix}`
-    const shapefilepath = Path.join(geodataDirpath, shapefilename)
-
-    const geodataName = toTitleCase(geojsonFilenamePrefix)
-
+    const countryStateCityGenerator = CountryStateCityMapGenerator(countryDataInput)
+    const geoDataOutput = GeoDataOutput(geoDataInput)
     const removeFiles = async (indent = '') => {
         const tstart = Date.now()
         let count = 0
-        console.log(`${indent}Removing ${shapefilenamePrefix} generated files`)
-        for (const file of (await fs.promises.readdir(geojsonDataDirpath)).filter(f => f.startsWith(shapefilenamePrefix))) {
+        console.log(`${indent}Removing ${geoDataOutput.datasourceName} generated files`)
+        for (const file of (await fs.promises.readdir(geoDataOutput.geojsonOutputDirpath)).filter(f => f.startsWith(geoDataOutput.datasourceName))) {
             count = count + 1
-            await fs.promises.rm(Path.join(geojsonDataDirpath, file))
+            await fs.promises.rm(Path.join(geoDataOutput.geojsonOutputDirpath, file))
         }
         console.log(`${indent}done! ${count} files removed. duration: ${durationToString(Date.now() - tstart)}`)
     }
 
-    const loadNamedIndexedGeojson = async (indent = '') => {
-        const name = geojsonFilenamePrefix
+    const loadDatasourcedIndexedGeojson = async (indent = '') => {
         const tstart = Date.now()
-        console.log(`${indent}Loading and indexing ${Path.basename(shapefilepath)} shapeData as GeoJson `)
-        const shpData = await fs.promises.readFile(shapefilepath);
-        const geojson = await shp(shapefilepath.endsWith('.shp') ? { shp: shpData } : shpData)
-        await fs.promises.writeFile(`${shapefilepath}.geo.json`, JSON.stringify(geojson), 'utf8')
+        console.log(`${indent}Loading and indexing ${Path.basename(geoDataInput.shapeFilepath)} shapeData as GeoJson `)
+        const shpData = await fs.promises.readFile(geoDataInput.shapeFilepath);
+        const geojson = await shp(geoDataInput.shapeFilepath.endsWith('.shp') ? { shp: shpData } : shpData)
+        await fs.promises.writeFile(`${geoDataInput.shapeFilepath}.geo.json`, JSON.stringify(geojson), 'utf8')
         const indexedGeojson = geojsonToIndexedGeojson(geojson)
-        await fs.promises.writeFile(`${shapefilepath}.indexed.geo.json`, JSON.stringify(indexedGeojson), 'utf8')
-        console.log(`${indent}done! ${name} has ${indexedGeojson.length} geojson indices. (${durationToString(Date.now() - tstart)})`)
+        await fs.promises.writeFile(`${geoDataInput.shapeFilepath}.indexed.geo.json`, JSON.stringify(indexedGeojson), 'utf8')
+        console.log(`${indent}done! ${geoDataInput.datasourceName} has ${indexedGeojson.length} geojson indices. (${durationToString(Date.now() - tstart)})`)
         return {
-            name,
+            datasourceName: geoDataInput.datasourceName,
             indexedGeojson,
         }
     }
 
-    const writeIndexedGeojsonFiles = async (namedIndexedGeojson, indexesToWrite, indent = '') => {
+    const writeIndexedGeojsonFiles = async (datasourcedIndexedGeojson, indexesToWrite, indent = '') => {
         let tstart = Date.now()
         const indexes = [...indexesToWrite].sort((l, r) => l - r)
-        console.log(`${indent}Writing required Geojson Indexes (${indexesToWrite.length}/${namedIndexedGeojson.indexedGeojson.length}) to ${toGeojsonFilepath('<index>')}`)
+        console.log(`${indent}Writing required Geojson Indexes (${indexesToWrite.length}/${datasourcedIndexedGeojson.indexedGeojson.length}) to ${geoDataOutput.toGeojsonIndexFilepath('<index>')}`)
         for (const index of indexes) {
-            await fs.promises.writeFile(toGeojsonFilepath(index), JSON.stringify(namedIndexedGeojson.indexedGeojson[index]), 'utf8')
+            await fs.promises.writeFile(geoDataOutput.toGeojsonIndexFilepath(index), JSON.stringify(datasourcedIndexedGeojson.indexedGeojson[index]), 'utf8')
         }
         console.log(`${indent}done! duration: ${durationToString(Date.now() - tstart)}`)
     }
     async function exists(indexes) {
         if (0 === indexes.length) return false
-        const prefix = `${geojsonFilenamePrefix}_`
-        const suffix = '.json'
-        const fileIndexes = (await fs.promises.readdir(geojsonDataDirpath))
+        const { prefix, suffix } = geoDataOutput.geojsonIndexFilenameParts
+        const fileIndexes = (await fs.promises.readdir(geoDataOutput.geojsonOutputDirpath))
             .filter(file => file.startsWith(prefix) && file.endsWith(suffix))
             .map(name => {
                 const startPos = prefix.length
@@ -287,11 +277,11 @@ export const GeocodeGenerator = (
             })
             .filter(v => undefined !== v)
         if (fileIndexes.length !== indexes.length) {
-            console.log(`${geojsonFilenamePrefix}> ${fileIndexes.length} != expected ${indexes.length}`)
+            console.log(`${geoDataInput.datasourceName}> ${fileIndexes.length} != expected ${indexes.length}`)
             return false
         }
         if (!indexes.every(i => fileIndexes.includes(i))) {
-            console.log(`${geojsonFilenamePrefix}> Not all indexes match [${indexes.filter(i => !fileIndexes.includes(i)).join(',')}]`)
+            console.log(`${geoDataInput.datasourceName}> Not all indexes match [${indexes.filter(i => !fileIndexes.includes(i)).join(',')}]`)
             return false
         }
         return true
@@ -299,15 +289,12 @@ export const GeocodeGenerator = (
 
     const generate = async (maxMilesDistance, regionFilter, indent = '') => {
         const tstart = Date.now()
-
-        if (!fs.existsSync(shapefilepath)) {
-            throw new Error(`GeocodeGenerator: shapefile ${shapefilepath} does not exist`)
-        }
-        console.log(`${indent}Geocoding World Country-State-City Map within ${maxMilesDistance} miles of regions [${regionFilter.join(', ')}] in ${geodataName} geodata`)
+        console.log(`${indent}Geocoding World Country-State-City Map within ${maxMilesDistance} miles of regions [${regionFilter.join(', ')}] in ${geoDataInput.datasourceName} geodata`)
 
         const CountryStateCityMap = await countryStateCityGenerator.loadGeocodedMap(`${indent}\t`)
+
         const geojsonIndexes = sortFilterIndexes(Object.values(CountryStateCityMap)
-            .map(country => getRequiredGeojsonIndexes(country, geojsonFilenamePrefix)).flat())
+            .map(country => getRequiredGeojsonIndexes(country, geoDataInput.datasourceName)).flat())
         if (await exists(sortFilterIndexes(geojsonIndexes))) {
             console.log(`${indent} - skipping, already geocoded.`)
             return
@@ -315,13 +302,14 @@ export const GeocodeGenerator = (
         await removeFiles(`${indent}\t`)
 
 
-        const countryStateMapFilter = createCountryStateCitiesMapFilter(regionFilter, regionIsoCodeMap, `${indent}\t`)
-        const namedIndexedGeojson = await loadNamedIndexedGeojson(`${indent}\t`)
+        const countryStateMapFilter = createCountryStateCitiesMapFilter(regionFilter, geoDataInput.regionIsoCodeMap, `${indent}\t`)
+        const datasourcedIndexedGeojson = await loadDatasourcedIndexedGeojson(`${indent}\t`)
 
-        const { geocodedCountryStateCityMap, requiredGeojsonIndexes } = geocodeCountryStateCityMap(CountryStateCityGeocodeExtensionMap, countryStateMapFilter, namedIndexedGeojson, maxMilesDistance, `${indent}\t`)
+        const { geocodedCountryStateCityMap, requiredGeojsonIndexes } = geocodeCountryStateCityMap(
+            CountryStateCityMap, countryStateMapFilter, datasourcedIndexedGeojson, maxMilesDistance, `${indent}\t`)
 
         await countryStateCityGenerator.writeGeocodedMap(geocodedCountryStateCityMap, `${indent}\t`)
-        await writeIndexedGeojsonFiles(namedIndexedGeojson, requiredGeojsonIndexes, `${indent}\t`)
+        await writeIndexedGeojsonFiles(datasourcedIndexedGeojson, requiredGeojsonIndexes, `${indent}\t`)
 
         const durationms = Date.now() - tstart
         console.log(`${indent}done! duration: ${durationToString(durationms)}`)

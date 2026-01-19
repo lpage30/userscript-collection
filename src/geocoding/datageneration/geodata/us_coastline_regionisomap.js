@@ -1,5 +1,5 @@
 export const USCoastalRegionIsoCodeMap = {
-    newengland: {
+    usnewengland: {
         countryCode: 'US',
         stateCities: {
             ME: [],
@@ -9,7 +9,7 @@ export const USCoastalRegionIsoCodeMap = {
             CT: [],
         }
     },
-    midatlantic: {
+    usmidatlantic: {
         countryCode: 'US',
         stateCities: {
             NY: [],
@@ -19,7 +19,7 @@ export const USCoastalRegionIsoCodeMap = {
             VA: [],
         }
     },
-    southatlantic: {
+    ussouthatlantic: {
         countryCode: 'US',
         stateCities: {
             NC: [],
@@ -28,7 +28,7 @@ export const USCoastalRegionIsoCodeMap = {
             FL: [],
         }
     },
-    westcoast: {
+    uswestcoast: {
         countryCode: 'US',
         stateCities: {
             WA: [],

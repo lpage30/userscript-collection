@@ -34,6 +34,7 @@ export interface GeocodedCountry extends Country<GeocodedCity, GeocodedState>, G
 }
 
 interface GeneratedGeocodedBase extends GeocodedCountryStateCityBase, Partial<GeoCoordinate> {
+    name: string
 }
 type GeneratedGeocodedCity = GeneratedGeocodedBase
 

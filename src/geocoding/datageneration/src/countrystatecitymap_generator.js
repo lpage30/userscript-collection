@@ -2,23 +2,30 @@ import fs from 'fs'
 import Path from 'path'
 import { durationToString } from './functions.js'
 import { Country, State, City } from 'country-state-city';
+import { CountryDataOutput } from './DataOutput.js';
 
-export const GeocodedCountryCityStateDataDirname = 'geocodedcountrystatecitydata'
-export const CountryStateCityMapJsonFilename = 'country_state_city_map.json'
-export const CountryStateCityMapGeocodedJsonFilename = 'geocoded_country_state_city_map.json'
-
-
-export function getRequiredGeojsonIndexes(country, geojsonFilenamePrefix) {
-    const coding = country.geocoding[geojsonFilenamePrefix] ?? { geojsonIndexes: [], distantGeojsonIndexes: []}
+export function getRequiredGeojsonIndexes(country, datasourceName) {
+    const coding = country.geocoding[datasourceName] ?? { geojsonIndexes: [], distantGeojsonIndexes: [] }
     return [...coding.geojsonIndexes, ...coding.distantGeojsonIndexes]
 }
-function createCountryStateCityMapBase(indent = '') {
+function createCountryStateCityMap(indent, { asBaseMap, asGeocodedMap, maxMilesDistance }) {
     const tstart = Date.now()
-    console.log(`${indent}Creating world Country/State/City Map`)
+    if (!asBaseMap && !asGeocodedMap) {
+        throw new Error('createCountryStateCityMap: Missing "asBaseMap" and/or "asGeocodedMap" arguments')
+    }
+    if (asGeocodedMap && isNaN(maxMilesDistance)) {
+        throw new Error('createCountryStateCityMap: Missing "maxMilesDistance" for "asGeocodedMap" creation arguments')
+    }
+    const mapTypeName = `${asBaseMap ? 'BaseMap' : ''} ${asGeocodedMap ? 'GeocodeExtensionMap' : ''} ${asBaseMap && asGeocodedMap ? 'Combined Base+GeocodeExtensionMap' : ''}`
+    console.log(`${indent}Creating world Country/State/City ${mapTypeName}`)
     const counts = {
         country: 0,
         state: 0,
         city: 0,
+    }
+    const geocodeExtension = {
+        geocoding: {},
+        distantMaxMiles: maxMilesDistance,
     }
     const toFloat = (value) => {
         if ('number' === typeof value) return value
@@ -28,120 +35,93 @@ function createCountryStateCityMapBase(indent = '') {
     const countryStateCityMap = Country.getAllCountries().reduce((countryMap, country) => {
         counts.country = counts.country + 1
         const countryCoordinates = [
-            {lat: toFloat(country.latitude), lon: toFloat(country.longitude)}
+            { lat: toFloat(country.latitude), lon: toFloat(country.longitude) }
         ]
-        const statesOfCountry =  (State.getStatesOfCountry(country.isoCode) ?? []).reduce((stateMap, state) => {
-            country.state = country.state + 1
+        const statesOfCountry = (State.getStatesOfCountry(country.isoCode) ?? []).reduce((stateMap, state) => {
+            counts.state = counts.state + 1
             const stateCoordinates = [
-                {lat: toFloat(state.latitude), lon: toFloat(state.longitude)}
+                { lat: toFloat(state.latitude), lon: toFloat(state.longitude) }
             ]
             const citiesOfState = (City.getCitiesOfState(country.isoCode, state.isoCode) ?? []).reduce((cityMap, city) => {
                 counts.city = counts.city + 1
-                stateCoordinates.push({lat: toFloat(city.latitude), lon: toFloat(city.longitude)})
+                stateCoordinates.push({ lat: toFloat(city.latitude), lon: toFloat(city.longitude) })
                 return {
                     ...cityMap,
                     [city.name]: {
-                        countryName: country.name,
-                        stateName: state.name,
                         name: city.name,
                         lat: toFloat(city.latitude),
                         lon: toFloat(city.longitude),
+                        ...(asBaseMap ? {
+                            countryName: country.name,
+                            stateName: state.name,
+                        } : {}),
+                        ...(asGeocodedMap ? geocodeExtension : {})
+
                     }
                 }
             }, {})
             const stateResult = {
                 ...stateMap,
                 [state.name]: {
-                    countryName: country.name,
                     name: state.name,
-                    isoCode: state.isoCode,
                     lat: toFloat(state.latitude),
                     lon: toFloat(state.longitude),
-                    containedCoordinates: stateCoordinates.filter(({lat, lon}) => ![undefined, null].some(v => [lat, lon].includes(v))),
-                    cities: citiesOfState
+                    cities: citiesOfState,
+                    ...(asBaseMap ? {
+                        countryName: country.name,
+                        isoCode: state.isoCode,
+                        containedCoordinates: stateCoordinates.filter(({ lat, lon }) => ![undefined, null].some(v => [lat, lon].includes(v))),
+                    } : {}),
+                    ...(asGeocodedMap ? geocodeExtension : {})
+
                 }
             }
-            countryCoordinates.push(...stateResult[state.name].containedCoordinates)
+            if (asBaseMap) {
+                countryCoordinates.push(...stateResult[state.name].containedCoordinates)
+            }
             return stateResult
-        },{})
+        }, {})
         return {
             ...countryMap,
             [country.name]: {
                 name: country.name,
-                isoCode: country.isoCode,
                 lat: toFloat(country.latitude),
                 lon: toFloat(country.longitude),
-                containedCoordinates: countryCoordinates.filter(({lat, lon}) => ![undefined, null].some(v => [lat, lon].includes(v))),
-                states: statesOfCountry
+                states: statesOfCountry,
+                ...(asBaseMap ? {
+                    isoCode: country.isoCode,
+                    containedCoordinates: countryCoordinates.filter(({ lat, lon }) => ![undefined, null].some(v => [lat, lon].includes(v))),
+                } : {}),
+                ...(asGeocodedMap ? geocodeExtension : {})
             }
         }
     }, {})
-    console.log(`${indent}done! Base Map contents ${counts.country} countries, ${counts.state} states, and ${counts.city} cities (${durationToString(Date.now() - tstart)})`)
+    console.log(`${indent}done! ${mapTypeName} contents ${counts.country} countries, ${counts.state} states, and ${counts.city} cities (${durationToString(Date.now() - tstart)})`)
     return countryStateCityMap
 }
-function createCountryStateCityMapGeocodeExtension(maxMilesDistant, indent = '') {
-    const tstart = Date.now()
-    console.log(`${indent}Creating world Country/State/City Map Geocoded Extension`)
-    const counts = {
-        country: 0,
-        state: 0,
-        city: 0,
-    }
-    const toFloat = (value) => {
-        if ('number' === typeof value) return value
-        const result = parseFloat(value)
-        return isNaN(result) ? undefined : result
-    }
-    const countryStateCityMapGeocodeExtension = Country.getAllCountries().reduce((countryMap, country) => {
-        counts.country = counts.country + 1
-        const statesOfCountry =  (State.getStatesOfCountry(country.isoCode) ?? []).reduce((stateMap, state) => {
-            country.state = country.state + 1
-            const citiesOfState = (City.getCitiesOfState(country.isoCode, state.isoCode) ?? []).reduce((cityMap, city) => {
-                counts.city = counts.city + 1
-                return {
-                    ...cityMap,
-                    [city.name]: {
-                        lat: toFloat(city.latitude),
-                        lon: toFloat(city.longitude),
-                        geocoding: {},
-                        distantMaxMiles: maxMilesDistant,
-                    }
-                }
-            }, {})
-            const stateResult = {
-                ...stateMap,
-                [state.name]: {
-                    lat: toFloat(state.latitude),
-                    lon: toFloat(state.longitude),
-                    geocoding: {},
-                    distantMaxMiles: maxMilesDistant,
-                    cities: citiesOfState
-                }
-            }
-            return stateResult
-        },{})
-        return {
-            ...countryMap,
-            [country.name]: {
-                name: country.name,
-                lat: toFloat(country.latitude),
-                lon: toFloat(country.longitude),
-                geocoding: {},
-                distantMaxMiles: maxMilesDistant,
-                states: statesOfCountry
-            }
-        }
-    }, {})
-    console.log(`${indent}done! Geocoded Extension contents ${counts.country} countries, ${counts.state} states, and ${counts.city} cities (${durationToString(Date.now() - tstart)})`)
-    return countryStateCityMapGeocodeExtension
-}
-export const CountryStateCityMapGenerator = (geocodingDirname) => {
-    if (!fs.existsSync(geocodingDirname)) {
-        throw new Error(`CountryStateCityGenerator: directory ${geocodingDirname} does not exist`)
-    }
 
-    const countryStateCityMapJsonFilepath = Path.join(geocodingDirname, GeocodedCountryCityStateDataDirname, CountryStateCityMapJsonFilename)
-    const countryStateCityMapGeocodedJsonFilepath = Path.join(geocodingDirname, GeocodedCountryCityStateDataDirname, CountryStateCityMapGeocodedJsonFilename)
+async function exists(dirpath, prefix, suffix, count) {
+    const files = await fs.promises.readdir(dirpath)
+    if (files.length !== count) return false
+    if (!files.every(name => name.startsWith(prefix) && name.endsWith(prefix))) return false
+    let minTimestamp = Number.MAX_VALUE
+    let maxTimestamp = 0
+    for (const file of files) {
+        const createTime = (await fs.promises.stat(Path.join(dirpath, file))).birthtimeMs
+        if (createTime < minTimestamp) {
+            minTimestamp = createTime
+        }
+        if (maxTimestamp < createTime) {
+            maxTimestamp = creteTime
+        }
+    }
+    if (120000 < (maxTimestamp - minTimestamp)) {
+        return false
+    }
+    return true
+}
+export const CountryStateCityMapGenerator = (countryDataInput) => {
+    const countryDataOutput = CountryDataOutput(countryDataInput)
 
     const loadMap = async (filepath, indent = '') => {
         if (!fs.existsSync(filepath)) {
@@ -166,31 +146,66 @@ export const CountryStateCityMapGenerator = (geocodingDirname) => {
         }
         console.log(`${indent}done! duration: ${durationToString(Date.now() - tstart)}`)
     }
-    const generate = async (maxMilesDistance, indent = '') => {
+    const generate = async (maxMilesDistance, indent) => {
         const tstart = Date.now()
         console.log(`${indent}Generating World Country-State-City Maps`)
-        if (!fs.existsSync(`${countryStateCityMapJsonFilepath}`)) {
-            const countryStateCityMap = createCountryStateCityMapBase(`${indent}\t`)
-            await writeMap(countryStateCityMapJsonFilepath, countryStateCityMap, `${indent}\t`)
+        if (!fs.existsSync(countryDataOutput.mapJsonFilepath)) {
+            const countryStateCityMap = createCountryStateCityMap(`${indent}\t`, { asBaseMap: true })
+            await writeMap(countryDataOutput.mapJsonFilepath, countryStateCityMap, `${indent}\t`)
         } else {
-            console.log(`${indent} - skipping, ${Path.basename(countryStateCityMapJsonFilepath)} already generated.`)
+            console.log(`${indent} - skipping, ${Path.basename(countryDataOutput.mapJsonFilepath)} already generated.`)
         }
 
-        if (!fs.existsSync(`${countryStateCityMapGeocodedJsonFilepath}`)) {
-            const countryStateCityMap = createCountryStateCityMapGeocodeExtension(maxMilesDistance, `${indent}\t`)
-            await writeMap(countryStateCityMapGeocodedJsonFilepath, countryStateCityMap, `${indent}\t`)
+        if (!fs.existsSync(countryDataOutput.mapGeocodedJsonFilepath)) {
+            const baseCountryStateCityMap = await loadMap(countryDataOutput.mapJsonFilepath, `${indent}\t`)
+            const countryStateCityMap = createCountryStateCityMap(`${indent}\t`, { asGeocodedMap: true, maxMilesDistance })
+            await writeMap(countryDataOutput.mapGeocodedJsonFilepath, countryStateCityMap, `${indent}\t`)
         } else {
-            console.log(`${indent} - skipping, ${Path.basename(countryStateCityMapGeocodedJsonFilepath)} already generated.`)
+            console.log(`${indent} - skipping, ${Path.basename(countryDataOutput.mapGeocodedJsonFilepath)} already generated.`)
         }
         const durationms = Date.now() - tstart
         console.log(`${indent}done! duration: ${durationToString(durationms)}`)
     }
 
+    const splitCountryMaps = async (indent) => {
+        const tstart = Date.now()
+        console.log(`${indent}split Country/State/City map json into 2 jsons per country: base one and geocoded one`)
+        const countryDataOutput = CountryDataOutput(countryDataInput)
+
+        const countryStateCityMapBase = await loadMap(countryDataOutput.mapJsonFilepath, `${indent}\t`)
+        const countryStateCityMapGeocodeExtension = await loadMap(countryDataOutput.mapGeocodedJsonFilepath, `${indent}\t`)
+
+        const expectedFilecount = 1 + Object.keys(countryStateCityMapBase)
+        if (await exists(
+            countryDataOutput.outputDirpath,
+            countryDataOutput.geocodedCountryMapParts.prefix,
+            countryDataOutput.geocodedCountryMapParts.suffix,
+            expectedFilecount
+        )) {
+            console.log(`${indent} - skipping, ${expectedFilecount} files already exist within the same create time.`)
+            return
+        }
+
+        for (const baseCountry of Object.values(countryStateCityMapBase)) {
+            const geocodedCountry = countryStateCityMapGeocodeExtension[baseCountry.name]
+
+            const baseFilepath = countryDataOutput.toCountryFilepath(baseCountry.name)
+            await fs.promises.writeFile(baseFilepath, JSON.stringify(baseCountry), 'utf8')
+            console.log(`${indent}\tWrote base ${baseCountry.name} => ${Path.basename(baseFilepath)}`)
+
+            const extendedFilepath = countryDataOutput.toGeocodedCountryFilepath(baseCountry.name)
+            await fs.promises.writeFile(extendedFilepath, JSON.stringify(geocodedCountry), 'utf8')
+            console.log(`${indent}\tWrote geocoded-extension ${geocodedCountry.name} => ${Path.basename(extendedFilepath)}`)
+        }
+
+        console.log(`${indent}done! duration: ${durationToString(Date.now() - tstart)}`)
+    }
     return {
-        loadBaseMap: (indent='') => loadMap(countryStateCityMapJsonFilepath, indent),
-        writeBaseMap: (indent='') => writeMap(countryStateCityMapJsonFilepath, indent),
-        loadGeocodedMap: (indent='') => loadMap(countryStateCityMapGeocodedJsonFilepath, indent),
-        writeGeocodedMap: (indent='') => writeMap(countryStateCityMapGeocodedJsonFilepath, indent),
-        generate
+        loadBaseMap: (indent = '') => loadMap(countryDataOutput.mapJsonFilepath, indent),
+        writeBaseMap: (indent = '') => writeMap(countryDataOutput.mapJsonFilepath, indent),
+        loadGeocodedMap: (indent = '') => loadMap(countryDataOutput.mapGeocodedJsonFilepath, indent),
+        writeGeocodedMap: (indent = '') => writeMap(countryDataOutput.mapGeocodedJsonFilepath, indent),
+        generate,
+        splitCountryMaps
     }
 }

@@ -1,0 +1,21 @@
+#!/bin/bash
+
+ChromeProfile="Profile 2"
+MacChromeIndexedDBDir="Library/Application Support/Google/Chrome/${ChromeProfile}/IndexedDB"
+
+indexedDBSubdirPrefixes=("https_www.redfin.com" "https_www.realtor.com" "https_www.zoopla.co.uk")
+    
+pushd ~/"${MacChromeIndexedDBDir}"
+if [ $? == 0 ]; then
+    echo "Removing all \"$(pwd)\" subdirectories"
+    echo " having prefixes: ${indexedDBSubdirPrefixes[@]}"
+    for subdir in *; do
+        for idbdirPrefixName in "${indexedDBSubdirPrefixes[@]}"; do
+            if [[ "$subdir" == "$idbdirPrefixName"* ]]; then
+                echo "Deleting $subdir"
+                rm -rf "${subdir}"
+            fi
+        done
+    done
+fi
+popd

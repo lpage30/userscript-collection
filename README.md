@@ -60,7 +60,7 @@ Collection of userscripts for various purposes
 - userscript for redfin/realtor/zoopla(uk)
 - looking for realestate along ocean, so wanted to toggle map on different pages
 - also scrapes info when on single property page so you don't have to dig for it
-- Wanted to look through open properties and know their closeness to the ocean.s
+- Wanted to look through open properties and know their closeness to the ocean.
 
 ## Geocoding
 - Country-State-City data: npm 'country-state-city' provides an exhaustive organized collection of world-wide mappings Country => States => Cities with lat/lon for the centroids of the country/state/city
@@ -76,5 +76,65 @@ Collection of userscripts for various purposes
         - the now geocoded (generated) world map
         - the GIS chunks for what was geocoded (figuring out closest to coast etc..)
 
+## IndexedDB
+Due to performance and memory issues with Realestate and geocoding, [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) (via [npm idb](https://www.npmjs.com/package/idb)) is used as a 'cache' for realestate and geocoding information (country-state-city, and shapefile geojson indexes)
 
-   
+The IndexedDB is also wrapped for use just like GM_[set/get]Value.
+### IndexedDB is a Client(browser) side framework that stores db files locally
+A [google search for IndexedDB file locations](https://www.google.com/search?q=where+are+indexeddb+files+stored&oq=where+are+indexeddb+files+stored) produced the following AI overview:
+
+> 
+> IndexedDB data is stored locally on the user's computer within the browser's profile directory, specific to each browser and operating system. The exact physical file locations are generally obfuscated to prevent direct access, as interaction is intended solely through the IndexedDB API in JavaScript. 
+> 
+> #### Typical File Locations
+> The exact path varies by operating system and browser:
+> - Google Chrome / Microsoft Edge (Windows): C:\Users\<user>\AppData\Local\Google\Chrome\User Data\Default\IndexedDB\ (or the corresponding path for Edge)
+> - Mozilla Firefox (Windows): %AppData%\Roaming\Mozilla\Firefox\Profiles\<profile name>\storage\persistent\<origin>\idb\
+> - Mozilla Firefox (Linux): ~/.mozilla/firefox/<profile name>/storage/persistent/<website>
+> - Google Chrome (macOS): ~/Library/Application Support/Google/Chrome/Default/IndexedDB/ (approximate path)
+> 
+> Within these directories, data is further organized by the website's origin (domain/subdomain). Chrome, for example, uses Google's LevelDB system to manage the underlying storage files. 
+> 
+> #### How to View the Data
+> The intended way to view, modify, or debug IndexedDB data is through the browser's Developer Tools: 
+> Open DevTools by right-clicking the webpage and selecting Inspect, or by pressing F12 (or Ctrl+Shift+I / Command+Option+I).
+> 
+> - Navigate to the Application (Chrome/Edge) or Storage (Firefox) tab.
+> - Expand the IndexedDB menu in the sidebar to see available databases and their object stores for the current website's origin.
+> - Clicking on an object store will display the stored key-value pairs in a table format. 
+
+#### Example for this project.
+- I develop using a Mac, and chrome browser.
+    - `~/Library/Application Support/Google/Chrome/Default/IndexedDB/`
+    Is the default profile collection of IndexedDB. I tend to use a chrome profile so the IndexedDB directory containing the dbs for my project are found under `~/Library/Application Support/Google/Chrome/Profile 2/IndexedDB/`
+    - IndexedDB's are created in the context of whatever page runs your indexeddb code. So to view that indexeddb you will need to:
+        - navigate to that page
+        - open devtools
+        - choose Application tab
+        - find your indexeddb(s) under Storage panel on left menu
+        - choose your db name, and instance (under name) and on the right you'll see the name-value pairs of that instance
+- The realestate userscript uses geocoding module so that userscript uses IndexedDB. It creates 2 databases, each with 1 instance:
+    - `realestate` (db)
+        - `GM-Values` (instance)
+           This instance retains data via same api prototype as `GM_[get/set]Value`
+            - schema:
+                - `DatabaseCreatedTime`field - ms time since epoch date of db creation
+                - `<realestate-source>.<numeric>` field - stores properties, as json string, scraped from that realestate-source. The properties have the following schema definition:
+                    - `timestamp` field - ms time since epoch date record storage. This is used to 'age out' or 'expire' the record.
+                    - `serializedData` field - json string of property
+            - Data is lazily loaded from a dynamic module import, and stored (cached) directly into the indexeddb. So the indexeddb is only as large as the data accessed by the userscript.
+    - `realestate-Geocoding` (db)
+        - `Country` (instance)
+            This instance retains `country-state-city`, `geocoded country-state-city`, and geojson indexes from different sources.
+                - schema:
+                    - `DatabaseCreatedTime`field - ms time since epoch date of db creation
+                    - `Country.<country-name>`field - retains json string of that `country-state-city` object
+                    - `GeocodedCountryExtension.<country-name>` field retains json string of the geocoded data for that `country-state-city`
+                    - `tl_2025_us_coastline.<index>` - a geojson part/index converted from shapefile `tl_2025_us_coastline.shp` (shapefile of continental us coastline)
+                    - `ukcp18_uk_marine_coastline_hires.<index>` - a geojson part/index converted from shapefile `ukcp18-uk-marine-coastline-hires.shp` (shapefile of UK coastline)
+                - Data is lazily loaded from a dynamic module import, and stored (cached) directly into the indexeddb. So the indexeddb is only as large as the data accessed by the userscript.
+
+
+
+- The realestate userscript supports Redfin.com, Realtor.com, and Zoopla.co.uk. This means for any of those sites you will may have 2 indexeddbs whose size is only as large ad the data collected on that specific site.
+- `cleanup-indexeddbs` script can be altered to clean up the realestate IndexedDBs in your browser IndexedDB area.

@@ -1,6 +1,3 @@
-export function toJsonFilename(filenamePrefix, index) {
-    return `${filenamePrefix}_${index}.json`
-}
 
 export function toTitleCase(underscoreName) {
     const parts = underscoreName.split(/_|-/)

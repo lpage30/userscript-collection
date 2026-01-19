@@ -1,7 +1,7 @@
 import { Country, State, City } from 'country-state-city'
 import { durationToString } from './functions.js'
 
-export function createCountryStateCitiesMapFilter(countryStateCityMapBase, regionFilter, regionIsoCodeMap, indent = '') {
+export function createCountryStateCitiesMapFilter(regionFilter, regionIsoCodeMap, indent = '') {
     const tstart = Date.now()
     console.log(`${indent}Creating Country/State/City Filter from provided Valid Regions filter: [${regionFilter.join(', ')}]`)
     const counts = {
@@ -18,11 +18,11 @@ export function createCountryStateCitiesMapFilter(countryStateCityMapBase, regio
                 countryStateMap[countryName] = {}
             }
             counts.state = counts.state + Object.keys(stateCities).length
-            console.log(`${indent}\t${countryName} => ${Object.keys(stateCitiesMap).join(',')} states`)
+            console.log(`${indent}\t${countryName} => ${Object.keys(stateCities).join(',')} states`)
 
             Object.entries(stateCities).forEach(([state, cityArray]) => {
                 const stateName = State.getStatesOfCountry(countryCode)
-                    .filter(({ isoCode, name }) => [isoCode, name].includes(stateCode))[0].name
+                    .filter(({ isoCode, name }) => [isoCode, name].includes(state))[0].name
                 if ([undefined, null].includes(countryStateMap[countryName][stateName])) {
                     countryStateMap[countryName][stateName] = []
                 }

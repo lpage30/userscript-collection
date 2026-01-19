@@ -1,5 +1,5 @@
 export const UKCoastalRegionIsoCodeMap = {
-    southcoast: {
+    uksouthcoast: {
         countryCode: 'GB',
         stateCities: {
             England: [
@@ -18,7 +18,7 @@ export const UKCoastalRegionIsoCodeMap = {
             ]
         },
     },
-    southwestcoast: {
+    uksouthwestcoast: {
         countryCode: 'GB',
         stateCities: {
             England: [
@@ -39,7 +39,7 @@ export const UKCoastalRegionIsoCodeMap = {
         },
 
     },
-    eastcoast: {
+    ukeastcoast: {
         countryCode: 'GB',
         stateCities: {
             England: [
@@ -53,7 +53,7 @@ export const UKCoastalRegionIsoCodeMap = {
             ]
         },
     },
-    northwestcoast: {
+    uknorthwestcoast: {
         countryCode: 'GB',
         stateCities: {
             England: [
@@ -65,7 +65,7 @@ export const UKCoastalRegionIsoCodeMap = {
             ]
         },
     },
-    northeastcoast: {
+    uknortheastcoast: {
         countryCode: 'GB',
         stateCities: {
             England: [
@@ -77,7 +77,7 @@ export const UKCoastalRegionIsoCodeMap = {
             ]
         }
     },
-    northwalescoast: {
+    uknorthwalescoast: {
         countryCode: 'GB',
         stateCities: {
             Wales: [
@@ -88,7 +88,7 @@ export const UKCoastalRegionIsoCodeMap = {
             ]
         },
     },
-    southwalescoast: {
+    uksouthwalescoast: {
         countryCode: 'GB',
         stateCities: {
             Wales: [
@@ -99,7 +99,7 @@ export const UKCoastalRegionIsoCodeMap = {
             ]
         },
     },
-    scotland: {
+    ukscotland: {
         countryCode: 'GB',
         stateCities: {
             Scotland: [
@@ -110,7 +110,7 @@ export const UKCoastalRegionIsoCodeMap = {
             ]
         },
     },
-    northireland: {
+    uknorthireland: {
         countryCode: 'GB',
         stateCities: {
             ['North Yorkshire']: [
