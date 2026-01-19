@@ -15,6 +15,5 @@ package-lock.json
 /src/statusAPIs/*.js
 !/src/geocoding/datageneration/**/*
 /src/geocoding/datageneration/geodata/*.json
-/src/geocoding/geocodedcountrystatecitydata/*.json
-/src/geocoding/geojsondata/*.json
+/src/geocoding/data_files/*.json
 /src/geocoding/generated_*
