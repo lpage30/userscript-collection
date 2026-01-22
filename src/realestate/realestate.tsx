@@ -65,7 +65,7 @@ export function toUserscript(site: RealEstateSite): Userscript {
       const onCancelLoading = () => {
         renderInContainer(container, undefined)
       }
-  
+
       renderInContainer(container, <LoadingPopup
         message={`Userscript Loading ${site.name} ${propertyPageTypeString(page.pageType)}...`}
         isOpen={true}

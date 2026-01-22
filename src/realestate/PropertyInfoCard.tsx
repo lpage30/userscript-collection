@@ -1,5 +1,8 @@
 import React, { JSX, CSSProperties } from "react";
 import { PropertyInfo } from "./propertyinfotypes";
+import { PropertyFullDetailCardPopup } from "./PropertyFullDetailCard";
+import { Card } from "../dashboardcomponents/datatypes";
+import { reactToHTMLElement } from "../common/ui/renderRenderable";
 
 interface PropertyInfoCardProps {
   id?: string
@@ -117,6 +120,10 @@ const PropertyInfoDashboardCard: React.FC<Omit<PropertyInfoCardProps, 'usage'>> 
             <span style={bpHomeCardPriceValue}>{info.source}</span>
           </div>
         </div>
+        <div style={{ float: 'right' }}>
+          <PropertyFullDetailCardPopup property={info} />
+          <a href={info.href('')}>Property Page</a>
+        </div>
         <div style={bpHomeCardStats}>
           <span style={bpHomeCardStatsData}>{beds} beds</span>
           <span style={bpHomeCardStatsData}>{baths} baths</span>
@@ -186,6 +193,7 @@ const PropertyInfoDisplayCard: React.FC<Omit<PropertyInfoCardProps, 'usage'>> = 
     }}
     ><tbody>
         {toDisplayableInfo()}
+        <tr><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'} colSpan={2}><PropertyFullDetailCardPopup property={info} /></td></tr>
       </tbody></table>
   );
 }
@@ -198,4 +206,10 @@ export const PropertyInfoCard: React.FC<PropertyInfoCardProps> = ({
   return 'dashboard' === usage
     ? <PropertyInfoDashboardCard id={id} info={info} />
     : <PropertyInfoDisplayCard id={id} info={info} />
+}
+export function toPropertyCardDashboardComponent(card: Card): HTMLElement {
+  return reactToHTMLElement(
+    card.elementId,
+    <PropertyInfoCard info={card as PropertyInfo} usage={'dashboard'} />
+  )
 }

@@ -66,7 +66,7 @@ export class PersistenceClass {
   storeDashboard<T extends Card>(timestamp: number, cards: T[]) {
     GM_setValue(this.dashboardVariableName, JSON.stringify({
       timestamp,
-      cards: cards.map((card: T) => ({ ...card, renderable: card.renderable.innerHTML } as any)),
+      cards: cards.map((card: T) => ({ ...card } as any)),
     }));
   }
   private parseDashboard<T extends Card>(tooOldTimestamp: number, dashboardJSON: string | null): T[] | null {
@@ -79,7 +79,7 @@ export class PersistenceClass {
       dashboard = null;
     }
     if (dashboard) {
-      return dashboard.cards.map((card: any) => ({ ...card, renderable: htmlStringToElement(card.elementId, card.renderable) } as T))
+      return dashboard.cards.map((card: any) => ({ ...card } as T))
     }
     return dashboard === null ? null : dashboard.cards;
   }

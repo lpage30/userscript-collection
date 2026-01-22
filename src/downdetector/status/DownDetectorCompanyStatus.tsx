@@ -5,7 +5,8 @@ import {
   awaitPageLoadByMutation,
   awaitElementById,
 } from "../../common/await_functions";
-import { statusElementId, processCompanyStatus, sortingFields, filterableItems, CompanyPageTypes } from "../common/CompanyTypes";
+import { sortingFields, filterableItems, CompanyPageTypes } from "../common/CompanyTypes";
+import { statusElementId, processCompanyStatus } from "../common/CompanyTypes_functions"
 import { Persistence } from "../../dashboardcomponents/persistence";
 import {
   createRenderableContainerAsChild,

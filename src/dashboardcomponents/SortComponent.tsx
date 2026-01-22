@@ -13,9 +13,9 @@ interface SortComponentProps {
   trailingComponent?: JSX.Element
 }
 const toFieldOption = (field: string): PickOption<string> => ({
-    label: toTitleCase(field.split('_').join(' ')),
-    value: field,
-  })
+  label: toTitleCase(field.split('_').join(' ')),
+  value: field,
+})
 const SortComponent: React.FC<SortComponentProps> = ({
   sortFields,
   initialSorting,
@@ -34,13 +34,13 @@ const SortComponent: React.FC<SortComponentProps> = ({
   ) => {
     const newSorting = checked
       ? [
-          ...sorting,
-          { field, ascending: ascendingCheckbox } as ItemSort,
-        ]
+        ...sorting,
+        { field, ascending: ascendingCheckbox } as ItemSort,
+      ]
       : sorting.filter(
-          (item) =>
-            !(item.field === field && item.ascending === ascendingCheckbox),
-        );
+        (item) =>
+          !(item.field === field && item.ascending === ascendingCheckbox),
+      );
     setSorting(newSorting);
   };
   const getSorting = (
@@ -97,7 +97,7 @@ const SortComponent: React.FC<SortComponentProps> = ({
                 itemTemplate={(option) => {
                   const sorting = getSorting(option.value);
                   return (
-                    <div style={{display: 'flex'}} className={sorting === null ? "" : "highlight"}>
+                    <div style={{ display: 'flex' }} className={sorting === null ? "" : "highlight"}>
                       {option.label}
                       {sorting === null
                         ? ""
@@ -110,7 +110,7 @@ const SortComponent: React.FC<SortComponentProps> = ({
               />
             </td>
             <td>
-              <div style={{ display: "flex", padding: "2px", marginTop: '10px'}}>
+              <div style={{ display: "flex", padding: "2px", marginTop: '10px' }}>
                 <Checkbox
                   inputId="ascending-choice"
                   variant="filled"
@@ -142,9 +142,9 @@ const SortComponent: React.FC<SortComponentProps> = ({
                 <label htmlFor={"descending-choice"} className="text-sm">
                   Descending
                 </label>
-                {trailingComponent && <div style={{ display: 'flex', float: 'right', marginTop: '-10px'}}>&nbsp;&nbsp;{trailingComponent}</div>}
+                {trailingComponent && <div style={{ display: 'flex', float: 'right', marginTop: '-10px' }}>&nbsp;&nbsp;{trailingComponent}</div>}
               </div>
-              
+
             </td>
           </tr>
         </tbody>

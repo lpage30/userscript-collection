@@ -107,7 +107,7 @@ export function splitByCapitals(text: string): string[] {
 export function wordsToTitleCase(
   words: string[],
   makeWordAllCaps: (word: string) => boolean = () => true,
-) {
+): string[] {
   return words.map((word) => {
     if (makeWordAllCaps(word)) return word.toUpperCase();
     return `${word.charAt(0).toUpperCase()}${word.slice(1)}`;

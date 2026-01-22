@@ -1,18 +1,16 @@
 import React from 'react'
-import { CompanyMetadata, toDisplayLines, getWrappedCompanyServiceInfoDiv, getWrappedCompanyBreakdownDiv  } from './CompanyTypes';
+import { CompanyMetadata } from './CompanyTypes';
+import { toDisplayLines } from './CompanyTypes_functions';
 import { PersistenceClass } from '../../dashboardcomponents/persistence';
 
 import { ServiceStatus } from "../../statusAPIs/statustypes";
 import { setServiceStatus, getDependentServiceStatuses } from "../../statusAPIs/servicestatuscache";
-import { reactToHTMLString } from "../../common/ui/reactTrustedHtmlString";
 import {
     OutageBreakdown,
     CompanyOutageBreakdownMap,
     mapCompanyToOutageBreakdown,
     breakdownDataToString
 } from "../../geoblackout/outageBreakdownAPItypes";
-import { DependentServiceListingComponent } from "../../statusAPIs/ui/DependentServiceListing";
-import { OutageBreakdownComponent } from "../../geoblackout/ui/OutageBreakdown";
 
 export interface OnExternalDataUpdates {
     onServiceStatus: (serviceStatus: ServiceStatus[]) => void
@@ -27,12 +25,7 @@ export function createOnExternalDataUpdates(
         setServiceStatus(serviceStatus)
 
         companyCards.forEach(card => {
-            const serviceStatuses = getDependentServiceStatuses(card.companyName)
-            if (serviceStatuses) {
-                getWrappedCompanyServiceInfoDiv(card.renderable).innerHTML = reactToHTMLString(
-                    <DependentServiceListingComponent serviceStatuses={serviceStatuses} />
-                )
-            }
+            card.dependentServiceStatuses = getDependentServiceStatuses(card.companyName)
         })
     }
     const onOutageBreakdowns = (serviceOutages: OutageBreakdown[]) => {
@@ -42,14 +35,11 @@ export function createOnExternalDataUpdates(
         )
         let outageMatchCount = 0
         companyCards.forEach(card => {
-            const service: OutageBreakdown | undefined = companyServiceMap[card.companyName]
-            if (service) {
+            card.outageBreakdownService = companyServiceMap[card.companyName]
+            if (card.outageBreakdownService) {
                 outageMatchCount = outageMatchCount + 1
-                card.displayLinesArray = toDisplayLines(card, breakdownDataToString(service.data))
+                card.displayLinesArray = toDisplayLines(card, breakdownDataToString(card.outageBreakdownService.data))
                 card.displayLines = () => card.displayLinesArray
-                getWrappedCompanyBreakdownDiv(card.renderable).innerHTML = reactToHTMLString(
-                    <OutageBreakdownComponent service={service} />
-                )
             }
         })
         if (outageMatchCount < serviceOutages.length) {

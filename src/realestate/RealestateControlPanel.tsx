@@ -7,14 +7,12 @@ import { ControlPanel } from '../common/ui/control_panel'
 import { ListedPropertyDashboardPopup } from './ListedPropertyDashboard';
 import { createSpinningContentElement } from '../common/ui/style_functions'
 
-
 interface RealestateControlPanelProps {
     id: string
     siteName: string
     title: string
     toggleMapDisplay: (parentElement?: HTMLElement) => void
     properties: PropertyInfo[]
-    ignoreDashboardClickEvent?: (e: BaseSyntheticEvent) => boolean
     loadProperties?: (force: boolean) => Promise<PropertyInfo[]>
 }
 export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
@@ -23,7 +21,6 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
     title,
     toggleMapDisplay,
     properties,
-    ignoreDashboardClickEvent,
     loadProperties
 }) => {
     const [state, setState] = useState<{
@@ -100,7 +97,6 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
                                 registerRefreshFunction={(refreshFunction: (showDialog: boolean) => void) => {
                                     refreshDashboard.current = refreshFunction
                                 }}
-                                ignoreDashboardClickEvent={ignoreDashboardClickEvent}
                                 addedDashboardHeaderComponent={loadProperties ? {
                                     after: 'picklist',
                                     element: getReloadPropertiesButton('dashboard')
@@ -109,7 +105,9 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
                             /></td></tr>
                         }
                         {1 === state.properties.length &&
-                            <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state.properties[0]} usage={'controlpanel'} /></td></tr>
+                            <>
+                                <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state.properties[0]} usage={'controlpanel'} /></td></tr>
+                            </>
                         }
                         <tr><td style={{ padding: 5, margin: 0 }} className={'text-center'}>{getMapButton()}</td></tr>
                         {loadProperties && <tr><td style={{ padding: 5, margin: 0 }} className={'text-center'}>{getReloadPropertiesButton('controlpanel')}</td></tr>}

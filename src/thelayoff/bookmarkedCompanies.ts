@@ -1,7 +1,8 @@
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_openInTab
-import { Post, toPostCard } from "./posts"
+import { Post } from "./posts"
+import { toPostCard } from "./posts_functions"
 import { Persistence, StaleDuration } from "../dashboardcomponents/persistence"
 
 const bookmarkedListVariableName = 'BookmarkedList'
@@ -35,7 +36,7 @@ export function getCompanyBookmarks(): CompanyBookmark[] {
     const bookmarks: Bookmark[] = JSON.parse(jsonString)
     return bookmarks.map(item => {
         const url = `${layoffBaseUrl}/${item.urlpath}`
-        const activeUrl = item.urlpath.endsWith('.php')? url : `${url}?sort=active`
+        const activeUrl = item.urlpath.endsWith('.php') ? url : `${url}?sort=active`
         return {
             ...item,
             url,
@@ -51,27 +52,27 @@ async function loadCompanyPosts(favorite: CompanyBookmark, force: boolean): Prom
             return existingCards
         }
     }
-    const pendingCards = persistence.awaitDashboard<Post>()        
-    const tab = GM_openInTab(favorite.activeUrl, { active: false})
+    const pendingCards = persistence.awaitDashboard<Post>()
+    const tab = GM_openInTab(favorite.activeUrl, { active: false })
     const scrapedCards = await pendingCards
     if (tab && !tab.closed) {
         tab.close()
     }
-    return scrapedCards ?? []    
+    return scrapedCards ?? []
 }
 const comparePosts = (l: Post, r: Post) => {
     let result = l.company.localeCompare(r.company)
     if (0 === result) {
-        result = l.title.localeCompare(r.title)
+        result = l.postDiv.title.localeCompare(r.postDiv.title)
     }
     return result
 }
 export async function loadPosts(force: boolean): Promise<Post[]> {
-  return (await Promise.all(getCompanyBookmarks().map(company => loadCompanyPosts(company, force))))
-    .flat()
-    .map(toPostCard)
-    .sort(comparePosts)
-    .filter((post, index, array) => 0 === index || (0 !== comparePosts(array[index - 1], post)))
+    return (await Promise.all(getCompanyBookmarks().map(company => loadCompanyPosts(company, force))))
+        .flat()
+        .map(toPostCard)
+        .sort(comparePosts)
+        .filter((post, index, array) => 0 === index || (0 !== comparePosts(array[index - 1], post)))
 
 }
 

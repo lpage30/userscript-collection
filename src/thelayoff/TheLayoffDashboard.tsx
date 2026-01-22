@@ -4,7 +4,8 @@ import { Button } from "primereact/button";
 import "../common/ui/styles.scss";
 import { Userscript } from "../common/userscript";
 import { Persistence } from "../dashboardcomponents/persistence";
-import { sortingFields, Post, getFilterableItems } from "./posts";
+import { Post } from "./posts";
+import { sortingFields, getFilterableItems } from './posts_functions'
 import {
   awaitPageLoadByMutation,
   awaitElementById,
@@ -17,6 +18,8 @@ import { LoadingPopup } from "../common/ui/LoadingPopup";
 import Dashboard from "../dashboardcomponents/Dashboard";
 import { layoffBaseUrl } from "./bookmarkedCompanies";
 import { loadPosts, getCompanyBookmarks } from "./bookmarkedCompanies";
+import { Card } from "../dashboardcomponents/datatypes";
+import { toPostCardComponent } from "./PostCardComponent";
 
 export const TheLayoffDashboard: Userscript = {
   name: "TheLayoffDashboard",
@@ -91,6 +94,7 @@ export const TheLayoffDashboard: Userscript = {
       sortingFields={sortingFields}
       page={'dashboard'}
       getCards={getCards}
+      toCardComponent={toPostCardComponent}
       layout={'vertical'}
       registerRefreshContent={(refreshContent) => { refreshCards = refreshContent }}
       addedHeaderComponents={[{

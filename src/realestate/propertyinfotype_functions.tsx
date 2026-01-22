@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react'
+import React, { JSX } from 'react'
 import { Button } from 'primereact/button'
 import { toHashCode } from '../common/functions'
 import {
@@ -16,12 +16,10 @@ import {
 import { classifyGeoCountryStateCity } from '../geocoding/countryStateCityGeoAddressClassifiers'
 import { findClosestGeodataPlace } from '../geocoding/findClosestPlace'
 import { PropertyInfo } from './propertyinfotypes'
-import { PropertyInfoCard } from './PropertyInfoCard'
-import { reactToHTMLElement } from '../common/ui/renderRenderable'
 import { toDurationString } from '../common/datetime'
 
-export function toCreateButtonFunction(): (text: string, onClick: () => void) => ReactNode {
-    return (text: string, onClick: () => void): ReactNode => (
+export function toCreateButtonFunction(): (text: string, onClick: () => void) => JSX.Element {
+    return (text: string, onClick: () => void): JSX.Element => (
         <Button
             title={text}
             className={`app-button`}
@@ -54,7 +52,7 @@ export function toPropertyInfoCard(data: Partial<PropertyInfo>): PropertyInfo {
     result.displayLinesArray = [
         result.isLand ? 'Land' : 'Property',
         `${result.currencySymbol}${result.Price.toLocaleString('en-US')}`,
-        ...(result.isLand 
+        ...(result.isLand
             ? [`${result.lotSize ?? result.Sqft ?? '--'} sqft lot`]
             : [`${result.Bedrooms} Beds, ${result.Bathrooms} baths`, `${result.Sqft} sqft`]),
         `${result.address}`,
@@ -97,19 +95,11 @@ export async function geocodePropertyInfoCard(data: PropertyInfo, reportProgress
     const DistanceToOcean = geoPropertyInfo.closestOceanPlace ? geoPropertyInfo.closestOceanPlace.distance.value : undefined
     const displayLinesArray = [...data.displayLinesArray, geoPropertyInfo.displayString]
 
-    let result: PropertyInfo = {
+    return {
         ...data,
         displayLinesArray,
         displayLines: () => displayLinesArray,
         geoPropertyInfo,
         DistanceToOcean,
-
-    }
-    const renderable: HTMLElement = reactToHTMLElement(data.elementId, <PropertyInfoCard
-        info={result} usage={'dashboard'} />
-    )
-    return {
-        ...result,
-        renderable
     }
 }

@@ -202,7 +202,6 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
     valueRangeFilter: { itemFilter: ItemValueRangeFilter, index: number }[],
     endComponent: JSX.Element | null
   ) => {
-    console.log(`Rendering renderValueRangeFilters`)
     if (0 === valueRangeFilter.length) return null
     return (
       <table
@@ -229,17 +228,16 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
                 }}
               >
                 <thead>
-                  <tr><th style={{ textAlign: 'right'}}>FieldName</th><th>MinValue</th><th>MaxValue</th></tr>
+                  <tr><th style={{ textAlign: 'right' }}>FieldName</th><th>MinValue</th><th>MaxValue</th></tr>
                 </thead>
                 <tbody>
                   {valueRangeFilter.map(({ itemFilter, index }, position) => {
-                    console.log(`Rendering: ${itemFilter.field} with ${JSON.stringify(itemFilter.filter, null, 2)}`)
                     return (
                       <tr>
-                        <td style={{ textAlign: 'right'}}>{itemFilter.field}</td>
+                        <td style={{ textAlign: 'right' }}>{itemFilter.field}</td>
                         <td>
                           <NumberSpinner
-                            minValue={{min: 0, max: itemFilter.filter.maxValue, value: itemFilter.filter.minValue, onChange: (value: number) => handleValueMinRangeFilterChange(itemFilter.field, value)}}
+                            minValue={{ min: 0, max: itemFilter.filter.maxValue, value: itemFilter.filter.minValue, onChange: (value: number) => handleValueMinRangeFilterChange(itemFilter.field, value) }}
                             prefix={itemFilter.displayData.prefix}
                             suffix={itemFilter.displayData.suffix}
                             step={itemFilter.displayData.step}
@@ -250,7 +248,7 @@ const FilterComponent: React.FC<FilterComponentProps> = ({
                         </td>
                         <td>
                           <NumberSpinner
-                            maxValue={{min: itemFilter.filter.minValue , value: itemFilter.filter.maxValue, onChange: (value: number) => handleValueMaxRangeFilterChange(itemFilter.field, value)}}
+                            maxValue={{ min: itemFilter.filter.minValue, value: itemFilter.filter.maxValue, onChange: (value: number) => handleValueMaxRangeFilterChange(itemFilter.field, value) }}
                             prefix={itemFilter.displayData.prefix}
                             suffix={itemFilter.displayData.suffix}
                             step={itemFilter.displayData.step}

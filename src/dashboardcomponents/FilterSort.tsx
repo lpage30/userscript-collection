@@ -39,44 +39,44 @@ const FilterSort: React.FC<FilterSortProps> = ({
   };
   const render = () => {
     return (
-      <table 
+      <table
         style={{
-            tableLayout: "auto",
-            marginLeft: "auto",
-            marginRight: "auto",
-            marginTop: "0",
-            marginBottom: "auto",
-            width: "100%",
-          }}
+          tableLayout: "auto",
+          marginLeft: "auto",
+          marginRight: "auto",
+          marginTop: "0",
+          marginBottom: "auto",
+          width: "100%",
+        }}
       ><tbody>
-        <tr><td>
-        <FilterComponent
-          getFilterableItems={getFilterableItems}
-          initialFilter={sortingFilter.filter}
-          registerGetFilter={(getFilter: () => ItemFilter[]) => getFilterRef.current = getFilter}
-        />
-        </td></tr>
-        <tr><td>
-        <SortComponent
-          sortFields={sortingFields}
-          initialSorting={sortingFilter.sorting}
-          registerGetSorting={(getSorting: () => ItemSort[]) => getSortingRef.current = getSorting}
-          trailingComponent={
-            <>
-              <Button
-                className="app-button"
-                onClick={applyChange}
-              >Apply Filter & Sort</Button>&nbsp;
-              <Button
-                className="app-button"
-                onClick={clearFilterAndSort}
-              >Reset Filter & Sort</Button>
-            </>
+          <tr><td>
+            <FilterComponent
+              getFilterableItems={getFilterableItems}
+              initialFilter={sortingFilter.filter}
+              registerGetFilter={(getFilter: () => ItemFilter[]) => getFilterRef.current = getFilter}
+            />
+          </td></tr>
+          <tr><td>
+            <SortComponent
+              sortFields={sortingFields}
+              initialSorting={sortingFilter.sorting}
+              registerGetSorting={(getSorting: () => ItemSort[]) => getSortingRef.current = getSorting}
+              trailingComponent={
+                <>
+                  <Button
+                    className="app-button"
+                    onClick={applyChange}
+                  >Apply Filter & Sort</Button>&nbsp;
+                  <Button
+                    className="app-button"
+                    onClick={clearFilterAndSort}
+                  >Reset Filter & Sort</Button>
+                </>
 
-          }
-        />
-        </td></tr>
-      </tbody></table>
+              }
+            />
+          </td></tr>
+        </tbody></table>
     );
   };
   return render();

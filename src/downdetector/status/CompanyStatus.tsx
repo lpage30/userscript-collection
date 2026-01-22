@@ -5,8 +5,8 @@ import {
   CompanyStatusCard,
   CompanyMetadata,
   CompanyPageType,
-  toCard
 } from "../common/CompanyTypes";
+import { toCard } from "../common/CompanyTypes_functions"
 import { awaitDelay } from "../../common/await_functions";
 import { SortedFilteredItems, sortAndFilterItems, ItemFilter, ItemSort, FilterableItems } from "../../dashboardcomponents/datatypes";
 import { PersistenceClass } from "../../dashboardcomponents/persistence";
@@ -82,7 +82,7 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
 
   }
   const render = () => {
-    const { sortedItems, filteredItems, sortingFilter } =
+    const { filteredItems } =
       sortedFilteredItems;
     const { onServiceStatus, onOutageBreakdowns } = createOnExternalDataUpdates([company.company, ...filteredItems], persistence)
     return (
@@ -109,7 +109,7 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
           ><tbody>
               <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
                 <td colSpan={3} className="text-center">
-                  <CompanyTitle 
+                  <CompanyTitle
                     titleType={'page'}
                     company={company.company}
                     prefix={`DownDetector ${page == 'status' ? 'Status' : 'Heatmap'}:`}
@@ -129,7 +129,7 @@ const CompanyStatus: React.FC<CompanyStatusProps> = ({
                 </td><td style={{ width: '200px' }} rowSpan={2}>
                   <InfoDisplay
                     registerDisplayTrigger={triggerInfoDisplay => { triggerInfoDisplayRef.current = triggerInfoDisplay }}
-                    textPaddingLeft={{ value: 0.5, type: 'rem'}}
+                    textPaddingLeft={{ value: 0.5, type: 'rem' }}
                   />
                 </td><td>
                   <FilterSort

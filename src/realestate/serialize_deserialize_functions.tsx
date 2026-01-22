@@ -1,10 +1,8 @@
 import React, { ReactNode, CSSProperties } from 'react'
-import { PropertyInfo, GeoPropertyInfo } from './propertyinfotypes'
+import { PropertyInfo, GeoPropertyInfo, PropertyDetails } from './propertyinfotypes'
 import { scaleDimension } from '../common/ui/style_functions'
 import { getHeightWidth } from '../common/ui/style_functions'
 import { toCreateButtonFunction } from './propertyinfotype_functions'
-import { reactToHTMLElement } from '../common/ui/renderRenderable'
-import { PropertyInfoCard } from './PropertyInfoCard'
 
 const bpHomeCardPhotoImage: CSSProperties = {
     objectFit: 'cover',
@@ -152,7 +150,6 @@ function toSerializableProperty(property: PropertyInfo): Partial<PropertyInfo> {
         'label',
         'color',
         'href',
-        'renderable',
     ].includes(key)).reduce((serializable: Partial<PropertyInfo>, [key, value]) => ({
         ...serializable,
         [key]: value
@@ -169,9 +166,6 @@ function fromSerializableProperty(property: Partial<PropertyInfo>): PropertyInfo
     property.label = () => property.labelColorHref.label
     property.color = () => property.labelColorHref.color
     property.href = () => property.labelColorHref.href
-    property.renderable = reactToHTMLElement(property.elementId, <PropertyInfoCard
-        info={property as PropertyInfo} usage={'dashboard'} />
-    )
     return property as PropertyInfo
 }
 export function serializeGeocoding(geoInfo: GeoPropertyInfo): string {

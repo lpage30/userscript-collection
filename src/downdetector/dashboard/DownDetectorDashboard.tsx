@@ -10,9 +10,8 @@ import {
   CompanyPageTypes,
   sortingFields,
   filterableItems,
-  dashboardCardsQueryAllSelector,
-  processCompanyDashboardCards,
 } from "../common/CompanyTypes";
+import { dashboardCardsQueryAllSelector, processCompanyDashboardCards } from "../common/CompanyTypes_functions";
 import {
   createRenderableContainerAsChild,
   renderInContainer,
@@ -23,6 +22,7 @@ import { Persistence } from "../../dashboardcomponents/persistence";
 import { createOnExternalDataUpdates } from "../common/onexternaldataupdate";
 import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
 import { LoadOutageBreakdowns } from "../../geoblackout/ui/LoadOutageBreakdowns";
+import { toCompanyCardComponent } from "../common/CompanyCardComponent";
 
 export const DownDetectorDashboard: Userscript = {
   name: "DownDetectorDashboard",
@@ -72,6 +72,7 @@ export const DownDetectorDashboard: Userscript = {
       sortingFields={sortingFields}
       page={'dashboard'}
       getCards={() => cards}
+      toCardComponent={toCompanyCardComponent}
       layout={'grid'}
       cardStyle={{
         borderTop: '1px solid #ddd',
@@ -81,7 +82,7 @@ export const DownDetectorDashboard: Userscript = {
         backgroundColor: '#fcfcfc',
       }}
       infoDisplayRowSpan={3}
-      infoDisplayTextPaddingLeft={{ value: 0.5, type: 'rem'}}
+      infoDisplayTextPaddingLeft={{ value: 0.5, type: 'rem' }}
       addedHeaderComponents={[
         {
           after: 'lastrow',

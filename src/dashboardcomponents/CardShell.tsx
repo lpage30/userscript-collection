@@ -1,4 +1,4 @@
-import React, {BaseSyntheticEvent} from "react";
+import React, { BaseSyntheticEvent } from "react";
 
 interface CardShellProps {
   id: string
@@ -8,9 +8,7 @@ interface CardShellProps {
   onMouseOver: (index: number) => void
   onMouseOut: (index: number) => void
   className?: string
-  ignoreClickEvent?: (e: BaseSyntheticEvent) => boolean
 }
-
 const CardShell: React.FC<CardShellProps> = ({
   id,
   index,
@@ -19,7 +17,6 @@ const CardShell: React.FC<CardShellProps> = ({
   onMouseOver,
   onMouseOut,
   className,
-  ignoreClickEvent,
 }) => {
   return (
     <div
@@ -28,15 +25,6 @@ const CardShell: React.FC<CardShellProps> = ({
       onFocus={() => onFocus(index)}
       className={className}
       style={getStyle(index)}
-      onClick={(e) => {
-        if (ignoreClickEvent && ignoreClickEvent(e)) {
-          return
-        }
-        if (e.currentTarget.firstElementChild) {
-          const link = e.currentTarget.firstElementChild.querySelector('a')
-          link.click()
-        }
-      }}
       onMouseOver={() => onMouseOver(index)}
       onMouseOut={() => onMouseOut(index)}
     ></div>

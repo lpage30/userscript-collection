@@ -1,56 +1,28 @@
-import { toMonthDayYearDateTime, ONE_WEEK, ONE_MONTH } from '../common/datetime'
-import { Card, FilterableItems, ItemFilter } from '../dashboardcomponents/datatypes'
-import { getCompanyBookmarks } from './bookmarkedCompanies'
+import { Card } from '../dashboardcomponents/datatypes'
 
-export const theLayoffBaseUrl = 'https://www.thelayoff.com/'
-
-export interface Post extends Card {
-    company: string
-    companyHref: string
+export interface PostDivMetadata {
     title: string
+    href: string
     text: string
-    date: number
-    replyCount?: number
+    lastReplyText: string
+    replyCount: number
     replyHref?: string
     lastReply?: number
+    companyBookmark: {
+        name: string
+        href: string
+    }
+    companyLink: {
+        href: string
+        name: string
+    }
 }
 
-export function toPostCard(data: Partial<Post>): Post {
-    const post: Partial<Post> = {}
-    post.company = data.company ?? ''
-    post.companyHref = data.companyHref ?? ''
-    post.title = data.title ?? ''
-    post.text = data.text ?? ''
-    post.date = data.date ?? 0
-    post.replyCount = data.replyCount
-    post.replyHref = data.replyHref
-    post.lastReply = data.lastReply
-    post.renderable = data.renderable ?? null
-    post.displayLines = () => [
-        post.company,
-        `Date: ${toMonthDayYearDateTime(post.date)}`,
-        `LastReply: ${post.lastReply ? toMonthDayYearDateTime(post.lastReply) : 'none'}`
-    ]
-    post.groupName = data.groupName
-    post.label = () => `${post.company}|${post.title}`
-    post.color = () => 'blue'
-    post.href = (pageName: string) => pageName === 'last25'
-        ? 'https://www.thelayoff.com/last-25.php'
-        : post.companyHref
-    post.elementId = post.renderable?.id
-    return post as Post
+export interface Post extends Card {
+    date: number
+    company: string
+    lastReply?: number
+    replyCount: number
+    postDiv: PostDivMetadata
+
 }
-
-export const sortingFields = ['groupName', 'company', 'date', 'lastReply', 'replyCount'];
-export const getFilterableItems= (getCompanyNames: () => string[]): FilterableItems => ({
-    company: {
-        field: 'company',
-        type: 'ValueExistence',
-        filter: getCompanyNames()
-            .reduce((result, name) => ({
-                ...result,
-                [name]: true
-            }), {} as { [value: string]: boolean })
-    } as ItemFilter,
-})
-

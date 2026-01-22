@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, CSSProperties, JSX, BaseSyntheticEvent } from 'react';
+import React, { useState, useEffect, useRef, CSSProperties, JSX } from 'react';
 import '../common/ui/styles.scss';
 import { Dialog } from 'primereact/dialog';
 import { awaitElementById } from '../common/await_functions';
@@ -8,7 +8,8 @@ import {
   InfoDisplayItem,
   toCardElementId, fromCardElementId, toCardIndex,
   SortedFilteredItems, sortAndFilterItems,
-  ItemSort, ItemFilter, CardShellContainerId
+  ItemSort, ItemFilter, CardShellContainerId,
+  s
 } from './datatypes';
 import { PersistenceClass } from './persistence';
 import Picklist from './PickList';
@@ -29,9 +30,9 @@ interface DashboardProps {
   sortingFields: string[];
   page: string
   getCards: () => Card[];
+  toCardComponent: (card: Card) => HTMLElement
   style?: CSSProperties
   cardStyle?: CSSProperties
-  ignoreClickEvent?: (e: BaseSyntheticEvent) => boolean
   layout?: DashboardLayout
   registerRefreshContent?: (refreshContent: () => void) => void
   registerRefreshFunction?: (refreshFunction: (showDialog: boolean) => void) => void
@@ -43,7 +44,10 @@ interface DashboardProps {
   infoDisplayTitlePaddingLeft?: Padding
 
 }
-
+interface DashboardState {
+  visible: boolean
+  selectedItem: Card | null
+}
 const Dashboard: React.FC<DashboardProps> = ({
   title,
   getPersistence,
@@ -52,9 +56,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   sortingFields,
   page,
   getCards,
+  toCardComponent,
   style,
   cardStyle,
-  ignoreClickEvent,
   layout = 'grid',
   registerRefreshContent,
   registerRefreshFunction,
@@ -66,22 +70,57 @@ const Dashboard: React.FC<DashboardProps> = ({
   infoDisplayTitlePaddingLeft,
 }) => {
   const persistence = useRef<PersistenceClass>(getPersistence())
-
   const triggerInfoDisplayRef = useRef<(displayItem: InfoDisplayItem | null) => void>(null)
-  const [visible, setVisible] = useState(true);
-  const [sortedFilteredItems, setSortedFilteredItems] = useState<
-    SortedFilteredItems<Card>
-  >(
-    sortAndFilterItems(getCards(), getFilterableItems(), {
-      filter: Object.entries(getFilterableItems()).map(([field, itemFilter]) => persistence.current.loadFilter().find(loaded => loaded.field === field) ?? itemFilter),
-      sorting: persistence.current.loadSorting()
-    }),
-  );
+  const infoDisplayCloseDelayMs = 5000
+  const clearInfoDisplayTimeoutId = useRef<NodeJS.Timeout>(null)
+
+  const [sortedFilteredItems, setSortedFilteredItems] = useState<SortedFilteredItems<Card>>(sortAndFilterItems(getCards(), getFilterableItems(), {
+    filter: Object.entries(getFilterableItems()).map(([field, itemFilter]) => persistence.current.loadFilter().find(loaded => loaded.field === field) ?? itemFilter),
+    sorting: persistence.current.loadSorting()
+  }))
+  const [state, setState] = useState<DashboardState>({
+    visible: true,
+    selectedItem: null,
+  })
+  const setInfoDisplay = (itemIndex: number) => {
+    if (clearInfoDisplayTimeoutId.current) {
+      const timeoutId = clearInfoDisplayTimeoutId.current
+      clearInfoDisplayTimeoutId.current = null
+      clearTimeout(timeoutId)
+    }
+    let item: Card | null = null
+    if (itemIndex < sortedFilteredItems.filteredItems.length) {
+      item = sortedFilteredItems.filteredItems[itemIndex]
+    }
+    if (item) {
+      if (triggerInfoDisplayRef.current) {
+        triggerInfoDisplayRef.current(item)
+      }
+      setState({ ...state, selectedItem: item })
+    } else {
+      clearInfoDisplay()
+    }
+
+  }
+  const clearInfoDisplay = () => {
+    if (clearInfoDisplayTimeoutId.current) {
+      const timeoutId = clearInfoDisplayTimeoutId.current
+      clearInfoDisplayTimeoutId.current = null
+      clearTimeout(timeoutId)
+    }
+    clearInfoDisplayTimeoutId.current = setTimeout(() => {
+      setState({ ...state, selectedItem: null })
+      if (triggerInfoDisplayRef.current) {
+        triggerInfoDisplayRef.current(null)
+      }
+    }, infoDisplayCloseDelayMs)
+  }
+
   const focusedElementIdRef = useRef<string>(null)
   if (registerRefreshContent) registerRefreshContent(() => refreshContent())
   if (registerRefreshFunction) registerRefreshFunction((showDialog: boolean) => {
     refreshContent()
-    setVisible(showDialog)
+    setState({ ...state, visible: showDialog })
   })
 
   const refreshCards = async () => {
@@ -93,15 +132,10 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
     });
     sortedFilteredItems.filteredItems.forEach((item, index) => {
-      if (undefined === item.renderable) {
-        console.error(`Card[${index}]: Missing renderable. "${item.displayLines().join('|')}"`)
-        return
-      }
       const cardParent = document.getElementById(toCardElementId(index));
-      cardParent.appendChild(item.renderable)
+      cardParent.appendChild(toCardComponent(item))
     });
   };
-
   useEffect(() => {
     refreshCards();
   }, [sortedFilteredItems]);
@@ -113,11 +147,8 @@ const Dashboard: React.FC<DashboardProps> = ({
     sortAndFilterItems(cards, filterableItems, {
       filter: Object.entries(filterableItems).map(([field, itemFilter]) => persistence.current.loadFilter().find(loaded => loaded.field === field) ?? itemFilter),
       sorting: persistence.current.loadSorting()
-    }),
-
-      setSortedFilteredItems(
-        sortAndFilterItems(getCards(), filterableItems, sortedFilteredItems.sortingFilter)
-      )
+    })
+    setSortedFilteredItems(sortAndFilterItems(getCards(), filterableItems, sortedFilteredItems.sortingFilter))
   }
 
   const handlFilterSorting = (
@@ -125,9 +156,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     sorting: ItemSort[],
   ) => {
     console.log(`handleFilterSorting:\nfilter:(${JSON.stringify(filter, null, 2)})\nsorting(${JSON.stringify(sorting, null, 2)})`)
-    setSortedFilteredItems(
-      sortAndFilterItems(sortedFilteredItems.rawItems, sortedFilteredItems.rawFilterableItems, { filter, sorting }),
-    );
+    setSortedFilteredItems(sortAndFilterItems(sortedFilteredItems.rawItems, sortedFilteredItems.rawFilterableItems, { filter, sorting }))
     focusedElementIdRef.current = null
   };
 
@@ -140,6 +169,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       element.scrollIntoView();
       element.focus();
     }
+    setInfoDisplay(index)
   };
 
   const onFocus = (index: number) => {
@@ -147,13 +177,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     onMouseOver(index)
   }
   const onMouseOver = (index: number) => {
-    if (triggerInfoDisplayRef.current) {
-      let item: Card | null = null
-      if (index < sortedFilteredItems.filteredItems.length) {
-        item = sortedFilteredItems.filteredItems[index]
-      }
-      triggerInfoDisplayRef.current(item)
-    }
+    setInfoDisplay(index)
   }
   const onMouseOverElement = (elementId: string) => {
     const index = toCardIndex(elementId, page, sortedFilteredItems.filteredItems)
@@ -166,12 +190,12 @@ const Dashboard: React.FC<DashboardProps> = ({
         onMouseOver(fromCardElementId(focusedElementIdRef.current))
         return
       }
-      triggerInfoDisplayRef.current(null)
     }
+    clearInfoDisplay()
   }
   const onMouseOutElement = (elementId: string) => {
     const index = toCardIndex(elementId, page, sortedFilteredItems.filteredItems)
-    if (index == null) return
+    if (index === null) return
     onMouseOut(index)
   }
 
@@ -207,7 +231,6 @@ const Dashboard: React.FC<DashboardProps> = ({
             onMouseOver={onMouseOver}
             onMouseOut={onMouseOut}
             className={`${layout}-scroll-content`}
-            ignoreClickEvent={ignoreClickEvent}
           />
         ))}
       </div>
@@ -222,9 +245,9 @@ const Dashboard: React.FC<DashboardProps> = ({
         closable={closeable}
         showCloseIcon={closeable}
         position={'center'}
-        visible={visible}
+        visible={state.visible}
         onHide={() => {
-          setVisible(false)
+          setState({ ...state, visible: false })
           if (onClose) onClose()
         }}
         style={{ width: '90vw', height: '90vh', ...(style ?? {}) }}
@@ -297,7 +320,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </tr>
                   ))
               }
-
             </tbody></table>
         }
         className='p-dialog-maximized'

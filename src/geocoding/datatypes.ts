@@ -9,11 +9,15 @@ export interface GeojsonIndex {
     lineString: Feature<LineString>
     polygon: Feature<Polygon>
 }
-
-export interface GeoCoordinate {
-    lat: number
-    lon: number
+export enum GeoCoordinateField {
+    lat = 'lat',
+    lon = 'lon'
 }
+export interface GeoCoordinate {
+    [GeoCoordinateField.lat]: number
+    [GeoCoordinateField.lon]: number
+}
+
 export const isValidGeoCoordinate = (value: Partial<GeoCoordinate>): value is GeoCoordinate => undefined !== value && ![value.lat, value.lon].some(v => [null, undefined].includes(v))
 export const toGeoPoint = (value: GeoCoordinate) => turf.point([value.lon, value.lat])
 export const measureDistance = (source: GeoCoordinate, destination: GeoCoordinate, units: turf.Units = 'miles'): number => turf.distance(toGeoPoint(source), toGeoPoint(destination), { units })
@@ -31,12 +35,19 @@ export interface Geocoding {
         distantGeojsonIndexes: number[]
     }
 }
+export enum GeoAddressField {
+    address = 'address',
+    city = 'city',
+    state = 'state',
+    country = 'country',
+    coordinate = 'coordinate'
+}
 export interface GeoAddress {
-    address?: string
-    city?: string
-    state?: string,
-    country: string,
-    coordinate?: GeoCoordinate
+    [GeoAddressField.address]?: string
+    [GeoAddressField.city]?: string
+    [GeoAddressField.state]?: string,
+    [GeoAddressField.country]: string,
+    [GeoAddressField.coordinate]?: GeoCoordinate
 }
 export const toGeoAddressString = (address: GeoAddress): string => [
     address.address ?? 'address not disclosed',

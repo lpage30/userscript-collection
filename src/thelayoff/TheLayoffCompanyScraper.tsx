@@ -6,74 +6,82 @@ import { Persistence } from "../dashboardcomponents/persistence";
 import {
   awaitPageLoadByMutation,
 } from "../common/await_functions";
-import { Post, toPostCard } from "./posts";
+import { Post, PostDivMetadata } from "./posts";
+import { toPostCard } from "./posts_functions";
 import { toTitleCase } from "../common/functions";
 import { parseDate, parseDateTime } from "../common/datetime";
 
-function parseRepliesText(replyText: string): { replyCount: number, lastReply: Date } | undefined {
+
+function toReplyData(postFooterElement: HTMLElement): {
+  lastReplyText: string
+  replyCount: number
+  lastReply?: number
+  replyHref?: string
+} {
   const regex = new RegExp(/^(\d+)[^\(]*\(([^\)]*)\).*$/g)
-  const result = regex.exec(replyText.split('\n')[0])
-  if (null === result) return undefined
+  const footerParts = postFooterElement.innerText.split('|').map(t => t.trim())
+  const replyElement = postFooterElement.querySelector('span[class*="nreplies"]')
+  const lastReply = 0 < replyElement.childElementCount ? parseDate((replyElement.lastElementChild as HTMLElement).title) : undefined
+  const replyCount = parseInt((regex.exec(footerParts[3]) ?? [])[1])
+  const replyAnchor = Array.from(postFooterElement.querySelectorAll('a')).slice(-2).filter(a => !a.innerText.startsWith('@OP'))[0]
+
   return {
-    replyCount: parseInt(result[1]),
-    lastReply: parseDateTime(result[2])
+    lastReplyText: (replyElement as HTMLElement).innerText,
+    replyCount: isNaN(replyCount) ? 0 : replyCount,
+    lastReply: lastReply ? lastReply.getTime() : undefined,
+    replyHref: replyAnchor ? replyAnchor.href : undefined
   }
 }
-function scrapePosts(companyBookmark: CompanyBookmark): Post[] {
-  const isTop25 = companyBookmark.name === 'Top25'
-  return Array.from(document.getElementById('posts').querySelectorAll('article')).map(postElement => {
-    const firstChild = postElement.firstElementChild as HTMLElement
-    if (firstChild.tagName !== 'HEADER') {
-      firstChild.style.display = 'none'
-    }
-    const header = postElement.querySelector('header')
-    const footer = postElement.querySelector('footer')
-    const footerParts = footer.innerText.split('|').map(t => t.trim())
-    const companyHref = isTop25
-      ? Array.from(footer.querySelectorAll('a')).slice(-1)[0].href
-      : window.location.href
-    const company = toTitleCase((new URL(companyHref)).pathname.replace(/\//g, '').replace(/-/g, ' '))
 
-    const date = parseDate(footer.querySelector('time').dateTime) ?? new Date()
-    const replyElement = footer.querySelector('span[class*="nreplies"]')
-    const lastReply = 0 < replyElement.childElementCount ? parseDate((replyElement.lastElementChild as HTMLElement).title) : null
-    const { replyCount } = parseRepliesText(footerParts[3]) ?? {}
-    const replyAnchor = Array.from(footer.querySelectorAll('a')).slice(-2).filter(a => !a.innerText.startsWith('@OP'))[0]
-    const title = header.innerText
-    const text = (header.nextElementSibling as HTMLElement).innerText
-    const groupH3 = document.createElement('h3')
-    const groupAnchor = document.createElement('a')
-    groupH3.className = 'post-title'
-    groupH3.className = 'thread-link'
-    groupAnchor.href = companyBookmark.url
-    groupAnchor.innerHTML = `<sub>${companyBookmark.name}</sub>`
-    groupH3.appendChild(groupAnchor)
-    if (isTop25) {
-      const divider = document.createElement('span')
-      divider.innerHTML = `&nbsp;|&nbsp;`
-      groupH3.appendChild(divider)
-      const companyAnchor = document.createElement('a')
-      companyAnchor.href = companyHref
-      companyAnchor.innerHTML = `<sub>${company}</sub>`
-      groupH3.appendChild(companyAnchor)
+function toPostDivMetadata(postElement: HTMLElement, companyBookmark: CompanyBookmark): PostDivMetadata {
+  const header = postElement.querySelector('header')
+  const footer = postElement.querySelector('footer')
+  const {
+    lastReplyText,
+    replyCount,
+    replyHref,
+    lastReply
+  } = toReplyData(footer)
+  const companyHref = companyBookmark.name === 'Top25'
+    ? Array.from(footer.querySelectorAll('a')).slice(-1)[0].href
+    : window.location.href
+  const companyName = toTitleCase((new URL(companyHref)).pathname.replace(/\//g, '').replace(/-/g, ' '))
+
+  return {
+    title: header.innerText,
+    href: header.querySelector('a').href,
+    text: (header.nextElementSibling as HTMLElement).innerText,
+    lastReplyText,
+    replyCount,
+    replyHref,
+    lastReply,
+    companyBookmark: {
+      name: companyBookmark.name,
+      href: companyBookmark.url,
+    },
+    companyLink: {
+      href: companyHref,
+      name: companyName
     }
-    header.appendChild(groupH3)
+  }
+}
+
+function scrapePosts(companyBookmark: CompanyBookmark): Post[] {
+  return Array.from(document.getElementById('posts').querySelectorAll('article')).map(postElement => {
+    const postDiv = toPostDivMetadata(postElement, companyBookmark)
+    const footer = postElement.querySelector('footer')
+    const date = parseDate(footer.querySelector('time').dateTime) ?? new Date()
 
     return toPostCard({
       groupName: companyBookmark.name,
-      company,
-      companyHref,
-      title,
-      text,
       date: date.getTime(),
-      replyCount,
-      replyHref: replyAnchor ? replyAnchor.href : undefined,
-      lastReply: lastReply ? lastReply.getTime() : undefined,
-      renderable: postElement
+      postDiv
     })
   })
 }
+
 const CompanyBookmarks = getCompanyBookmarks()
+
 export const TheLayoffCompanyScraper: Userscript = {
   name: "TheLayoffCompanyScraper",
   containerId: 'the-layoff-company-scraper',

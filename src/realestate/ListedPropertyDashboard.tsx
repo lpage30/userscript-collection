@@ -1,10 +1,11 @@
-import React, { useState, JSX, useRef, BaseSyntheticEvent } from 'react'
+import React, { useState, JSX, useRef } from 'react'
 import "../common/ui/styles.scss";
 import { Button } from 'primereact/button';
 import { PropertyInfo } from './propertyinfotypes'
 import Dashboard from '../dashboardcomponents/Dashboard'
 import { FilterableItems, ItemFilter, CardShellContainerId } from '../dashboardcomponents/datatypes';
 import { Persistence } from '../dashboardcomponents/persistence';
+import { toPropertyCardDashboardComponent } from './PropertyInfoCard';
 
 export const ListedPropertyContainerId = CardShellContainerId
 export const sortingFields = ['Price', 'DistanceToOcean'];
@@ -57,7 +58,6 @@ interface ListedPropertyDashboardPopupProps {
   registerOpen?: (closeDashboard: () => void) => void
   registerClose?: (closeDashboard: () => void) => void
   registerRefreshFunction?: (refreshFunction: (showDialog: boolean) => void) => void
-  ignoreDashboardClickEvent?: (e: BaseSyntheticEvent) => boolean
   addedDashboardHeaderComponent?: {
     after: 'picklist' | 'infodisplay' | 'filtersort' | 'lastrow',
     element: JSX.Element,
@@ -78,7 +78,6 @@ export const ListedPropertyDashboardPopup: React.FC<ListedPropertyDashboardPopup
   registerOpen,
   registerClose,
   registerRefreshFunction,
-  ignoreDashboardClickEvent,
 }) => {
   const refreshDashboardRef = useRef<(showDialog: boolean) => void>(null)
   const [state, setState] = useState<ListedPropertyDashboardPopupState>({
@@ -127,11 +126,11 @@ export const ListedPropertyDashboardPopup: React.FC<ListedPropertyDashboardPopup
         sortingFields={sortingFields}
         page={'dashboard'}
         getCards={() => state.properties}
+        toCardComponent={toPropertyCardDashboardComponent}
         cardStyle={{ height: '520px', width: '600px' }}
         layout={'grid-2'}
         onClose={closeDashboard}
         registerRefreshFunction={(refreshFunction) => refreshDashboardRef.current = refreshFunction}
-        ignoreClickEvent={ignoreDashboardClickEvent}
         addedHeaderComponents={[addedDashboardHeaderComponent]}
         infoDisplayRowSpan={2}
         infoDisplayTextPaddingLeft={{ value: 0.5, type: 'rem' }}

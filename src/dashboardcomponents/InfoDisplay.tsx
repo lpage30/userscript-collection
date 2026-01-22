@@ -15,18 +15,22 @@ export const InfoDisplay: React.FC<InfoDisplayProps> = ({
   textPaddingLeft,
   titlePaddingLeft = { value: 1.5, type: 'rem' }
 }) => {
-  const [displayLines, setDisplayLines] = useState<string[]>([])
+  const [state, setState] = useState<{
+    displayLines: string[]
+  }>({ displayLines: [] })
   if (registerDisplayTrigger) {
     registerDisplayTrigger((data: InfoDisplayItem | null) => {
       if (data === null) {
-        setDisplayLines([])
+        setState({ displayLines: [] })
         return
       }
       try {
-        setDisplayLines(data.displayLines())
+        setState({
+          displayLines: data.displayLines(),
+        })
       } catch (e) {
         console.error(`Failed setting displayLines for InfoDisplay. ${JSON.stringify(data as any, null, 2)}`, e)
-        setDisplayLines([])
+        setState({ displayLines: [] })
       }
     })
   }
@@ -42,7 +46,7 @@ export const InfoDisplay: React.FC<InfoDisplayProps> = ({
   }}
   ><tbody>
       {
-        displayLines.map((line, index) => {
+        state.displayLines.map((line, index) => {
           let cell: JSX.Element = <td className={'text-sm'} style={{ paddingLeft: textLeftPadding ? textLeftPadding : 0 }}>{line}</td>
           if (index === 0) {
             cell = <th className={'text-lg'} style={{ paddingLeft: titleLeftPadding ? titleLeftPadding : 0 }}>{line}</th>
@@ -53,7 +57,6 @@ export const InfoDisplay: React.FC<InfoDisplayProps> = ({
             </tr>
           )
         })
-
       }
     </tbody></table>
 };

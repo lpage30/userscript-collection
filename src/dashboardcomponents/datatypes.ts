@@ -1,3 +1,4 @@
+import { ReactNode } from 'react'
 import { toString } from "../common/functions"
 export interface InfoDisplayItem {
   displayLines: () => string[]
@@ -10,9 +11,7 @@ export interface PicklistItem {
   href: (pageName: string) => string
   elementId: string
 }
-
 export interface Card extends InfoDisplayItem, PicklistItem {
-  renderable: HTMLElement;
 }
 
 export interface Dashboard<T extends Card> {
@@ -134,7 +133,7 @@ function inFilterFunction<T extends Card>(item: T, filter: ItemFilter[]): boolea
     const itemFieldValue = item[itemFilter.field]
     if (![undefined, null].includes(itemFieldValue)) {
       if (isExistenceFilter(itemFilter)) {
-         return itemFilter.filter[itemFieldValue] === true
+        return itemFilter.filter[itemFieldValue] === true
       }
       if (isDateBetweenFilter(itemFilter) && typeof itemFieldValue === 'number') {
         return itemFilter.filter.beginDate <= itemFieldValue && itemFieldValue <= itemFilter.filter.endDate
@@ -176,3 +175,4 @@ export function sortAndFilterItems<T extends Card>(
     filteredItems,
   };
 }
+
