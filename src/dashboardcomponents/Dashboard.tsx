@@ -22,7 +22,7 @@ import { OptionalFeatures } from './OptionalFeatures';
 export type DashboardLayout = 'vertical' | 'horizontal' | 'grid' | 'grid-2' | 'grid-3' | 'grid-4'
 export interface AddedHeaderComponent {
     /* if item designated in 'after' doesn't exist it falls to next existing item in list. lastrow always exists */
-    after: 'picklist' | 'infodisplay' | 'filtersort' | 'lastrow',
+    after: 'picklist' | 'infodisplay' | 'filtersort' | 'lastrow' | 'lastColumn',
     element: JSX.Element,
 }
 
@@ -36,6 +36,7 @@ export interface DashboardProps {
     style?: CSSProperties
     cardStyle?: CSSProperties
     layout?: DashboardLayout
+    registerVisibleFunction?: (setVisible: (show: boolean) => void) => void
     registerLoadFunction?: (reloadFunction: (showDialog: boolean, force: boolean) => Promise<void>) => void
     registerRerenderFunction?: (rerenderFunction: () => void) => void
     onVisibleChange?: (visible: boolean) => void
@@ -59,6 +60,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     style,
     cardStyle,
     layout = 'grid',
+    registerVisibleFunction,
     registerLoadFunction,
     registerRerenderFunction,
     onVisibleChange,
@@ -69,7 +71,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
     const persistence = useRef<PersistenceClass>(features ? features.getPersistence() : null)
     const allCards = useRef<Card[]>(getCards())
-    const [displayedCards, setDisplayedCards] = useState<Card[]>(features.filterSort
+    const [displayedCards, setDisplayedCards] = useState<Card[]>(features?.filterSort
         ? features.filterSort.sortAndFilterCards(allCards.current, persistence.current, features.filterSort.getFilterableItems()) : allCards.current)
     const [state, setState] = useState<DashboardState>({
         visible: true,
@@ -88,12 +90,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
         setDisplayedCards([...displayedCards])
     }
     if (registerRerenderFunction) registerRerenderFunction(rerenderDashboard)
+    if (registerVisibleFunction) registerVisibleFunction((show: boolean) => setState({ ...state, visible: show }))
+
     const refresh = async (showDialog: boolean, force: boolean): Promise<void> => {
-        let newCards = cardLoadingAPI ? await cardLoadingAPI.load(force) : getCards()
+        let newCards = cardLoadingAPI ? await cardLoadingAPI.loadCards(force) : getCards()
         allCards.current = newCards
         if (onCardsLoaded) onCardsLoaded(newCards)
         if (onVisibleChange) onVisibleChange(showDialog)
-        if (features.filterSort) {
+        if (features?.filterSort) {
             newCards = features.filterSort.sortAndFilterCards(newCards, persistence.current, features.filterSort.getFilterableItems())
         }
         setDisplayedCards(newCards)
@@ -215,6 +219,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
         )
     }
+    const splitAddedComponents = (afterValue: string, addedComponents: AddedHeaderComponent[]): {
+        afterAddedComponents: AddedHeaderComponent[],
+        remainingAddedComponents: AddedHeaderComponent[]
+    } => {
+        const afterAddedComponents = addedComponents
+            .filter(({ after }) => after === afterValue)
+        const remainingAddedComponents = addedComponents.filter(({ after }) => after !== afterValue)
+        return {
+            afterAddedComponents,
+            remainingAddedComponents
+        }
+    }
+
     const getFeatures = (addedComponents: AddedHeaderComponent[]): {
         headerCells: JSX.Element[],
         remainingAddedComponents: AddedHeaderComponent[]
@@ -227,15 +244,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
             if (index == null) return
             callable(index)
         }
-        const splitAddedComponents = (afterValue: string) => {
-            const result = remainingAddedComponents
-                .filter(({ after }) => after === afterValue)
-            remainingAddedComponents = remainingAddedComponents.filter(({ after }) => after !== afterValue)
-            return result
-        }
         const headerCells: JSX.Element[] = []
-        if (features.picklist) {
-            const picklistAddedComponents = splitAddedComponents('picklist')
+        if (features?.picklist) {
+            const splitComponents = splitAddedComponents('picklist', remainingAddedComponents)
+            remainingAddedComponents = splitComponents.remainingAddedComponents
             headerCells.push(<td>
                 <Picklist
                     persistence={persistence.current}
@@ -247,13 +259,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     onMouseOut={(elementId: string) => onElementIdCall(elementId, onMouseOut)}
                 />
                 {
-                    picklistAddedComponents
+                    splitComponents.afterAddedComponents
                         .map(addedHeaderComponent => (<div style={{ float: 'left' }}>{addedHeaderComponent.element}</div>))
                 }
             </td>)
         }
-        if (features.infoDisplay) {
-            const infodisplayAddedComponents = splitAddedComponents('infodisplay')
+        if (features?.infoDisplay) {
+            const splitComponents = splitAddedComponents('infodisplay', remainingAddedComponents)
+            remainingAddedComponents = splitComponents.remainingAddedComponents
             headerCells.push(<td style={{ width: '200px' }} rowSpan={features.infoDisplay.infoDisplayRowSpan ?? 1}>
                 <InfoDisplay
                     registerDisplayTrigger={triggerInfoDisplay => { onFocusDisplayInfo.current = triggerInfoDisplay }}
@@ -261,13 +274,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     titlePaddingLeft={features.infoDisplay.titlePaddingLeft}
                 />
                 {
-                    infodisplayAddedComponents
+                    splitComponents.afterAddedComponents
                         .map(addedHeaderComponent => (<div>{addedHeaderComponent.element}</div>))
                 }
             </td>)
         }
-        if (features.filterSort) {
-            const filtersortAddedComponents = splitAddedComponents('filtersort')
+        if (features?.filterSort) {
+            const splitComponents = splitAddedComponents('filtersort', remainingAddedComponents)
+            remainingAddedComponents = splitComponents.remainingAddedComponents
             headerCells.push(<td>
                 <FilterSort
                     persistence={persistence.current}
@@ -280,7 +294,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }}
                 />
                 {
-                    filtersortAddedComponents
+                    splitComponents.afterAddedComponents
                         .map(addedHeaderComponent => (<div style={{ float: 'right' }}>{addedHeaderComponent.element}</div>))
                 }
             </td>)
@@ -288,7 +302,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
         return { headerCells, remainingAddedComponents }
     }
     const render = () => {
-        const { headerCells, remainingAddedComponents } = getFeatures(addedHeaderComponents)
+        const featureResults = getFeatures(addedHeaderComponents)
+        const headerCells = featureResults.headerCells
+        let remainingAddedComponents = featureResults.remainingAddedComponents
+        const lastRowSplitComponents = splitAddedComponents('lastrow', remainingAddedComponents)
+        const lastColumnSplitComponents = splitAddedComponents('lastcolumn', lastRowSplitComponents.remainingAddedComponents)
+        remainingAddedComponents = lastColumnSplitComponents.remainingAddedComponents
+        const rowComponents = [...lastRowSplitComponents.afterAddedComponents, ...remainingAddedComponents]
+        const colComponents = lastColumnSplitComponents.afterAddedComponents
+
         return (
             <Dialog
                 appendTo={'self'}
@@ -324,15 +346,48 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 </tr>
                             )}
                             {
-                                remainingAddedComponents
-                                    .map((addedHeaderComponent) => (
-                                        <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                                            <td colSpan={3}>
-                                                {addedHeaderComponent.element}
-                                            </td>
-                                        </tr>
-                                    ))
+                                rowComponents
+                                    .map((addedHeaderComponent, row, rows) => {
+                                        const isLastRow = rows.length <= (row + 1)
+                                        const lastcolspan = isLastRow && 0 < colComponents.length
+                                            ? Math.max(3 - colComponents.length, 1)
+                                            : 3
+                                        const othercolspan = isLastRow && 0 < colComponents.length
+                                            ? 1 : 3
+                                        return (
+                                            <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+                                                <td colSpan={othercolspan}>
+                                                    {addedHeaderComponent.element}
+                                                </td>
+                                                {isLastRow &&
+                                                    0 < colComponents.length &&
+                                                    colComponents.map((addedHeaderComponent, col, cols) => {
+                                                        const isLastCol = cols.length <= col + 1
+                                                        return (
+                                                            <td colSpan={isLastCol ? lastcolspan : othercolspan}>
+                                                                {addedHeaderComponent.element}
+                                                            </td>
+                                                        )
+                                                    })
+                                                }
+                                            </tr>
+                                        )
+                                    })
                             }
+                            {0 === rowComponents.length && 0 < colComponents.length && (
+                                <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
+                                    {
+                                        colComponents.map((addedHeaderComponent, col, cols) => {
+                                            const isLastCol = cols.length <= col + 1
+                                            return (
+                                                <td colSpan={isLastCol ? Math.max(col + 1 - 3, 1) : 1}>
+                                                    {addedHeaderComponent.element}
+                                                </td>
+                                            )
+                                        })
+                                    }
+                                </tr>
+                            )}
                         </tbody></table>
                 }
                 className='p-dialog-maximized'

@@ -180,5 +180,5 @@ export interface CardLoadingAPI<T extends Card> {
     isLoading: boolean
     cards: T[]
     registerOnIsLoadingChange: (onChange: (isLoading: boolean) => void) => void
-    load(force: boolean): Promise<T[]>
+    loadCards: (force: boolean) => Promise<T[]>
 }

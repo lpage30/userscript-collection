@@ -1,4 +1,6 @@
-import { StatusLevel, classifyStatus, compareFunction as compareStatusLevel, determineOverallStatusLevel } from './statusService'
+import { StatusLevel, getStatusMetadata, classifyStatus, compareFunction as compareStatusLevel, determineOverallStatusLevel } from './statusService'
+import { Card } from '../dashboardcomponents/datatypes'
+import { toHashCode } from '../common/functions'
 
 export type IndicatorType = 'major' | 'minor' | string
 export type ImpactType = 'critical' | 'minor' | 'none' | string
@@ -25,12 +27,27 @@ export interface Incident {
     statusLevel?: StatusLevel
 }
 
-export interface ServiceStatus {
+export interface ServiceStatus extends Card {
     statusPage: string
     dependentCompanies: string[]
     serviceName: string
     status: Status
     incidents: Incident[]
+}
+export function toServiceStatusCard(status: ServiceStatus): Card {
+    return {
+        ...status,
+        groupName: status.statusPage,
+        label: () => `${status.serviceName} ${status.status.description}`,
+        color: () => getStatusMetadata(status.status.statusLevel).bgColor,
+        href: () => '',
+        elementId: toHashCode(status.serviceName),
+        displayLines: () => [
+            status.serviceName,
+            `IndicatorType: ${status.status.indicator}`,
+            `StatusLevel: ${status.status.statusLevel}`
+        ]
+    } as Card
 }
 export const isServiceStatusForAnyCompanies = (status: ServiceStatus, companyNames: string[]) => {
     return companyNames.some(companyName => companyName.includes(status.serviceName)) ||

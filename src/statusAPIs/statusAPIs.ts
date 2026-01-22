@@ -16,8 +16,13 @@ import { OCIHealthStatus } from "./userscripts/OCIHealthStatus";
 import { IBMHealthStatus } from "./userscripts/IBMHealthStatus";
 import { FastlyHealthStatus } from "./userscripts/FastlyHealthStatus";
 import { Microsoft365HealthStatus } from "../statusAPIs/userscripts/Microsoft365HealthStatus";
+import { CardLoadingAPI, Card } from "../dashboardcomponents/datatypes";
+import { toServiceStatusCard } from "./statustypes";
 
-class ServiceAPIsClass implements ServiceAPI {
+export interface ServiceLoadingAPI extends ServiceAPI, CardLoadingAPI<Card>{
+}
+
+class ServiceAPIsClass implements ServiceLoadingAPI {
     isLoading: boolean
     serviceStatuses: ServiceStatus[]
     private onIsLoadingChangeCallbacks: ((isLoading: boolean) => void)[]
@@ -40,6 +45,9 @@ class ServiceAPIsClass implements ServiceAPI {
     }
     get serviceStatus(): ServiceStatus[] {
         return this.serviceStatuses
+    }
+    get cards(): Card[] {
+        return this.serviceStatuses.map(toServiceStatusCard)
     }
     registerOnIsLoadingChange(onChange: (isLoading: boolean) => void) {
         this.onIsLoadingChangeCallbacks.push(onChange)
@@ -69,8 +77,11 @@ class ServiceAPIsClass implements ServiceAPI {
         }
         return this.serviceStatuses
     }
+    async loadCards(force: boolean = false): Promise<Card[]> {
+        return (await this.load(force)).map(toServiceStatusCard)
+    }
 }
-export const StatusAPIs: ServiceAPI = new ServiceAPIsClass()
+export const StatusAPIs: ServiceLoadingAPI = new ServiceAPIsClass()
 export const StatusAPIUserscripts: Userscript[] = [
   AWSHealthStatus,
   AzureHealthStatus,
