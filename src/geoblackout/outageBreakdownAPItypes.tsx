@@ -9,6 +9,7 @@ export interface OutageBreakdownData {
 export interface OutageBreakdown {
     timestamp: number
     service: string
+    blurb: string
     data: OutageBreakdownData[]
 }
 export function breakdownDataToString(data: OutageBreakdownData[]): string[] {

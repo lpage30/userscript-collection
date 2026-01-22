@@ -15,10 +15,10 @@ import {
   renderInContainer,
 } from "../common/ui/renderRenderable";
 import { LoadingPopup } from "../common/ui/LoadingPopup";
-import Dashboard from "../dashboardcomponents/Dashboard";
+import { Dashboard } from "../dashboardcomponents/Dashboard";
+import { createFeatures } from '../dashboardcomponents/OptionalFeatures'
 import { layoffBaseUrl } from "./bookmarkedCompanies";
 import { loadPosts, getCompanyBookmarks } from "./bookmarkedCompanies";
-import { Card } from "../dashboardcomponents/datatypes";
 import { toPostCardComponent } from "./PostCardComponent";
 
 export const TheLayoffDashboard: Userscript = {
@@ -85,18 +85,32 @@ export const TheLayoffDashboard: Userscript = {
       onCancel={onCancelLoading}
     />);
     cards = await loadPosts(false)
+    const features = createFeatures(getPersistence, {
+      picklist: {
+        pageTypes: ['dashboard'],
+        usingPage: 'dashboard'
+      },
+      infoDisplay: {
+        infoDisplayRowSpan: 2,
+      },
+      filterSort: {
+        getFilterableItems: () => getFilterableItems(getCompanyNames),
+        sortingFields
+      }
+    })
+
     container.innerHTML = ""
     renderInContainer(container, <Dashboard
       title={`Company Bookmarks`}
-      getPersistence={getPersistence}
-      pageTypes={['dashboard']}
-      getFilterableItems={() => getFilterableItems(getCompanyNames)}
-      sortingFields={sortingFields}
-      page={'dashboard'}
       getCards={getCards}
       toCardComponent={toPostCardComponent}
       layout={'vertical'}
-      registerRefreshContent={(refreshContent) => { refreshCards = refreshContent }}
+      registerLoadFunction={(reloadFunction) => {
+        refreshCards = () => {
+          reloadFunction(true, true)
+        }
+      }}
+      features={features}
       addedHeaderComponents={[{
         after: 'picklist',
         element: <Button
@@ -104,7 +118,6 @@ export const TheLayoffDashboard: Userscript = {
           onClick={() => loadAndRefreshContent()}
         >Refresh Cards</Button>
       }]}
-      infoDisplayRowSpan={2}
 
     />);
     await awaitElementById(container.id);

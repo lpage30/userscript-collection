@@ -5,7 +5,7 @@ import "../common/ui/styles.scss";
 export interface Padding { value: number, type: 'px' | 'rem' }
 const paddingToString = (padding?: Padding) => padding ? `${padding.value}${padding.type}` : undefined
 
-interface InfoDisplayProps {
+export interface InfoDisplayProps {
   registerDisplayTrigger: (displayTrigger: (data: InfoDisplayItem | null) => void) => void
   textPaddingLeft?: Padding
   titlePaddingLeft?: Padding
@@ -60,4 +60,4 @@ export const InfoDisplay: React.FC<InfoDisplayProps> = ({
       }
     </tbody></table>
 };
-export default InfoDisplay;
+

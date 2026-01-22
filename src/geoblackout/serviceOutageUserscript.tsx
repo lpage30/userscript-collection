@@ -27,7 +27,8 @@ export const serviceOutage: Userscript = {
   createContainer: async (href: string): Promise<HTMLElement> => null,
   renderInContainer: async (href: string, container: HTMLElement): Promise<void> => {
     const serviceName: string = href.split('/').slice(-1)[0]
-    const outageData: OutageBreakdownData[] = Array.from(document.querySelectorAll('div[class*="ReportStats_subCategory"]'))
+    const outageData: OutageBreakdownData[] = Array.from(document.querySelectorAll('div[class*="ReportStats"]'))
+      .filter(e => e.className.toLowerCase().endsWith('subcategory'))
       .map((e: HTMLElement): OutageBreakdownData => {
         const parts = e.innerText.split('\n').map(t => t.trim()).filter(t => 0 < t.length)
         return {
@@ -36,9 +37,18 @@ export const serviceOutage: Userscript = {
           alertCount: parseNumber(parts[2])
         }
       })
+    const serviceBlurb = Array.from(
+      Array.from(document.querySelectorAll('div[class*="ReportPage"]'))
+        .filter(e => e.className.endsWith('content'))[0]
+        .querySelector('div[class*="caption"]')
+        .querySelectorAll('p')
+    ).slice(-2)
+      .map(e => e.innerText)
+      .join('\n')
     reportServiceOutage({
       timestamp: Date.now(),
       service: serviceName,
+      blurb: serviceBlurb,
       data: outageData
     })
 

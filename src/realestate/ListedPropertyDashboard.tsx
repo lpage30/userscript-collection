@@ -2,7 +2,9 @@ import React, { useState, JSX, useRef } from 'react'
 import "../common/ui/styles.scss";
 import { Button } from 'primereact/button';
 import { PropertyInfo } from './propertyinfotypes'
-import Dashboard from '../dashboardcomponents/Dashboard'
+import { Dashboard } from '../dashboardcomponents/Dashboard'
+import { createFeatures } from '../dashboardcomponents/OptionalFeatures'
+
 import { FilterableItems, ItemFilter, CardShellContainerId } from '../dashboardcomponents/datatypes';
 import { Persistence } from '../dashboardcomponents/persistence';
 import { toPropertyCardDashboardComponent } from './PropertyInfoCard';
@@ -110,9 +112,25 @@ export const ListedPropertyDashboardPopup: React.FC<ListedPropertyDashboardPopup
   if (registerOpen) {
     registerOpen(openDashboard)
   }
-
   const render = () => {
     const filterableItems = getFilterableItems(state.properties)
+    const features = createFeatures(
+      () => Persistence(siteName, () => filterableItems),
+      {
+        picklist: {
+          pageTypes: ['dashboard'],
+          usingPage: 'dashboard'
+        },
+        infoDisplay: {
+          infoDisplayRowSpan: 2,
+          textPaddingLeft: { value: 0.5, type: 'rem' }
+        },
+        filterSort: {
+          getFilterableItems: () => filterableItems,
+          sortingFields
+        }
+      }
+    )
     return (<>
       <Button
         className={'app-button'}
@@ -120,20 +138,18 @@ export const ListedPropertyDashboardPopup: React.FC<ListedPropertyDashboardPopup
       >Toggle {title}</Button>
       {state.visible && <Dashboard
         title={title}
-        getPersistence={() => Persistence(siteName, () => filterableItems)}
-        pageTypes={['dashboard']}
-        getFilterableItems={() => filterableItems}
-        sortingFields={sortingFields}
-        page={'dashboard'}
         getCards={() => state.properties}
         toCardComponent={toPropertyCardDashboardComponent}
         cardStyle={{ height: '520px', width: '600px' }}
         layout={'grid-2'}
         onClose={closeDashboard}
-        registerRefreshFunction={(refreshFunction) => refreshDashboardRef.current = refreshFunction}
+        registerLoadFunction={(reloadFunction) => {
+          refreshDashboardRef.current = (showDialog: boolean) => {
+            reloadFunction(showDialog, true)
+          }
+        }}
+        features={features}
         addedHeaderComponents={[addedDashboardHeaderComponent]}
-        infoDisplayRowSpan={2}
-        infoDisplayTextPaddingLeft={{ value: 0.5, type: 'rem' }}
       />}
     </>)
   }

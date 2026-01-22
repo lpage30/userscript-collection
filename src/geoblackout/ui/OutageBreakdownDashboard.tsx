@@ -1,33 +1,27 @@
-import React, { useState, useRef, useEffect, JSX } from 'react'
+import React, { useState, useRef, useEffect, JSX, CSSProperties } from 'react'
 import { Dialog } from 'primereact/dialog'
 import { Button } from 'primereact/button'
-import { ServiceStatus, CompanyHealthStatus, isServiceStatusForAnyCompanies } from '../statustypes'
-import { ServiceHealthStatusSpan } from './IndicatorStatusComponents'
-import { StatusAPIs } from '../statusAPIs'
-import ServiceStatusComponent from './ServiceStatusComponent'
-import {
-  CompanyHealthLevelTypeInfoMap,
-} from './IndicatorStatusTypeInfoMaps'
-import { getSortedStatusLevels, getStatusMetadata, sortServiceByStatusIndicatorRank } from '../statusService'
 import { createSpinningContentElement } from '../../common/ui/style_functions'
+import { OutageBreakdown } from '../outageBreakdownAPItypes'
+import { OutageBreakdownAPI } from '../OutageBreakdownAPI'
 
-interface ServiceDashboardProps {
+interface OutageBreakdownDashboardProps {
   title: string
-  initialStatuses: ServiceStatus[]
+  initialStatuses: OutageBreakdown[]
   companyHealthStatuses?: CompanyHealthStatus[]
   onServiceStatus?: (serviceStatus: ServiceStatus[]) => void
   registerRefreshFunction?: (refreshFunction: (showDialog: boolean, force: boolean) => Promise<void>) => void
   onVisibleChange?: (visible: boolean) => void
   initiallyVisible?: boolean
 }
-interface ServiceDashboardState {
+interface OutageBreakdownDashboardState {
   visible: boolean
   isLoading: boolean
   statuses: ServiceStatus[]
   companyStatuses: CompanyHealthStatus[]
 }
 
-const ServiceDashboard: React.FC<ServiceDashboardProps> = ({
+const OutageBreakdownDashboard: React.FC<OutageBreakdownDashboardProps> = ({
   title,
   onServiceStatus,
   registerRefreshFunction,

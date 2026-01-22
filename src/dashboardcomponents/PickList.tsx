@@ -7,7 +7,7 @@ import '../common/ui/styles.scss';
 import { toTitleCase } from '../common/functions';
 import { awaitElementById } from '../common/await_functions';
 
-interface PicklistProps {
+export interface PicklistProps {
   persistence: PersistenceClass;
   pageTypes: string[];
   usingPage: string;
@@ -16,7 +16,7 @@ interface PicklistProps {
   onMouseOver: (elementId: string) => void
   onMouseOut: (elementId: string) => void
 }
-const Picklist: React.FC<PicklistProps> = ({
+export const Picklist: React.FC<PicklistProps> = ({
   persistence,
   pageTypes,
   items,
@@ -156,4 +156,3 @@ const Picklist: React.FC<PicklistProps> = ({
   }
   return render();
 };
-export default Picklist;

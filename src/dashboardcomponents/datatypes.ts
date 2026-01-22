@@ -153,7 +153,7 @@ export function queryAllCardShells(): HTMLDivElement[] {
 export const toCardElementId = (index: number) => `${CardShellIdPrefix}${index}`
 export const fromCardElementId = (elementId: string): number => parseInt(elementId.split('-').slice(-1)[0])
 
-export const toCardIndex = (elementId: string, pageName: string, items: Card[] | undefined): number | null => {
+export const toCardIndex = (elementId: string, items: Card[] | undefined): number | null => {
   const index = (items ?? []).findIndex(
     (item, index) => (item.elementId ?? toCardElementId(index)) === elementId,
   );
@@ -176,3 +176,9 @@ export function sortAndFilterItems<T extends Card>(
   };
 }
 
+export interface CardLoadingAPI<T extends Card> {
+    isLoading: boolean
+    cards: T[]
+    registerOnIsLoadingChange: (onChange: (isLoading: boolean) => void) => void
+    load(force: boolean): Promise<T[]>
+}

@@ -17,7 +17,8 @@ import {
   renderInContainer,
 } from "../../common/ui/renderRenderable";
 import { LoadingPopup } from "../../common/ui/LoadingPopup";
-import Dashboard from "../../dashboardcomponents/Dashboard";
+import { Dashboard } from "../../dashboardcomponents/Dashboard";
+import { createFeatures } from "../../dashboardcomponents/OptionalFeatures";
 import { Persistence } from "../../dashboardcomponents/persistence";
 import { createOnExternalDataUpdates } from "../common/onexternaldataupdate";
 import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
@@ -56,6 +57,7 @@ export const DownDetectorDashboard: Userscript = {
       isOpen={true}
       onCancel={onCancelLoading}
     />);
+    let rerenderDashboard: () => void | null = null
     const persistence = Persistence('DownDetector', () => filterableItems)
     const cards = processCompanyDashboardCards(
       await awaitQueryAll(dashboardCardsQueryAllSelector),
@@ -63,14 +65,24 @@ export const DownDetectorDashboard: Userscript = {
     );
     const { onServiceStatus, onOutageBreakdowns } = createOnExternalDataUpdates(cards, persistence)
 
+    const features = createFeatures(() => persistence, {
+      picklist: {
+        pageTypes: [...CompanyPageTypes],
+        usingPage: 'dashboard'
+      },
+      infoDisplay: {
+        infoDisplayRowSpan: 3,
+        textPaddingLeft: { value: 0.5, type: 'rem' }
+      },
+      filterSort: {
+        getFilterableItems: () => filterableItems,
+        sortingFields
+      }
+    })
     container.innerHTML = ""
+
     renderInContainer(container, <Dashboard
       title={`DownDetector Dashboard's Top ${cards.length}`}
-      getPersistence={() => persistence}
-      pageTypes={[...CompanyPageTypes]}
-      getFilterableItems={() => filterableItems}
-      sortingFields={sortingFields}
-      page={'dashboard'}
       getCards={() => cards}
       toCardComponent={toCompanyCardComponent}
       layout={'grid'}
@@ -81,8 +93,8 @@ export const DownDetectorDashboard: Userscript = {
         borderBottom: '2px solid #bbb;',
         backgroundColor: '#fcfcfc',
       }}
-      infoDisplayRowSpan={3}
-      infoDisplayTextPaddingLeft={{ value: 0.5, type: 'rem' }}
+      features={features}
+      registerRerenderFunction={rerender => { rerenderDashboard = rerender }}
       addedHeaderComponents={[
         {
           after: 'lastrow',
@@ -91,14 +103,22 @@ export const DownDetectorDashboard: Userscript = {
         {
           after: 'lastrow',
           element: <LoadOutageBreakdowns
-            onOutageBreakdowns={onOutageBreakdowns}
+            onOutageBreakdowns={breakdowns => {
+              onOutageBreakdowns(breakdowns)
+              if (rerenderDashboard) rerenderDashboard()
+            }}
           />
         },
         {
           after: 'lastrow',
           element: <ServiceDashboardPopupAndSummary
-            onServiceStatus={onServiceStatus}
-            companyHealthStatuses={cards.map(({ companyName, level }) => ({ companyName, healthStatus: level }))}
+            onServiceStatus={serviceStatus => {
+              onServiceStatus(serviceStatus)
+              if (rerenderDashboard) rerenderDashboard()
+            }}
+            companyHealthStatuses={
+              cards.map(({ companyName, level }) => ({ companyName, healthStatus: level }))
+            }
           />
         },
       ]}
