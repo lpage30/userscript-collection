@@ -1,25 +1,41 @@
 import React, { useState, useEffect, useRef, CSSProperties, JSX } from 'react';
 import '../common/ui/styles.scss';
 import { Dialog } from 'primereact/dialog';
-import { awaitElementById } from '../common/await_functions';
 import {
     Card,
     toCardIndex,
     toCardElementId,
     fromCardElementId,
     CardLoadingAPI,
-    CardShellContainerId,
     ItemFilter,
     ItemSort,
 } from './datatypes';
-import CardShell from './CardShell';
 import { PersistenceClass } from './persistence';
 import { Picklist } from './PickList';
 import { FilterSort } from './FilterSort';
 import { InfoDisplay } from './InfoDisplay';
 import { OptionalFeatures } from './OptionalFeatures';
+import { DashboardCardLayoutType, DashboardCardLayout } from './DashboardCardLayout';
+import { Renderable } from './datatypes';
+import { DashboardElementLayout } from './DashboardElementLayout';
+import { awaitCondition } from '../common/await_functions';
 
-export type DashboardLayout = 'vertical' | 'horizontal' | 'grid' | 'grid-2' | 'grid-3' | 'grid-4'
+export type DashboardContentLayoutProps = {
+    type: 'Card'
+    properties: {
+        layout: DashboardCardLayoutType,
+        toCardComponent: (card: Card) => HTMLElement
+        cardStyle?: CSSProperties
+    }
+} | {
+    type: 'Element'
+    properties: {
+        id: string
+        renderable: Renderable<Card>
+        registerRenderRenderable?: (renderRenderable: (renderable: Renderable<Card>) => Promise<void>) => void
+    }
+}
+
 export interface AddedHeaderComponent {
     /* if item designated in 'after' doesn't exist it falls to next existing item in list. lastrow always exists */
     after: 'picklist' | 'infodisplay' | 'filtersort' | 'lastrow' | 'lastColumn',
@@ -31,14 +47,14 @@ export interface DashboardProps {
     getCards: () => Card[];
     cardLoadingAPI?: CardLoadingAPI<Card>
     onCardsLoaded?: (cards: Card[]) => void
+    onDisplayedCards?: (cards: Card[]) => void
     onCardSelected?: (card: Card | null) => void
-    toCardComponent: (card: Card) => HTMLElement
     style?: CSSProperties
-    cardStyle?: CSSProperties
-    layout?: DashboardLayout
+    modal?: boolean
+    contentLayout: DashboardContentLayoutProps
     registerVisibleFunction?: (setVisible: (show: boolean) => void) => void
     registerLoadFunction?: (reloadFunction: (showDialog: boolean, force: boolean) => Promise<void>) => void
-    registerRerenderFunction?: (rerenderFunction: () => void) => void
+    registerRerenderFunction?: (rerenderFunction: (focusOnCard?: Card) => void) => void
     onVisibleChange?: (visible: boolean) => void
     onClose?: () => void
     addedHeaderComponents?: AddedHeaderComponent[]
@@ -55,11 +71,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     getCards,
     cardLoadingAPI,
     onCardsLoaded,
+    onDisplayedCards,
     onCardSelected,
-    toCardComponent,
     style,
-    cardStyle,
-    layout = 'grid',
+    modal,
+    contentLayout,
     registerVisibleFunction,
     registerLoadFunction,
     registerRerenderFunction,
@@ -70,6 +86,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     features
 }) => {
     const persistence = useRef<PersistenceClass>(features ? features.getPersistence() : null)
+    const renderDisplayCards = useRef<(orderedCards: Card[]) => Promise<void>>(null)
     const allCards = useRef<Card[]>(getCards())
     const [displayedCards, setDisplayedCards] = useState<Card[]>(features?.filterSort
         ? features.filterSort.sortAndFilterCards(allCards.current, persistence.current, features.filterSort.getFilterableItems()) : allCards.current)
@@ -83,11 +100,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const itemDeselectedDelayMs = 5000
     const clearItemDeselectedTimeoutId = useRef<NodeJS.Timeout>(null)
     useEffect(() => {
-        refreshCards();
+        if (contentLayout.type === 'Card') {
+            awaitCondition(
+                () => ![null, undefined].includes(renderDisplayCards.current)
+            ).then(() => renderDisplayCards.current(displayedCards))
+        }
+    }, [])
+    useEffect(() => {
+        if (onDisplayedCards) onDisplayedCards(displayedCards)
+        if (renderDisplayCards.current) renderDisplayCards.current(displayedCards)
     }, [displayedCards]);
 
-    const rerenderDashboard = () => {
+    const rerenderDashboard = (focusCard?: Card) => {
         setDisplayedCards([...displayedCards])
+        if (focusCard) {
+            onFocus(toCardIndex(focusCard.elementId, displayedCards))
+        }
     }
     if (registerRerenderFunction) registerRerenderFunction(rerenderDashboard)
     if (registerVisibleFunction) registerVisibleFunction((show: boolean) => setState({ ...state, visible: show }))
@@ -116,20 +144,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         })
     }
     if (registerLoadFunction) registerLoadFunction(refresh)
-
-    const refreshCards = async () => {
-        await awaitElementById(toCardElementId(displayedCards.length - 1))
-        displayedCards.forEach((_item, index) => {
-            const cardParent = document.getElementById(toCardElementId(index));
-            if (cardParent.firstChild) {
-                cardParent.removeChild(cardParent.firstChild)
-            }
-        });
-        displayedCards.forEach((item, index) => {
-            const cardParent = document.getElementById(toCardElementId(index));
-            cardParent.replaceChildren(toCardComponent(item) as Node)
-        });
-    }
 
     const deselectItem = () => {
         if (clearItemDeselectedTimeoutId.current) {
@@ -181,43 +195,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
         deselectItem()
     }
 
-    const getDivStyle = (index: number) => {
-        const displayType = index < displayedCards.length ? 'block' : 'none';
-        const result =
-            focusedElementIdRef.current === toCardElementId(index)
-                ? {
-                    ...(cardStyle ?? {}),
-                    backgroundColor: 'yellow',
-                    transition: 'background-color 0.5s ease-in-out',
-                    display: displayType,
-                }
-                : {
-                    ...(cardStyle ?? {}),
-                    display: displayType,
-
-                };
-        return result;
-    };
-
-    const layoutItems = (layout: DashboardLayout, itemIndices: number[]): JSX.Element => {
-        return (
-            <div
-                id={CardShellContainerId}
-                className={`${layout}-scroll-container`}
-            >
-                {itemIndices.map(index => (
-                    <CardShell
-                        id={toCardElementId(index)}
-                        index={index}
-                        onFocus={onFocus}
-                        getStyle={getDivStyle}
-                        onMouseOver={onMouseOver}
-                        onMouseOut={onMouseOut}
-                        className={`${layout}-scroll-content`}
-                    />
-                ))}
-            </div>
-        )
+    const getContent = (): JSX.Element => {
+        switch (contentLayout.type) {
+            case 'Element':
+                return <DashboardElementLayout
+                    id={contentLayout.properties.id}
+                    renderable={contentLayout.properties.renderable}
+                    registerRenderRenderable={contentLayout.properties.registerRenderRenderable}
+                    onFocus={card => onFocus(toCardIndex(card.elementId, displayedCards))}
+                    onMouseOver={card => onMouseOver(toCardIndex(card.elementId, displayedCards))}
+                    onMouseOut={card => onMouseOut(toCardIndex(card.elementId, displayedCards))}
+                />
+            case 'Card':
+                return <DashboardCardLayout
+                    layout={contentLayout.properties.layout}
+                    cardIndices={displayedCards.map((_item, index) => index)}
+                    registerRenderCardsInShells={renderCardsInShells => { renderDisplayCards.current = renderCardsInShells }}
+                    toCardComponent={contentLayout.properties.toCardComponent}
+                    cardStyle={contentLayout.properties.cardStyle}
+                    onFocus={onFocus}
+                    onMouseOver={onMouseOver}
+                    onMouseOut={onMouseOut}
+                />
+            default:
+                return <>{`[ CONTENT LAYOUT "${contentLayout['type']}" IS NOT IMPLEMENTED]`}</>
+        }
     }
     const splitAddedComponents = (afterValue: string, addedComponents: AddedHeaderComponent[]): {
         afterAddedComponents: AddedHeaderComponent[],
@@ -324,6 +326,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     if (onClose) onClose()
                 }}
                 style={{ width: '90vw', height: '90vh', ...(style ?? {}) }}
+                modal={undefined === modal ? true : modal} /*true is default value*/
                 header={
                     <table
                         style={{
@@ -392,7 +395,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 }
                 className='p-dialog-maximized'
             >
-                {layoutItems(layout, displayedCards.map((_item, index) => index))}
+                {getContent()}
             </Dialog>
         );
     };

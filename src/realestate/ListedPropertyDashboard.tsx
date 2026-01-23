@@ -139,9 +139,14 @@ export const ListedPropertyDashboardPopup: React.FC<ListedPropertyDashboardPopup
       {state.visible && <Dashboard
         title={title}
         getCards={() => state.properties}
-        toCardComponent={toPropertyCardDashboardComponent}
-        cardStyle={{ height: '520px', width: '600px' }}
-        layout={'grid-2'}
+        contentLayout={{
+          type: 'Card',
+          properties: {
+            layout: 'grid-2',
+            cardStyle: { height: '520px', width: '600px' },
+            toCardComponent: toPropertyCardDashboardComponent
+          }
+        }}
         onClose={closeDashboard}
         registerLoadFunction={(reloadFunction) => {
           refreshDashboardRef.current = (showDialog: boolean) => {

@@ -103,8 +103,13 @@ export const TheLayoffDashboard: Userscript = {
     renderInContainer(container, <Dashboard
       title={`Company Bookmarks`}
       getCards={getCards}
-      toCardComponent={toPostCardComponent}
-      layout={'vertical'}
+      contentLayout={{
+        type: 'Card',
+        properties: {
+          layout: 'vertical',
+          toCardComponent: toPostCardComponent
+        }
+      }}
       registerLoadFunction={(reloadFunction) => {
         refreshCards = () => {
           reloadFunction(true, true)

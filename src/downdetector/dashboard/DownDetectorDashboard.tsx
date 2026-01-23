@@ -84,15 +84,21 @@ export const DownDetectorDashboard: Userscript = {
     renderInContainer(container, <Dashboard
       title={`DownDetector Dashboard's Top ${cards.length}`}
       getCards={() => cards}
-      toCardComponent={toCompanyCardComponent}
-      layout={'grid'}
-      cardStyle={{
-        borderTop: '1px solid #ddd',
-        borderLeft: '1px solid #ddd',
-        borderRight: '2px solid #bbb',
-        borderBottom: '2px solid #bbb;',
-        backgroundColor: '#fcfcfc',
+      contentLayout={{
+        type: 'Card',
+        properties: {
+          layout: 'grid',
+          cardStyle: {
+            borderTop: '1px solid #ddd',
+            borderLeft: '1px solid #ddd',
+            borderRight: '2px solid #bbb',
+            borderBottom: '2px solid #bbb;',
+            backgroundColor: '#fcfcfc',
+          },
+          toCardComponent: toCompanyCardComponent
+        }
       }}
+
       features={features}
       registerRerenderFunction={rerender => { rerenderDashboard = rerender }}
       addedHeaderComponents={[

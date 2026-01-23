@@ -1,5 +1,38 @@
 const isLoadComplete = (): boolean => document.readyState === "complete";
 
+export async function awaitCondition(
+  testCondition: () => boolean,
+  options: { maxRetries: number; intervalMs: number } = {
+    maxRetries: 60,
+    intervalMs: 250,
+  },
+) {
+  let interval: any = null;
+  let tries = 0;
+
+  const trial = (
+    resolve: () => void,
+    reject: (error: Error) => void,
+  ): void => {
+    if (tries >= options.maxRetries) {
+      clearInterval(interval);
+      reject(
+        new Error(`awaitCondition(${testCondition.toString()}) failed after ${tries}`),
+      );
+      return;
+    }
+    tries++;
+    if (testCondition()) {
+      clearInterval(interval);
+      resolve();
+    }
+  };
+
+  return new Promise<void>((resolve, reject) => {
+    tries = 0;
+    interval = setInterval(() => trial(resolve, reject), options.intervalMs);
+  });
+}
 export async function awaitPageLoadByEvent() {
   if (isLoadComplete()) return;
   await new Promise((resolve) => {

@@ -12,7 +12,7 @@ import {
   createRenderableContainerAsChild,
   renderInContainer,
 } from "../../common/ui/renderRenderable";
-import CompanyStatus from "./CompanyStatus";
+import { CompanyStatus } from "./CompanyStatus";
 
 export const DownDetectorCompanyStatus: Userscript = {
   name: "DownDetectorCompanyStatus",

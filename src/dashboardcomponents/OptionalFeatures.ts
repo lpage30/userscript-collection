@@ -3,14 +3,14 @@ import { PersistenceClass } from "./persistence";
 import { Card, FilterableItems, ItemFilter, ItemSort } from "./datatypes";
 import { sortAndFilterCards } from "./FilterSort";
 
-interface PicklistFeatureProps {
+export interface PicklistFeatureProps {
     pageTypes: string[];
     usingPage: string;
 }
-interface InfoDisplayFeatureProps extends Omit<InfoDisplayProps, 'registerDisplayTrigger'> {
+export interface InfoDisplayFeatureProps extends Omit<InfoDisplayProps, 'registerDisplayTrigger'> {
     infoDisplayRowSpan?: number
 }
-interface FilterSortFeatureProps {
+export interface FilterSortFeatureProps {
     getFilterableItems: () => FilterableItems;
     sortingFields: string[];
     sortAndFilterCards: (

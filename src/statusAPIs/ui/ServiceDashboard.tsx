@@ -85,23 +85,27 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
           <Dashboard
             title={'Service Status Dashboard'}
             getCards={() => state.initialStatuses.map(toServiceStatusCard)}
-            cardStyle={{
-              borderTop: '1px solid #ddd',
-              borderLeft: '1px solid #ddd',
-              borderRight: '2px solid #bbb',
-              borderBottom: '2px solid #bbb;',
-              backgroundColor: '#fcfcfc',
+            contentLayout={{
+              type: 'Card',
+              properties: {
+                layout: 'vertical',
+                cardStyle: {
+                  borderTop: '1px solid #ddd',
+                  borderLeft: '1px solid #ddd',
+                  borderRight: '2px solid #bbb',
+                  borderBottom: '2px solid #bbb;',
+                  backgroundColor: '#fcfcfc',
+                },
+                toCardComponent: (card: Card): HTMLElement =>
+                  reactToHTMLElement(card.elementId,
+                    <ServiceStatusComponent
+                      serviceStatus={card as ServiceStatus}
+                      companyHealthStatuses={companyHealthStatuses}
+                    />)
+              }
             }}
             cardLoadingAPI={StatusAPIs}
-            layout={'vertical'}
             closeable={true}
-            toCardComponent={(card: Card): HTMLElement =>
-              reactToHTMLElement(card.elementId,
-                <ServiceStatusComponent
-                  serviceStatus={card as ServiceStatus}
-                  companyHealthStatuses={companyHealthStatuses}
-                />)
-            }
             onVisibleChange={(visible: boolean) => {
               setState({
                 ...state,
@@ -117,6 +121,7 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
                 after: 'lastrow',
                 element: (
                   <Button
+                    className="app-button"
                     onClick={() => { if (refreshDashboardRef.current) refreshDashboardRef.current(true, true) }}
                     disabled={state.isLoading}>{buttonContent('Refresh')}</Button>
                 )

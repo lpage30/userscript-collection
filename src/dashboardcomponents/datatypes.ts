@@ -13,6 +13,11 @@ export interface PicklistItem {
 }
 export interface Card extends InfoDisplayItem, PicklistItem {
 }
+export interface Renderable<T extends Card> {
+  card: T
+  getRenderable: (card: T) => HTMLElement
+  onClick?: (card: T) => void
+}
 
 export interface Dashboard<T extends Card> {
   timestamp: number;
