@@ -18,7 +18,7 @@ import { OptionalFeatures } from './OptionalFeatures';
 import { DashboardCardLayoutType, DashboardCardLayout } from './DashboardCardLayout';
 import { Renderable } from './datatypes';
 import { DashboardElementLayout } from './DashboardElementLayout';
-import { awaitCondition } from '../common/await_functions';
+import { awaitCondition, awaitElementById } from '../common/await_functions';
 
 export type DashboardContentLayoutProps = {
     type: 'Card'
@@ -55,6 +55,7 @@ export interface DashboardProps {
     registerVisibleFunction?: (setVisible: (show: boolean) => void) => void
     registerLoadFunction?: (reloadFunction: (showDialog: boolean, force: boolean) => Promise<void>) => void
     registerRerenderFunction?: (rerenderFunction: (focusOnCard?: Card) => void) => void
+    registerSetFocusFunction?: (setFocusFunction: (elementId: string) => void) => void
     onVisibleChange?: (visible: boolean) => void
     onClose?: () => void
     addedHeaderComponents?: AddedHeaderComponent[]
@@ -79,6 +80,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     registerVisibleFunction,
     registerLoadFunction,
     registerRerenderFunction,
+    registerSetFocusFunction,
     onVisibleChange,
     onClose,
     addedHeaderComponents,
@@ -114,11 +116,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const rerenderDashboard = (focusCard?: Card) => {
         setDisplayedCards([...displayedCards])
         if (focusCard) {
-            onFocus(toCardIndex(focusCard.elementId, displayedCards))
+            setFocus(focusCard.elementId)
         }
     }
+    const setFocus = async (elementId: string) => {
+        const index = toCardIndex(elementId, displayedCards)
+        if (index == null) return
+        const element = await awaitElementById(toCardElementId(index))
+
+        if (element) {
+            element.scrollIntoView();
+            element.focus();
+        }
+    };
+
     if (registerRerenderFunction) registerRerenderFunction(rerenderDashboard)
     if (registerVisibleFunction) registerVisibleFunction((show: boolean) => setState({ ...state, visible: show }))
+    if (registerSetFocusFunction) registerSetFocusFunction((elementId: string) => { setFocus(elementId) })
 
     const refresh = async (showDialog: boolean, force: boolean): Promise<void> => {
         let newCards = cardLoadingAPI ? await cardLoadingAPI.loadCards(force) : getCards()
@@ -256,7 +270,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     pageTypes={features.picklist.pageTypes}
                     usingPage={features.picklist.usingPage}
                     items={displayedCards}
-                    onFocusInDashboard={async (elementId: string) => onElementIdCall(elementId, onFocus)}
+                    onFocusInDashboard={async (elementId: string) => setFocus(elementId)}
                     onMouseOver={(elementId: string) => onElementIdCall(elementId, onMouseOver)}
                     onMouseOut={(elementId: string) => onElementIdCall(elementId, onMouseOut)}
                 />

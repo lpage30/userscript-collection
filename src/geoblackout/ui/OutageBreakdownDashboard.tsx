@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, JSX, CSSProperties } from 'react'
+import React, { useState, useRef, useEffect, JSX } from 'react'
 import { Button } from 'primereact/button'
 import { Dashboard } from '../../dashboardcomponents/Dashboard'
 import { Card } from '../../dashboardcomponents/datatypes'
@@ -8,11 +8,25 @@ import { OutageBreakdown, toOutageBreakdownCard } from '../outageBreakdownAPItyp
 import { OutageBreakdownAPI } from '../OutageBreakdownAPI'
 import { OutageBreakdownSpan } from './OutageBreakdownListing'
 import { OutageBreakdownComponent } from './OutageBreakdownComponent'
+import { MultirowElement, MultirowArrayItem } from '../../common/ui/multirow_element'
+
+const outageToMultirowArrayItem = (outage: OutageBreakdown): MultirowArrayItem => ({
+  id: outage.elementId,
+  getElement: (isFirst: boolean, isLast: boolean, onClick?: () => void) => (<>
+    {!isFirst && <span className="text-sm">&nbsp;&#x2022;&nbsp;</span>}
+    {OutageBreakdownSpan(
+      outage,
+      !isFirst ? 5 : 3,
+      !isLast ? 5 : 3,
+      false,
+      onClick
+    )}
+  </>)
+})
 
 interface OutageBreakdownDashboardPopupProps {
   onOutageBreakdowns?: (outageBreakdowns: OutageBreakdown[]) => void
   outagesPerRow?: number
-
 }
 
 interface OutageBreakdownDashboardPopupState {
@@ -23,6 +37,7 @@ interface OutageBreakdownDashboardPopupState {
 }
 export const OutageBreakdownDashboardPopup: React.FC<OutageBreakdownDashboardPopupProps> = ({
   onOutageBreakdowns,
+  outagesPerRow = 10,
 }) => {
   const [state, setState] = useState<OutageBreakdownDashboardPopupState>({
     visible: false,
@@ -31,6 +46,8 @@ export const OutageBreakdownDashboardPopup: React.FC<OutageBreakdownDashboardPop
     dashboardVisible: false
   })
   const refreshDashboardRef = useRef<(showDialog: boolean, force: boolean) => Promise<void>>(null)
+  const setFocusRef = useRef<(elementId: string) => void>(null)
+
   OutageBreakdownAPI.registerOnIsLoadingChange((isLoading: boolean) => {
     setState({
       ...state,
@@ -39,12 +56,13 @@ export const OutageBreakdownDashboardPopup: React.FC<OutageBreakdownDashboardPop
   })
   useEffect(() => {
     OutageBreakdownAPI.load(false).then(breakdowns => {
+      const cardBreakdowns = breakdowns.map(toOutageBreakdownCard).map(c => c as OutageBreakdown)
       if (onOutageBreakdowns) {
-        onOutageBreakdowns(breakdowns)
+        onOutageBreakdowns(cardBreakdowns)
       }
       setState({
         ...state,
-        initialBreakdowns: breakdowns
+        initialBreakdowns: cardBreakdowns
       })
     })
   }, [])
@@ -78,7 +96,7 @@ export const OutageBreakdownDashboardPopup: React.FC<OutageBreakdownDashboardPop
         {state.visible && (
           <Dashboard
             title={'Outage Breakdown Dashboard'}
-            getCards={() => state.initialBreakdowns.map(toOutageBreakdownCard)}
+            getCards={() => state.initialBreakdowns.map(s => s as Card)}
             contentLayout={{
               type: 'Card',
               properties: {
@@ -108,6 +126,7 @@ export const OutageBreakdownDashboardPopup: React.FC<OutageBreakdownDashboardPop
             registerLoadFunction={reload => {
               refreshDashboardRef.current = reload
             }}
+            registerSetFocusFunction={setFocusFunction => setFocusRef.current = setFocusFunction}
             onCardsLoaded={cards => { if (onOutageBreakdowns) onOutageBreakdowns(cards.map(c => c as OutageBreakdown)) }}
             addedHeaderComponents={[
               {
@@ -119,6 +138,29 @@ export const OutageBreakdownDashboardPopup: React.FC<OutageBreakdownDashboardPop
                     disabled={state.isLoading}>{buttonContent('Refresh')}</Button>
                 )
               },
+              {
+                after: 'lastColumn',
+                element: (
+                  <table
+                    style={{
+                      tableLayout: 'auto',
+                      marginLeft: 'auto',
+                      marginRight: 'auto',
+                      marginTop: '0',
+                      marginBottom: 'auto',
+                      width: '100%',
+                    }}
+                  ><tbody>
+                      <MultirowElement
+                        items={state.initialBreakdowns.map(outageToMultirowArrayItem)}
+                        itemsPerRow={outagesPerRow}
+                        titleElement={<span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Services:</span>}
+                        onClick={(elementId: string) => { if (setFocusRef.current) setFocusRef.current(elementId) }}
+                      />
+                    </tbody>
+                  </table>
+                )
+              }
             ]}
           />)
         }
@@ -135,36 +177,13 @@ export const OutageBreakdownDashboardPopupAndSummary: React.FC<OutageBreakdownDa
   onOutageBreakdowns,
   outagesPerRow = 10,
 }) => {
-  const [outages, setOutages] = useState<OutageBreakdown[][]>([])
+  const [outages, setOutages] = useState<OutageBreakdown[]>([])
 
   const setOutageBreakdowns = (outageBreakdowns: OutageBreakdown[]) => {
-    const displayOutages = [...outageBreakdowns]
-      .reduce((rows, breakdown, index) => {
-        if (0 === (index % outagesPerRow)) {
-          rows.push([])
-        }
-        rows[rows.length - 1].push(breakdown)
-        return rows
-      }, [] as OutageBreakdown[][])
-
-    setOutages(displayOutages)
+    setOutages(outageBreakdowns)
     if (onOutageBreakdowns) onOutageBreakdowns(outageBreakdowns)
   }
   const render = () => {
-    const outageRows = outages.map(outageRow => (
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {outageRow.map((outage, index) => (
-          <>
-            {0 < index && <span className="text-sm">&nbsp;&#x2022;&nbsp;</span>}
-            {OutageBreakdownSpan(
-              outage,
-              0 < index ? 5 : 3,
-              (index + 1) < outages.length ? 5 : 3
-            )}
-          </>
-        ))}
-      </div>
-    ))
     return (
       <div style={{ display: 'flex' }}>
         <OutageBreakdownDashboardPopup
@@ -181,15 +200,11 @@ export const OutageBreakdownDashboardPopupAndSummary: React.FC<OutageBreakdownDa
               width: '100%',
             }}
           ><tbody>
-              <tr style={{ alignItems: 'center', verticalAlign: 'bottom' }}>
-                <td style={{ textAlign: 'right' }}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Services:</span></td>
-                <td>{outageRows[0]}</td>
-              </tr>
-              {outageRows.slice(1).map(row => (
-                <tr style={{ alignItems: 'center', verticalAlign: 'bottom' }}>
-                  <td></td><td>{row}</td>
-                </tr>
-              ))}
+              <MultirowElement
+                items={outages.map(outageToMultirowArrayItem)}
+                itemsPerRow={outagesPerRow}
+                titleElement={<span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Services:</span>}
+              />
             </tbody>
           </table>
         )}

@@ -1,18 +1,16 @@
 import React, { useState, useRef, useEffect, JSX } from 'react'
 import { Button } from 'primereact/button'
 import { ServiceStatus, CompanyHealthStatus, isServiceStatusForAnyCompanies } from '../statustypes'
-import { ServiceHealthStatusSpan } from './IndicatorStatusComponents'
 import { Card } from '../../dashboardcomponents/datatypes'
 import { Dashboard } from '../../dashboardcomponents/Dashboard'
 import { StatusAPIs } from '../statusAPIs'
 import { toServiceStatusCard } from '../statustypes'
 import { ServiceStatusComponent } from './ServiceStatusComponent'
-import {
-  CompanyHealthLevelTypeInfoMap,
-} from './IndicatorStatusTypeInfoMaps'
-import { getSortedStatusLevels, getStatusMetadata, sortServiceByStatusIndicatorRank } from '../statusService'
+import { getSortedStatusLevels, sortServiceByStatusIndicatorRank } from '../statusService'
 import { createSpinningContentElement } from '../../common/ui/style_functions'
 import { reactToHTMLElement } from '../../common/ui/renderRenderable'
+import { MultirowElement } from '../../common/ui/multirow_element'
+import { statusLevelToMultrowElement, serviceStatusToMultirowElement } from './multirowElementConversions'
 
 interface ServiceDashboardPopupProps {
   onServiceStatus?: (serviceStatus: ServiceStatus[]) => void
@@ -28,7 +26,9 @@ interface ServiceDashboardPopupState {
 }
 export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
   onServiceStatus,
-  companyHealthStatuses
+  companyHealthStatuses,
+  statusesPerRow = 10,
+
 }) => {
   const [state, setState] = useState<ServiceDashboardPopupState>({
     visible: false,
@@ -37,6 +37,8 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
     dashboardVisible: false
   })
   const refreshDashboardRef = useRef<(showDialog: boolean, force: boolean) => Promise<void>>(null)
+  const setFocusRef = useRef<(elementId: string) => void>(null)
+
   StatusAPIs.registerOnIsLoadingChange((isLoading: boolean) => {
     setState({
       ...state,
@@ -45,12 +47,13 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
   })
   useEffect(() => {
     StatusAPIs.load(false).then(statuses => {
+      const cardStatuses = statuses.map(toServiceStatusCard).map(c => c as ServiceStatus)
       if (onServiceStatus) {
-        onServiceStatus(statuses)
+        onServiceStatus(cardStatuses)
       }
       setState({
         ...state,
-        initialStatuses: statuses
+        initialStatuses: cardStatuses
       })
     })
   }, [])
@@ -74,6 +77,7 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
         }
       })
     }
+
     return (
       <div>
         <Button
@@ -84,7 +88,7 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
         {state.visible && (
           <Dashboard
             title={'Service Status Dashboard'}
-            getCards={() => state.initialStatuses.map(toServiceStatusCard)}
+            getCards={() => state.initialStatuses.map(s => s as Card)}
             contentLayout={{
               type: 'Card',
               properties: {
@@ -115,6 +119,7 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
             registerLoadFunction={reload => {
               refreshDashboardRef.current = reload
             }}
+            registerSetFocusFunction={setFocusFunction => setFocusRef.current = setFocusFunction}
             onCardsLoaded={cards => { if (onServiceStatus) onServiceStatus(cards.map(c => c as ServiceStatus)) }}
             addedHeaderComponents={[
               {
@@ -129,20 +134,31 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
               {
                 after: 'lastColumn',
                 element: (
-                  <div style={{ display: 'flex' }}>
-                    <span className="text-sm">Company Color Legend:&nbsp;</span>{
-                      Object.keys(CompanyHealthLevelTypeInfoMap)
-                        .sort((l: string, r: string) => CompanyHealthLevelTypeInfoMap[l].rank = CompanyHealthLevelTypeInfoMap[r].rank)
-                        .map(level => (
-                          <span className="text-sm" style={{
-                            backgroundColor: CompanyHealthLevelTypeInfoMap[level].bgColor,
-                            color: CompanyHealthLevelTypeInfoMap[level].fgColor,
-                            paddingLeft: `5px`,
-                            paddingRight: `5px`
-                          }}>{CompanyHealthLevelTypeInfoMap[level].displayName}</span>
-                        ))
-                    }
-                  </div>
+                  <table
+                    style={{
+                      tableLayout: 'auto',
+                      marginLeft: 'auto',
+                      marginRight: 'auto',
+                      marginTop: '0',
+                      marginBottom: 'auto',
+                      width: '100%',
+                    }}
+                  ><tbody>
+                      <MultirowElement
+                        items={getSortedStatusLevels().map(statusLevelToMultrowElement)}
+                        titleElement={<span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Legend:</span>}
+                        itemsPerRow={statusesPerRow}
+                      />
+                      <MultirowElement
+                        items={state.initialStatuses.map(serviceStatusToMultirowElement)}
+                        titleElement={<span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Services:</span>}
+                        itemsPerRow={statusesPerRow}
+                        onClick={(elementId: string) => {
+                          if (setFocusRef.current) setFocusRef.current(elementId)
+                        }}
+                      />
+                    </tbody>
+                  </table>
                 )
               }
             ]}
@@ -164,7 +180,7 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupAndS
   statusesPerRow = 10,
   isolatedCompanyNames,
 }) => {
-  const [statuses, setStatuses] = useState<ServiceStatus[][]>([])
+  const [statuses, setStatuses] = useState<ServiceStatus[]>([])
 
   const setServiceStatus = (serviceStatus: ServiceStatus[]) => {
     const displayStatus = [...serviceStatus]
@@ -174,32 +190,10 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupAndS
           isServiceStatusForAnyCompanies(status, isolatedCompanyNames)
       })
       .sort(sortServiceByStatusIndicatorRank)
-      .reduce((rows, status, index) => {
-        if (0 === (index % statusesPerRow)) {
-          rows.push([])
-        }
-        rows[rows.length - 1].push(status)
-        return rows
-      }, [] as ServiceStatus[][])
-
     setStatuses(displayStatus)
     if (onServiceStatus) onServiceStatus(serviceStatus)
   }
   const render = () => {
-    const statusRows = statuses.map(statusRow => (
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {statusRow.map((status, index) => (
-          <>
-            {0 < index && <span className="text-sm">&nbsp;&#x2022;&nbsp;</span>}
-            {ServiceHealthStatusSpan(
-              status,
-              0 < index ? 5 : 3,
-              (index + 1) < statuses.length ? 5 : 3
-            )}
-          </>
-        ))}
-      </div>
-    ))
     return (
       <div style={{ display: 'flex' }}>
         <ServiceDashboardPopup
@@ -217,31 +211,16 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupAndS
               width: '100%',
             }}
           ><tbody>
-              <tr style={{ alignItems: 'center', verticalAlign: 'bottom' }}>
-                <td style={{ textAlign: 'right' }}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Legend:</span></td>
-                <td><div style={{ display: 'flex', alignItems: 'center' }}>
-                  {
-                    getSortedStatusLevels()
-                      .map(level => (
-                        <span className="text-sm" style={{
-                          backgroundColor: getStatusMetadata(level).bgColor,
-                          color: getStatusMetadata(level).fgColor,
-                          paddingLeft: `5px`,
-                          paddingRight: `5px`
-                        }}>{getStatusMetadata(level).statusName}</span>
-                      ))
-                  }
-                </div></td>
-              </tr>
-              <tr style={{ alignItems: 'center', verticalAlign: 'bottom' }}>
-                <td style={{ textAlign: 'right' }}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Services:</span></td>
-                <td>{statusRows[0]}</td>
-              </tr>
-              {statusRows.slice(1).map(row => (
-                <tr style={{ alignItems: 'center', verticalAlign: 'bottom' }}>
-                  <td></td><td>{row}</td>
-                </tr>
-              ))}
+              <MultirowElement
+                items={getSortedStatusLevels().map(statusLevelToMultrowElement)}
+                titleElement={<span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Legend:</span>}
+                itemsPerRow={statusesPerRow}
+              />
+              <MultirowElement
+                items={statuses.map(serviceStatusToMultirowElement)}
+                titleElement={<span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Services:</span>}
+                itemsPerRow={statusesPerRow}
+              />
             </tbody>
           </table>
         )}

@@ -118,7 +118,7 @@ export function getStatusMetadata(status: StatusLevel): StatusMetadata {
 }
 export function classifyStatus(text: string): StatusLevel | undefined {
     const lcText = (text ?? '').toLowerCase()
-    const result = statusArray.find(({words}) => undefined !== words.find(word => lcText.includes(word)))
+    const result = statusArray.find(({ words }) => undefined !== words.find(word => lcText.includes(word)))
     return result ? result.level : undefined
 }
 export interface ComparableTextServiceStatus {
@@ -141,7 +141,7 @@ export function compareFunction(l: ComparableTextServiceStatus, r: ComparableTex
     return l.status ? -1 : r.status ? 1 : compareTextonNoStatus ? compareTextFunction(l.text, r.text) : 0
 }
 export function sortServiceByStatusIndicatorRank(l: ServiceStatus, r: ServiceStatus) {
-  return compareFunction({text: l.status.indicator, status: l.status.statusLevel},{text: r.status.indicator, status: r.status.statusLevel})
+    return compareFunction({ text: l.status.indicator, status: l.status.statusLevel }, { text: r.status.indicator, status: r.status.statusLevel })
 }
 export function determineOverallStatusLevel(status: Status, incidents: Incident[]): StatusLevel {
     const statusLevelCountMap = incidents.reduce((levelCounts, incident) => {
@@ -153,7 +153,7 @@ export function determineOverallStatusLevel(status: Status, incidents: Incident[
                 updateLevelCounts[update.statusLevel] = updateLevelCounts[update.statusLevel] + 1
             }
             return updateLevelCounts
-        }, {...levelCounts})
+        }, { ...levelCounts })
         if (undefined !== incident.statusLevel) {
             if (undefined === result[incident.statusLevel]) {
                 result[incident.statusLevel] = 0

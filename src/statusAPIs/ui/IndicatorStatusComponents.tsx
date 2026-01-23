@@ -10,7 +10,8 @@ export function ServiceHealthStatusSpan(
     status: ServiceStatus,
     paddingLeft: number,
     paddingRight: number,
-    useDivInstead: boolean = false
+    useDivInstead: boolean = false,
+    onClick?: () => void
 ): JSX.Element {
     const { bgColor, fgColor } = getStatusMetadata(status.status.statusLevel!)
     const style: CSSProperties = {
@@ -20,8 +21,8 @@ export function ServiceHealthStatusSpan(
         paddingRight: `${paddingRight}px`
     }
     return useDivInstead
-        ? <div className="text-sm" style={style}>{status.serviceName}</div>
-        : <span className="text-sm" style={style}>{status.serviceName}</span>
+        ? <div className="text-sm" style={style} onClick={onClick}>{status.serviceName}</div>
+        : <span className="text-sm" style={style} onClick={onClick}>{status.serviceName}</span>
 }
 
 export function CompanyHealthStatusSpan(
@@ -29,7 +30,8 @@ export function CompanyHealthStatusSpan(
     status: 'danger' | 'warning' | 'success',
     paddingLeft: number,
     paddingRight: number,
-    useDivInstead: boolean = false
+    useDivInstead: boolean = false,
+    onClick?: () => void
 ): JSX.Element {
     const { bgColor, fgColor } = CompanyHealthLevelTypeInfoMap[status]
     const style: CSSProperties = {
@@ -39,6 +41,6 @@ export function CompanyHealthStatusSpan(
         paddingRight: `${paddingRight}px`
     }
     return useDivInstead
-        ? <div style={style}>{companyName}</div>
-        : <span style={style}>{companyName}</span>
+        ? <div style={style} onClick={onClick}>{companyName}</div>
+        : <span style={style} onClick={onClick}>{companyName}</span>
 }

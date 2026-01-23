@@ -5,7 +5,7 @@ import StatusComponent from './StatusComponent'
 import IncidentComponent from './IncidentComponent'
 import { CompanyHealthLevelTypeInfoMap } from './IndicatorStatusTypeInfoMaps'
 import { getStatusMetadata } from '../statusService'
-import { CompanyHealthStatusSpan } from './IndicatorStatusComponents'
+import { companyHealthStatusToMultirowElement } from './multirowElementConversions'
 
 interface ServiceStatusComponentProps {
     serviceStatus: ServiceStatus
@@ -64,13 +64,7 @@ export const ServiceStatusComponent: React.FC<ServiceStatusComponentProps> = ({
                     <div style={{ display: 'flex', alignItems: 'center', paddingTop: 0 < index ? '5px' : undefined }}>
                         {row.map((status, index) => (
                             <div style={{ display: 'flex', alignItems: 'center' }}>
-                                {0 < index && <span>&nbsp;&#x2022;&nbsp;</span>}
-                                {CompanyHealthStatusSpan(
-                                    status.companyName,
-                                    status.healthStatus,
-                                    0 < index ? 5 : 3,
-                                    (index + 1) < row.length ? 5 : 3
-                                )}
+                                {companyHealthStatusToMultirowElement(status).getElement(0 === index, row.length <= (index + 1))}
                             </div>
                         ))}
                     </div>

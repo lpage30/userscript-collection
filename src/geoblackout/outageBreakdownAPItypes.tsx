@@ -20,7 +20,7 @@ export function toOutageBreakdownCard(breakdown: OutageBreakdown): Card {
         label: () => `${breakdown.service}`,
         color: () => 'grey',
         href: () => breakdown.serviceHref,
-        elementId: toHashCode(breakdown.service),
+        elementId: breakdown.service,
         displayLines: () => [
             breakdown.service,
             ...breakdownDataToString(breakdown.data),

@@ -62,11 +62,10 @@ export async function awaitPageLoadByMutation(timeout = 10000): Promise<void> {
 
 export async function awaitQuerySelection(
   selectors: string,
-  options: { maxRetries: number; intervalMs: number } = {
-    maxRetries: 60,
-    intervalMs: 250,
-  },
+  options: { maxRetries?: number; intervalMs?: number, parentElement?: ParentNode } = {}
 ): Promise<HTMLElement> {
+  const { maxRetries = 60, intervalMs = 250, parentElement = document } = options
+  
   let interval: any = null;
   let tries = 0;
 
@@ -82,7 +81,7 @@ export async function awaitQuerySelection(
       return;
     }
     tries++;
-    const element = document.querySelector(selectors);
+    const element = parentElement.querySelector(selectors);
     if (element) {
       clearInterval(interval);
       resolve(element as HTMLElement);
@@ -97,11 +96,9 @@ export async function awaitQuerySelection(
 
 export async function awaitQueryAll(
   selectors: string,
-  options: { maxRetries: number; intervalMs: number } = {
-    maxRetries: 60,
-    intervalMs: 250,
-  },
+  options: { maxRetries?: number; intervalMs?: number, parentElement?: ParentNode } = {}
 ): Promise<HTMLElement[]> {
+  const { maxRetries = 60, intervalMs = 250, parentElement = document } = options
   let interval: any = null;
   let tries = 0;
 
@@ -109,7 +106,7 @@ export async function awaitQueryAll(
     resolve: (value: HTMLElement[]) => void,
     reject: (error: Error) => void,
   ): void => {
-    if (tries >= options.maxRetries) {
+    if (tries >= maxRetries) {
       clearInterval(interval);
       reject(
         new Error(`awaitQuerySelection(${selectors}) failed after ${tries}`),
@@ -117,7 +114,7 @@ export async function awaitQueryAll(
       return;
     }
     tries++;
-    const element = document.querySelectorAll(selectors);
+    const element = parentElement.querySelectorAll(selectors);
     if (element) {
       clearInterval(interval);
       resolve(Array.from(element) as HTMLElement[]);
@@ -126,7 +123,7 @@ export async function awaitQueryAll(
 
   return new Promise<HTMLElement[]>((resolve, reject) => {
     tries = 0;
-    interval = setInterval(() => trial(resolve, reject), options.intervalMs);
+    interval = setInterval(() => trial(resolve, reject), intervalMs);
   });
 }
 

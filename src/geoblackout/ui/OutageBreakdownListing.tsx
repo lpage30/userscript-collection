@@ -21,13 +21,14 @@ export function OutageBreakdownSpan(
     breakdown: OutageBreakdown,
     paddingLeft: number,
     paddingRight: number,
-    useDivInstead: boolean = false
+    useDivInstead: boolean = false,
+    onClick?: () => void
 ): JSX.Element {
     const style: CSSProperties = {
         paddingLeft: `${paddingLeft}px`,
         paddingRight: `${paddingRight}px`
     }
     return useDivInstead
-        ? <div className="text-sm" style={style}>{breakdown.service}</div>
-        : <span className="text-sm" style={style}>{breakdown.service}</span>
+        ? <div className="text-sm" style={style} onClick={onClick}>{breakdown.service}</div>
+        : <span className="text-sm" style={style} onClick={onClick}>{breakdown.service}</span>
 }
