@@ -1,16 +1,31 @@
 import React, { JSX } from 'react'
-import { normalizeName } from '../common/functions'
-
+import { normalizeName, toHashCode } from '../common/functions'
+import { Card } from '../dashboardcomponents/datatypes'
 export interface OutageBreakdownData {
     percentage: number
     type: string
     alertCount: number
 }
-export interface OutageBreakdown {
+export interface OutageBreakdown extends Card{
     timestamp: number
+    serviceHref: string
     service: string
     blurb: string
     data: OutageBreakdownData[]
+}
+export function toOutageBreakdownCard(breakdown: OutageBreakdown): Card {
+    return {
+        ...breakdown,
+        groupName: breakdown.service,
+        label: () => `${breakdown.service}`,
+        color: () => 'grey',
+        href: () => breakdown.serviceHref,
+        elementId: toHashCode(breakdown.service),
+        displayLines: () => [
+            breakdown.service,
+            ...breakdownDataToString(breakdown.data),
+        ]
+    } as Card
 }
 export function breakdownDataToString(data: OutageBreakdownData[]): string[] {
     return data.map(d => `${d.type}: ${d.percentage}% (${d.alertCount})`)

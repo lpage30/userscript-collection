@@ -8,7 +8,7 @@ import {
   awaitPageLoadByMutation,
 } from "../common/await_functions";
 import { parseNumber } from "../common/functions";
-import { OutageBreakdownData } from "./outageBreakdownAPItypes";
+import { OutageBreakdown, OutageBreakdownData } from "./outageBreakdownAPItypes";
 import { reportServiceOutage } from "./outageAggregator";
 
 export const serviceOutage: Userscript = {
@@ -48,9 +48,10 @@ export const serviceOutage: Userscript = {
     reportServiceOutage({
       timestamp: Date.now(),
       service: serviceName,
+      serviceHref: href,
       blurb: serviceBlurb,
       data: outageData
-    })
+    } as OutageBreakdown)
 
   },
 };

@@ -1,183 +1,51 @@
 import React, { useState, useRef, useEffect, JSX, CSSProperties } from 'react'
-import { Dialog } from 'primereact/dialog'
 import { Button } from 'primereact/button'
+import { Dashboard } from '../../dashboardcomponents/Dashboard'
+import { Card } from '../../dashboardcomponents/datatypes'
+import { reactToHTMLElement } from '../../common/ui/renderRenderable'
 import { createSpinningContentElement } from '../../common/ui/style_functions'
-import { OutageBreakdown } from '../outageBreakdownAPItypes'
+import { OutageBreakdown, toOutageBreakdownCard } from '../outageBreakdownAPItypes'
 import { OutageBreakdownAPI } from '../OutageBreakdownAPI'
+import { OutageBreakdownSpan } from './OutageBreakdownListing'
+import { OutageBreakdownComponent } from './OutageBreakdownComponent'
 
-interface OutageBreakdownDashboardProps {
-  title: string
-  initialStatuses: OutageBreakdown[]
-  companyHealthStatuses?: CompanyHealthStatus[]
-  onServiceStatus?: (serviceStatus: ServiceStatus[]) => void
-  registerRefreshFunction?: (refreshFunction: (showDialog: boolean, force: boolean) => Promise<void>) => void
-  onVisibleChange?: (visible: boolean) => void
-  initiallyVisible?: boolean
+interface OutageBreakdownDashboardPopupProps {
+  onOutageBreakdowns?: (outageBreakdowns: OutageBreakdown[]) => void
+  outagesPerRow?: number
+
 }
-interface OutageBreakdownDashboardState {
+
+interface OutageBreakdownDashboardPopupState {
   visible: boolean
-  isLoading: boolean
-  statuses: ServiceStatus[]
-  companyStatuses: CompanyHealthStatus[]
-}
-
-const OutageBreakdownDashboard: React.FC<OutageBreakdownDashboardProps> = ({
-  title,
-  onServiceStatus,
-  registerRefreshFunction,
-  onVisibleChange,
-  initialStatuses,
-  companyHealthStatuses,
-}) => {
-  const [state, setState] = useState<ServiceDashboardState>({
-    visible: true,
-    isLoading: StatusAPIs.isLoading,
-    statuses: initialStatuses.sort(sortServiceByStatusIndicatorRank),
-    companyStatuses: companyHealthStatuses ?? [],
-  })
-  StatusAPIs.registerOnIsLoadingChange((isLoading: boolean) => {
-    setState({
-      ...state,
-      isLoading
-    })
-  })
-  const refresh = async (showDialog: boolean, force: boolean): Promise<void> => {
-    const statuses = (await StatusAPIs.load(force)).sort(sortServiceByStatusIndicatorRank)
-    if (onServiceStatus) {
-      onServiceStatus(statuses)
-    }
-    if (onVisibleChange) onVisibleChange(showDialog)
-    setState({
-      ...state,
-      visible: showDialog,
-      statuses,
-    })
-  }
-  if (registerRefreshFunction) registerRefreshFunction(refresh)
-
-  const hideDialog = () => {
-    setState({
-      ...state,
-      visible: false
-    })
-    if (onVisibleChange) onVisibleChange(false)
-  }
-  const render = () => {
-    let buttonContent: string | JSX.Element = 'Refresh Service Statuses'
-    if (state.isLoading) {
-
-      buttonContent = createSpinningContentElement({
-        popupElementType: 'NoPopup',
-        spinnerSize: 'small',
-        content: {
-          content: 'Refreshing Service Statuses'
-        }
-      })
-    }
-
-    return (
-      <Dialog
-        appendTo={'self'}
-        showHeader={true}
-        closable={true}
-        showCloseIcon={true}
-        position={'center'}
-        visible={state.visible}
-        onHide={() => hideDialog()}
-        style={{ width: '90vw', height: '90vh' }}
-        header={
-          <table
-            style={{
-              tableLayout: 'auto',
-              marginLeft: 'auto',
-              marginRight: 'auto',
-              marginTop: '0',
-              marginBottom: 'auto',
-              width: '100%',
-            }}
-          ><tbody>
-              <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                <td colSpan={2} className="text-center">
-                  <h2>{title}</h2>
-                </td>
-              </tr>
-              <tr style={{ alignItems: 'center', verticalAlign: 'center' }}>
-                <td>
-                  <Button
-                    onClick={() => refresh(true, true)}
-                    disabled={state.isLoading}>{buttonContent}</Button>
-                </td>
-                <td>
-                  <div style={{ display: 'flex' }}>
-                    <span className="text-sm">Company Color Legend:&nbsp;</span>{
-                      Object.keys(CompanyHealthLevelTypeInfoMap)
-                        .sort((l: string, r: string) => CompanyHealthLevelTypeInfoMap[l].rank = CompanyHealthLevelTypeInfoMap[r].rank)
-                        .map(level => (
-                          <span className="text-sm" style={{
-                            backgroundColor: CompanyHealthLevelTypeInfoMap[level].bgColor,
-                            color: CompanyHealthLevelTypeInfoMap[level].fgColor,
-                            paddingLeft: `5px`,
-                            paddingRight: `5px`
-                          }}>{CompanyHealthLevelTypeInfoMap[level].displayName}</span>
-                        ))
-                    }
-                  </div>
-                </td>
-              </tr>
-            </tbody></table>
-        }
-        className='p-dialog-maximized'
-      >
-        {state.statuses.map((serviceStatus, index) => (<>
-          {0 < index && <hr />}
-          <ServiceStatusComponent
-            serviceStatus={serviceStatus}
-            companyHealthStatuses={companyHealthStatuses}
-          />
-        </>))}
-      </Dialog>
-    )
-  }
-  return render()
-}
-interface ServiceDashboardPopupProps {
-  onServiceStatus?: (serviceStatus: ServiceStatus[]) => void
-  companyHealthStatuses?: CompanyHealthStatus[]
-  statusesPerRow?: number
-}
-
-interface ServiceDashboardPopupState {
-  visible: boolean
-  initialStatuses: ServiceStatus[]
+  initialBreakdowns: OutageBreakdown[]
   isLoading: boolean
   dashboardVisible: boolean
 }
-export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
-  onServiceStatus,
-  companyHealthStatuses
+export const OutageBreakdownDashboardPopup: React.FC<OutageBreakdownDashboardPopupProps> = ({
+  onOutageBreakdowns,
 }) => {
-  const [state, setState] = useState<ServiceDashboardPopupState>({
+  const [state, setState] = useState<OutageBreakdownDashboardPopupState>({
     visible: false,
-    initialStatuses: [],
-    isLoading: StatusAPIs.isLoading,
+    initialBreakdowns: [],
+    isLoading: OutageBreakdownAPI.isLoading,
     dashboardVisible: false
   })
   const refreshDashboardRef = useRef<(showDialog: boolean, force: boolean) => Promise<void>>(null)
-  StatusAPIs.registerOnIsLoadingChange((isLoading: boolean) => {
+  OutageBreakdownAPI.registerOnIsLoadingChange((isLoading: boolean) => {
     setState({
       ...state,
       isLoading
     })
   })
   useEffect(() => {
-    StatusAPIs.load(false).then(statuses => {
+    OutageBreakdownAPI.load(false).then(breakdowns => {
+      if (onOutageBreakdowns) {
+        onOutageBreakdowns(breakdowns)
+      }
       setState({
         ...state,
-        initialStatuses: statuses
+        initialBreakdowns: breakdowns
       })
-      if (onServiceStatus) {
-        onServiceStatus(statuses)
-      }
     })
   }, [])
   const onViewDashboard = async () => {
@@ -188,14 +56,15 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
     if (refreshDashboardRef.current) await refreshDashboardRef.current(true, false)
   }
   const render = () => {
-    let buttonContent: string | JSX.Element = 'View Service Dashboard'
+
+    let buttonContent = (action: string): string | JSX.Element => `${action} Breakdown Dashboard`
     if (state.isLoading) {
 
-      buttonContent = createSpinningContentElement({
+      buttonContent = (action: string): string | JSX.Element => createSpinningContentElement({
         popupElementType: 'NoPopup',
         spinnerSize: 'small',
         content: {
-          content: 'Loading Service Dashboard'
+          content: 'Loading Breakdown Dashboard'
         }
       })
     }
@@ -205,69 +74,92 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
           className="app-button"
           onClick={() => onViewDashboard()}
           disabled={state.isLoading}
-        >{buttonContent}</Button>
-        {state.visible && <ServiceDashboard
-          title={'Service Status Dashboard'}
-          companyHealthStatuses={companyHealthStatuses}
-          initialStatuses={state.initialStatuses}
-          onServiceStatus={onServiceStatus}
-          onVisibleChange={(visible: boolean) => {
-            setState({
-              ...state,
-              visible
-            })
-          }}
-          registerRefreshFunction={(refreshDashboard: (showDialog: boolean, force: boolean) => Promise<void>) => {
-            refreshDashboardRef.current = refreshDashboard
-          }}
-        />}
+        >{buttonContent('View')}</Button>
+        {state.visible && (
+          <Dashboard
+            title={'Outage Breakdown Dashboard'}
+            getCards={() => state.initialBreakdowns.map(toOutageBreakdownCard)}
+            contentLayout={{
+              type: 'Card',
+              properties: {
+                layout: 'vertical',
+                cardStyle: {
+                  borderTop: '1px solid #ddd',
+                  borderLeft: '1px solid #ddd',
+                  borderRight: '2px solid #bbb',
+                  borderBottom: '2px solid #bbb;',
+                  backgroundColor: '#fcfcfc',
+                },
+                toCardComponent: (card: Card): HTMLElement =>
+                  reactToHTMLElement(card.elementId,
+                    <OutageBreakdownComponent
+                      outageBreakdown={card as OutageBreakdown}
+                    />)
+              }
+            }}
+            cardLoadingAPI={OutageBreakdownAPI}
+            closeable={true}
+            onVisibleChange={(visible: boolean) => {
+              setState({
+                ...state,
+                visible
+              })
+            }}
+            registerLoadFunction={reload => {
+              refreshDashboardRef.current = reload
+            }}
+            onCardsLoaded={cards => { if (onOutageBreakdowns) onOutageBreakdowns(cards.map(c => c as OutageBreakdown)) }}
+            addedHeaderComponents={[
+              {
+                after: 'lastrow',
+                element: (
+                  <Button
+                    className="app-button"
+                    onClick={() => { if (refreshDashboardRef.current) refreshDashboardRef.current(true, true) }}
+                    disabled={state.isLoading}>{buttonContent('Refresh')}</Button>
+                )
+              },
+            ]}
+          />)
+        }
       </div>
     )
   }
   return render()
 }
 
-interface ServiceDashboardPopupAndSummaryProps extends ServiceDashboardPopupProps {
-  isolatedCompanyNames?: string[]
+interface OutageBreakdownDashboardPopupAndSummaryProps extends OutageBreakdownDashboardPopupProps {
 }
 
-export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupAndSummaryProps> = ({
-  onServiceStatus,
-  companyHealthStatuses,
-  statusesPerRow = 10,
-  isolatedCompanyNames,
+export const OutageBreakdownDashboardPopupAndSummary: React.FC<OutageBreakdownDashboardPopupAndSummaryProps> = ({
+  onOutageBreakdowns,
+  outagesPerRow = 10,
 }) => {
-  const [statuses, setStatuses] = useState<ServiceStatus[][]>([])
+  const [outages, setOutages] = useState<OutageBreakdown[][]>([])
 
-  const setServiceStatus = (serviceStatus: ServiceStatus[]) => {
-    const displayStatus = [...serviceStatus]
-      .filter(status => {
-        return undefined === isolatedCompanyNames ||
-          0 === isolatedCompanyNames.length ||
-          isServiceStatusForAnyCompanies(status, isolatedCompanyNames)
-      })
-      .sort(sortServiceByStatusIndicatorRank)
-      .reduce((rows, status, index) => {
-        if (0 === (index % statusesPerRow)) {
+  const setOutageBreakdowns = (outageBreakdowns: OutageBreakdown[]) => {
+    const displayOutages = [...outageBreakdowns]
+      .reduce((rows, breakdown, index) => {
+        if (0 === (index % outagesPerRow)) {
           rows.push([])
         }
-        rows[rows.length - 1].push(status)
+        rows[rows.length - 1].push(breakdown)
         return rows
-      }, [] as ServiceStatus[][])
+      }, [] as OutageBreakdown[][])
 
-    setStatuses(displayStatus)
-    if (onServiceStatus) onServiceStatus(serviceStatus)
+    setOutages(displayOutages)
+    if (onOutageBreakdowns) onOutageBreakdowns(outageBreakdowns)
   }
   const render = () => {
-    const statusRows = statuses.map(statusRow => (
+    const outageRows = outages.map(outageRow => (
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        {statusRow.map((status, index) => (
+        {outageRow.map((outage, index) => (
           <>
             {0 < index && <span className="text-sm">&nbsp;&#x2022;&nbsp;</span>}
-            {ServiceHealthStatusSpan(
-              status,
+            {OutageBreakdownSpan(
+              outage,
               0 < index ? 5 : 3,
-              (index + 1) < statuses.length ? 5 : 3
+              (index + 1) < outages.length ? 5 : 3
             )}
           </>
         ))}
@@ -275,11 +167,10 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupAndS
     ))
     return (
       <div style={{ display: 'flex' }}>
-        <ServiceDashboardPopup
-          onServiceStatus={setServiceStatus}
-          companyHealthStatuses={companyHealthStatuses}
+        <OutageBreakdownDashboardPopup
+          onOutageBreakdowns={setOutageBreakdowns}
         />
-        {0 < statuses.length && (
+        {0 < outages.length && (
           <table
             style={{
               tableLayout: 'auto',
@@ -291,26 +182,10 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupAndS
             }}
           ><tbody>
               <tr style={{ alignItems: 'center', verticalAlign: 'bottom' }}>
-                <td style={{ textAlign: 'right' }}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Legend:</span></td>
-                <td><div style={{ display: 'flex', alignItems: 'center' }}>
-                  {
-                    getSortedStatusLevels()
-                      .map(level => (
-                        <span className="text-sm" style={{
-                          backgroundColor: getStatusMetadata(level).bgColor,
-                          color: getStatusMetadata(level).fgColor,
-                          paddingLeft: `5px`,
-                          paddingRight: `5px`
-                        }}>{getStatusMetadata(level).statusName}</span>
-                      ))
-                  }
-                </div></td>
-              </tr>
-              <tr style={{ alignItems: 'center', verticalAlign: 'bottom' }}>
                 <td style={{ textAlign: 'right' }}><span className="text-sm" style={{ paddingLeft: '5px', paddingRight: '5px' }}>Services:</span></td>
-                <td>{statusRows[0]}</td>
+                <td>{outageRows[0]}</td>
               </tr>
-              {statusRows.slice(1).map(row => (
+              {outageRows.slice(1).map(row => (
                 <tr style={{ alignItems: 'center', verticalAlign: 'bottom' }}>
                   <td></td><td>{row}</td>
                 </tr>
@@ -323,4 +198,3 @@ export const ServiceDashboardPopupAndSummary: React.FC<ServiceDashboardPopupAndS
   }
   return render()
 }
-export default ServiceDashboard

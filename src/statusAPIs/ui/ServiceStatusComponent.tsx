@@ -7,7 +7,7 @@ import { CompanyHealthLevelTypeInfoMap } from './IndicatorStatusTypeInfoMaps'
 import { getStatusMetadata } from '../statusService'
 import { CompanyHealthStatusSpan } from './IndicatorStatusComponents'
 
-interface ServiceStatusComponentComponentProps {
+interface ServiceStatusComponentProps {
     serviceStatus: ServiceStatus
     companyHealthStatuses?: CompanyHealthStatus[]
 }
@@ -31,7 +31,7 @@ function sortAndTablifyCompanyHealthStatuses(statuses: CompanyHealthStatus[], co
         }, [])
 }
 
-const ServiceStatusComponent: React.FC<ServiceStatusComponentComponentProps> = ({
+export const ServiceStatusComponent: React.FC<ServiceStatusComponentProps> = ({
     serviceStatus,
     companyHealthStatuses
 }) => {
@@ -86,5 +86,3 @@ const ServiceStatusComponent: React.FC<ServiceStatusComponentComponentProps> = (
         }
     </div>)
 }
-
-export default ServiceStatusComponent

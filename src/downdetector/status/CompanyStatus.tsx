@@ -12,7 +12,7 @@ import { PersistenceClass } from "../../dashboardcomponents/persistence";
 import { toCompanyTitleText } from "../common/CompanyTitle";
 import { createOnExternalDataUpdates } from "../common/onexternaldataupdate";
 import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
-import { LoadOutageBreakdowns } from "../../geoblackout/ui/LoadOutageBreakdowns";
+import { OutageBreakdownDashboardPopupAndSummary } from "../../geoblackout/ui/OutageBreakdownDashboard";
 
 interface CompanyStatusProps {
   persistence: PersistenceClass
@@ -74,7 +74,7 @@ export const CompanyStatus: React.FC<CompanyStatusProps> = ({
         addedHeaderComponents={[
           {
             after: 'lastrow',
-            element: <LoadOutageBreakdowns
+            element: <OutageBreakdownDashboardPopupAndSummary
               onOutageBreakdowns={(outages) => {
                 onOutageBreakdowns(outages)
                 const foundCompany = (displayedCards.current ?? []).find(({ companyName }) => companyName === company.company?.companyName)

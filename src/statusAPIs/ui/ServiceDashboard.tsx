@@ -6,7 +6,7 @@ import { Card } from '../../dashboardcomponents/datatypes'
 import { Dashboard } from '../../dashboardcomponents/Dashboard'
 import { StatusAPIs } from '../statusAPIs'
 import { toServiceStatusCard } from '../statustypes'
-import ServiceStatusComponent from './ServiceStatusComponent'
+import { ServiceStatusComponent } from './ServiceStatusComponent'
 import {
   CompanyHealthLevelTypeInfoMap,
 } from './IndicatorStatusTypeInfoMaps'
@@ -45,13 +45,13 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
   })
   useEffect(() => {
     StatusAPIs.load(false).then(statuses => {
+      if (onServiceStatus) {
+        onServiceStatus(statuses)
+      }
       setState({
         ...state,
         initialStatuses: statuses
       })
-      if (onServiceStatus) {
-        onServiceStatus(statuses)
-      }
     })
   }, [])
   const onViewDashboard = async () => {

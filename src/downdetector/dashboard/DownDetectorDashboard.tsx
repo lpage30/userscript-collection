@@ -22,7 +22,7 @@ import { createFeatures } from "../../dashboardcomponents/OptionalFeatures";
 import { Persistence } from "../../dashboardcomponents/persistence";
 import { createOnExternalDataUpdates } from "../common/onexternaldataupdate";
 import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
-import { LoadOutageBreakdowns } from "../../geoblackout/ui/LoadOutageBreakdowns";
+import { OutageBreakdownDashboardPopupAndSummary } from "../../geoblackout/ui/OutageBreakdownDashboard";
 import { toCompanyCardComponent } from "../common/CompanyCardComponent";
 
 export const DownDetectorDashboard: Userscript = {
@@ -108,7 +108,7 @@ export const DownDetectorDashboard: Userscript = {
         },
         {
           after: 'lastrow',
-          element: <LoadOutageBreakdowns
+          element: <OutageBreakdownDashboardPopupAndSummary
             onOutageBreakdowns={breakdowns => {
               onOutageBreakdowns(breakdowns)
               if (rerenderDashboard) rerenderDashboard()
