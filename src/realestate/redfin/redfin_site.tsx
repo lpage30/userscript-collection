@@ -76,18 +76,40 @@ interface LayoutMenuButtons {
     Table?: HTMLElement
 }
 
-function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
+function scrapeScriptData(scriptData: ScriptData, elementTextLines?: string[]): Partial<PropertyInfo> {
     const result: Partial<PropertyInfo> = scriptData.mainEntity
-        ? scrapeScriptData(scriptData.mainEntity)
+        ? scrapeScriptData(scriptData.mainEntity, elementTextLines)
         : { source: 'redfin.com', }
     if (scriptData.mainEntity === undefined) {
         result.isLand = (scriptData.floorSize ?? {}).value === undefined
         result.Type = result.isLand ? 'land' : scriptData['@type'] as string
         if (scriptData.address) {
-            result.country = scriptData.address.addressCountry
-            result.state = scriptData.address.addressRegion
-            result.city = scriptData.address.addressLocality
-            result.address = `${scriptData.address.streetAddress}, ${result.city}, ${result.state} ${scriptData.address.postalCode} ${result.country}`
+            let addressParts = [
+                [undefined, null, ''].includes(scriptData.address.streetAddress) ? undefined : scriptData.address.streetAddress,
+                [undefined, null, ''].includes(scriptData.address.addressLocality) ? undefined : scriptData.address.addressLocality,
+                [undefined, null, ''].includes(scriptData.address.addressRegion) ? undefined : scriptData.address.addressRegion,
+                [undefined, null, ''].includes(scriptData.address.addressCountry) ? undefined : scriptData.address.addressCountry
+            ]
+            if (addressParts.some(part => part === undefined) && 0 < (elementTextLines ?? []).length) {
+                const nonEmptyParts = addressParts.filter(part => part !== undefined)
+                if (0 < nonEmptyParts.length) {
+                    const foundLine = elementTextLines.find(line => nonEmptyParts.every(part => line.includes(part)))
+                    if (foundLine) {
+                        const parsedParts = foundLine.split(',').map(t => t.trim())
+                        addressParts = [
+                            addressParts[0] ?? (3 <= parsedParts.length ? parsedParts[0] : undefined),
+                            addressParts[1] ?? parsedParts[3 <= parsedParts.length ? 1 : 0],
+                            addressParts[2] ?? parsedParts[3 <= parsedParts.length ? 2 : 1]?.split(' ')[0],
+                            addressParts[3] ?? parsedParts[3 <= parsedParts.length ? 3 : 2] ?? 'US'
+                        ]
+                    }
+                }
+            }
+            result.city = addressParts[1]
+            result.state = addressParts[2]
+            result.country = addressParts[3]
+
+            result.address = `${addressParts[0] ?? ''}, ${result.city}, ${result.state} ${scriptData.address.postalCode} ${result.country}`
         }
         result.Sqft = (scriptData.floorSize ?? {}).value
         if (scriptData.geo) {
@@ -114,22 +136,23 @@ function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
 async function scrapeListing(reportProgress: (progress: string) => void): Promise<PropertyInfo[]> {
     let tBegin = Date.now()
     const properties: PropertyInfo[] = []
-    const elements = Array.from(await awaitQueryAll('div[class*="bp-Homecard "]'))
+    const elements = Array.from(await awaitQueryAll('div[class*="bp-Homecard "]')).filter(e => 0 < e.innerText.trim().length)
     const scriptData = Array.from(document.querySelectorAll('script'))
         .map(s => s.innerText)
         .filter(t => 0 < t.length && ['{\"@context\"', '[{\"@context\"'].some(prefix => t.startsWith(prefix)))
         .map(t => JSON.parse(t))
         .flat()
-        .filter(data => !['BreadcrumbList', 'Product', 'Organization'].includes(data['@type']))
+        .filter(data => !['BreadcrumbList', 'Product', 'Organization', 'Event'].includes(data['@type']))
 
     if (reportProgress) reportProgress(`Scraped ${scriptData.length
         } properties ${toDurationString(Date.now() - tBegin)} `)
     tBegin = Date.now()
     for (let i = 0; i < Math.min(elements.length, scriptData.length); i = i + 1) {
-        const property: Partial<PropertyInfo> = scrapeScriptData(scriptData[i])
-        property.Price = property.Price ?? parseNumber(elements[i].innerText.split('\n').find(p => p.startsWith('$')))
-        property.Bathrooms = property.Bathrooms ?? parseNumber(elements[i].innerText.split('\n').find(p => (/^[\d\.]+\s*bath?/ig).test(p)))
-        property.Bedrooms = property.Bedrooms ?? parseNumber(elements[i].innerText.split('\n').find(p => (/^[\d\.]+\s*bed?/ig).test(p)))
+        const elementLines = elements[i].innerText.split('\n')
+        const property: Partial<PropertyInfo> = scrapeScriptData(scriptData[i], elementLines)
+        property.Price = property.Price ?? parseNumber(elementLines.find(p => p.startsWith('$')))
+        property.Bathrooms = property.Bathrooms ?? parseNumber(elementLines.find(p => (/^[\d\.]+\s*bath?/ig).test(p)))
+        property.Bedrooms = property.Bedrooms ?? parseNumber(elementLines.find(p => (/^[\d\.]+\s*bed?/ig).test(p)))
         property.serializedElement = toSerializedElement({ queryAllPickItemChild: { queryAllString: 'div[class*="bp-Homecard "]', itemChildGrandchildIndexes: [i] } })
         property.element = deserializeElement(property.serializedElement)
         property.serializedPicture = toPictureSerialized(elements[i].querySelector('img'))
@@ -181,10 +204,11 @@ export const RedfinSite: RealEstateSite = {
 
         [PropertyPageType.Listing]: {
             pageType: PropertyPageType.Listing,
-            isPage: (href: string): boolean => (null !== href.match(/^https:\/\/www.redfin.com\/(city|zipcode|neighborhood)\/.*/)),
+            isPage: (href: string): boolean => (
+                null !== href.match(/^https:\/\/www.redfin.com\/(city|zipcode|neighborhood|chat).*/)
+            ),
             awaitForPageLoad: async (): Promise<void> => {
                 await awaitPageLoadByMutation()
-                await awaitElementById('region-content')
             },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
                 (await awaitQuerySelection('div[class="ExposedLayoutButtonContainer"]')).querySelector('button').click()
