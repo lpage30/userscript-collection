@@ -17,4 +17,8 @@
 // @grant       GM_addValueChangeListener
 // @grant       GM_removeValueChangeListener
 // @grant       GM_info
+// @grant       GM_xmlhttpRequest
+
+// @connect     maps.co
+// @connect     cdn-redfin.com
 // ==/UserScript==

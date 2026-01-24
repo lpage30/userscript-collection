@@ -23,3 +23,5 @@ export const countryMapSuffix = '.json'
 
 export const toCountryMapFilename = (countryName) => `${toCountryNameForFilename(countryName)}${countryMapSuffix}`
 export const toGeocodedCountryMapFilename = countryName => `${geocodedCountryMapPrefix}${toCountryMapFilename(countryName)}`
+
+export const GeocodeMapsCoAPIConfigFilename = 'geocode_maps_co_api.config.json'

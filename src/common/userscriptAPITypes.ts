@@ -24,17 +24,24 @@ declare global {
   }
 
   interface GM_xmlhttpRequestDetails {
-    method: "GET" | "POST" | "HEAD";
-    url: string;
-    headers?: { [key: string]: string };
-    data?: string;
     binary?: boolean;
-    timeout?: number;
-    onload?: (response: GM_xmlhttpRequestResponse) => void;
-    onerror?: (response: GM_xmlhttpRequestResponse) => void;
+    context?: any
+    data?: string;
+    headers?: { [key: string]: string };
+    method: "GET" | "POST" | "HEAD";
+    overrideMimeType?: string
+    password?: string
+    responseType?: '' | 'arraybuffer' | 'blob' | 'document' | 'json' | 'text' | 'ms-stream'
+    synchronous?: boolean
+    timeout?: number
+    url: string
+    user?: string
     onabort?: () => void;
-    ontimeout?: () => void;
+    onerror?: (response: GM_xmlhttpRequestResponse) => void;
+    onload?: (response: GM_xmlhttpRequestResponse) => void;
     onprogress?: (response: GM_xmlhttpRequestProgressResponse) => void;
+    onreadystatechange?: (response: GM_xmlhttpRequestResponse) => void;
+    ontimeout?: (response: GM_xmlhttpRequestResponse) => void;
     upload?: {
       onprogress?: (response: GM_xmlhttpRequestProgressResponse) => void;
     };

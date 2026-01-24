@@ -1,3 +1,6 @@
+// @grant       GM_xmlhttpRequest
+// @connect     cdn-redfin.com
+// @connect     maps.co
 import {
     PropertyInfo,
     MaxPropertyInfoImageWidth
@@ -7,6 +10,7 @@ import {
     toPropertyInfoCard,
     geocodePropertyInfoCard,
 } from '../propertyinfotype_functions'
+import { getGeocodeServiceInstance } from '../../geocoding/geocoding_api/geocodeMapsCoAPI'
 
 import { RealEstateSite, PropertyPageType } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
@@ -15,6 +19,7 @@ import { toDurationString } from '../../common/datetime'
 import { toPictureSerialized, toScaledPictureSerialized, toScaledImgSerialized, deserializeImg, toSerializedElement, deserializeElement } from '../serialize_deserialize_functions'
 import { awaitQuerySelection, awaitQueryAll, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 import { cacheWrapper } from '../propertyinfocache'
+import { fetchImgMetadata } from '../../common/image_metadata_extractor'
 
 interface ScriptAmenityFeature {
     '@type': string
@@ -76,10 +81,11 @@ interface LayoutMenuButtons {
     Table?: HTMLElement
 }
 
-function scrapeScriptData(scriptData: ScriptData, elementTextLines?: string[]): Partial<PropertyInfo> {
+async function scrapeScriptData(scriptData: ScriptData, element?: HTMLElement): Promise<Partial<PropertyInfo>> {
     const result: Partial<PropertyInfo> = scriptData.mainEntity
-        ? scrapeScriptData(scriptData.mainEntity, elementTextLines)
+        ? await scrapeScriptData(scriptData.mainEntity, element)
         : { source: 'redfin.com', }
+    const elementTextLines = element ? element.innerText.split('\n').map(t => t.trim()) : []
     if (scriptData.mainEntity === undefined) {
         result.isLand = (scriptData.floorSize ?? {}).value === undefined
         result.Type = result.isLand ? 'land' : scriptData['@type'] as string
@@ -90,7 +96,7 @@ function scrapeScriptData(scriptData: ScriptData, elementTextLines?: string[]): 
                 [undefined, null, ''].includes(scriptData.address.addressRegion) ? undefined : scriptData.address.addressRegion,
                 [undefined, null, ''].includes(scriptData.address.addressCountry) ? undefined : scriptData.address.addressCountry
             ]
-            if (addressParts.some(part => part === undefined) && 0 < (elementTextLines ?? []).length) {
+            if (addressParts.some(part => part === undefined) && 0 < elementTextLines.length) {
                 const nonEmptyParts = addressParts.filter(part => part !== undefined)
                 if (0 < nonEmptyParts.length) {
                     const foundLine = elementTextLines.find(line => nonEmptyParts.every(part => line.includes(part)))
@@ -100,7 +106,7 @@ function scrapeScriptData(scriptData: ScriptData, elementTextLines?: string[]): 
                             addressParts[0] ?? (3 <= parsedParts.length ? parsedParts[0] : undefined),
                             addressParts[1] ?? parsedParts[3 <= parsedParts.length ? 1 : 0],
                             addressParts[2] ?? parsedParts[3 <= parsedParts.length ? 2 : 1]?.split(' ')[0],
-                            addressParts[3] ?? parsedParts[3 <= parsedParts.length ? 3 : 2] ?? 'US'
+                            addressParts[3] ?? parsedParts[3 <= parsedParts.length ? 3 : 2] ?? 'United States'
                         ]
                     }
                 }
@@ -109,7 +115,7 @@ function scrapeScriptData(scriptData: ScriptData, elementTextLines?: string[]): 
             result.state = addressParts[2]
             result.country = addressParts[3]
 
-            result.address = `${addressParts[0] ?? ''}, ${result.city}, ${result.state} ${scriptData.address.postalCode} ${result.country}`
+            result.address = `${addressParts[0] ?? ''}`
         }
         result.Sqft = (scriptData.floorSize ?? {}).value
         if (scriptData.geo) {
@@ -127,9 +133,40 @@ function scrapeScriptData(scriptData: ScriptData, elementTextLines?: string[]): 
     result.oceanGeodataSource = 'tl_2025_us_coastline'
     const href = scriptData.url
     result.href = () => href
-    const img = Array.isArray(scriptData.image) ? scriptData.image[0] : scriptData.image
+    let imgs: ScriptImageData[] = Array.isArray(scriptData.image) ? scriptData.image : scriptData.image ? [scriptData.image] : undefined
+    if (undefined === imgs && element) {
+        imgs = Array.from(element.querySelectorAll('img')).map(img => ({
+            '@type': 'queried image',
+            url: img.src,
+            width: img.width,
+            height: img.height
+        }))
+    }
+    const img = (imgs ?? [])[0]
+
     result.serializedPicture = toScaledImgSerialized(img ? { src: img.url, width: img.width, height: img.height } : undefined, MaxPropertyInfoImageWidth)
     result.Picture = deserializeImg(result.serializedPicture, result)
+    if (undefined === result.coordinate && imgs) {
+        for (const img of imgs) {
+            const metadata = await fetchImgMetadata(img.url, false)
+            if (metadata.exif && metadata.exif.gps) {
+                console.log(`Coordinate Found in Img ${img.url}. EXIF result: ${JSON.stringify(metadata.exif, null, 2)}`)
+                result.coordinate = metadata.exif.gps
+                break
+            }
+        }
+        if (undefined === result.coordinate) {
+            result.coordinate = await getGeocodeServiceInstance().geocodeAddress({
+                address: result.address,
+                city: result.city,
+                state: result.state,
+                country: result.country
+            })
+            if (result.coordinate) {
+                console.log(`Coordinate Found via GeocodeService (${getGeocodeServiceInstance().name}).`)
+            }
+        }
+    }
     return result
 }
 
@@ -148,8 +185,8 @@ async function scrapeListing(reportProgress: (progress: string) => void): Promis
         } properties ${toDurationString(Date.now() - tBegin)} `)
     tBegin = Date.now()
     for (let i = 0; i < Math.min(elements.length, scriptData.length); i = i + 1) {
-        const elementLines = elements[i].innerText.split('\n')
-        const property: Partial<PropertyInfo> = scrapeScriptData(scriptData[i], elementLines)
+        const elementLines = elements[i].innerText.split('\n').map(t => t.trim())
+        const property: Partial<PropertyInfo> = await scrapeScriptData(scriptData[i], elements[i])
         property.Price = property.Price ?? parseNumber(elementLines.find(p => p.startsWith('$')))
         property.Bathrooms = property.Bathrooms ?? parseNumber(elementLines.find(p => (/^[\d\.]+\s*bath?/ig).test(p)))
         property.Bedrooms = property.Bedrooms ?? parseNumber(elementLines.find(p => (/^[\d\.]+\s*bed?/ig).test(p)))
@@ -250,7 +287,7 @@ export const RedfinSite: RealEstateSite = {
 
                 const collectData = async (): Promise<PropertyInfo[]> => {
                     const element: HTMLElement = await awaitQuerySelection('div[class="detailsContent"]')
-                    const result: Partial<PropertyInfo> = scrapeScriptData(JSON.parse(
+                    const result: Partial<PropertyInfo> = await scrapeScriptData(JSON.parse(
                         Array.from(element.querySelectorAll('script'))
                             .filter(s => s.innerText.startsWith('{\"@context\"'))[0].innerText
                     ))

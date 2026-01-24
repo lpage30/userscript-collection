@@ -42,6 +42,8 @@ export enum GeoAddressField {
     country = 'country',
     coordinate = 'coordinate'
 }
+export interface Address {
+}
 export interface GeoAddress {
     [GeoAddressField.address]?: string
     [GeoAddressField.city]?: string

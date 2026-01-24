@@ -8,7 +8,7 @@ const defaultMaxMilesDistance = 5
 
 const help = (scriptName) => {
     console.log(`USAGE: ${scriptName} <geocoding-source-directory> [<maxMilesDistance>] [<region1>, <region2>....<regionN>]`)
-    console.log(`<geocoding-source-directory> - full path to src/geocoding/assets`)
+    console.log(`<geocoding-source-directory> - full path to src/geocoding`)
     console.log(`<maxMilesDistance> - maximum miles to consider for geojson for distant geojsonIndexes (default: ${defaultMaxMilesDistant}`)
     console.log(`<region> - any of the following (default: all): ${Object.keys(WorldRegionIsoCodeMap).join(', ')}`)
     Object.keys(WorldRegionIsoCodeMap).foreach(region => {

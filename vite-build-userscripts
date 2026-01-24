@@ -6,6 +6,8 @@ GEOCODING_DIR="${SRC_DIR}/geocoding"
 echo "Creating geojson files..."
 pushd "${GEOCODING_DIR}/datageneration"
 node generate_geocoded_countrystatecitymap.js "${GEOCODING_DIR}"
+echo "Creating https://geocode.maps.co/ API configuration json..."
+node generate_geocode_config_file.js  "${GEOCODING_DIR}"
 popd
 echo "Building all userscripts in $SRC_DIR"
 for item in "$SRC_DIR"/*; do
