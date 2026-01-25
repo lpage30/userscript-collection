@@ -13,32 +13,45 @@ export async function geocodeAddress(
     imgSrcs?: string[]
 ): Promise<GeocodeAddressResult | undefined> {
     const fullAddress = parseFullAddress(address)
-    for (const imgSrc of (imgSrcs ?? [])) {
-        const metadata = await fetchImgMetadata(imgSrc, false)
-        if (metadata.exif && metadata.exif.gps) {
-            console.log(`Coordinate Found in Img ${imgSrc}. EXIF result: ${JSON.stringify(metadata.exif, null, 2)}`)
-            return {
-                origin: 'Image',
-                address: joinFullAddress(fullAddress),
-                city: fullAddress.city,
-                state: fullAddress.state,
-                country: fullAddress.country,
-                coordinate: metadata.exif.gps
+    try {
+        for (const imgSrc of (imgSrcs ?? [])) {
+            const metadata = await fetchImgMetadata(imgSrc, false)
+            if (metadata.exif && metadata.exif.gps) {
+                console.log(`Coordinate Found in Img ${imgSrc}. EXIF result: ${JSON.stringify(metadata.exif, null, 2)}`)
+                return {
+                    origin: 'Image',
+                    address: joinFullAddress(fullAddress),
+                    city: fullAddress.city,
+                    state: fullAddress.state,
+                    country: fullAddress.country,
+                    coordinate: metadata.exif.gps
+                }
             }
         }
+    } catch (e) {
+        console.error(`Failed extracting image-exif for (${joinFullAddress(fullAddress)}).`, e)
     }
-    const geoAddress = await getGeocodeServiceInstance().geocodeAddress(fullAddress)
-    if (geoAddress) {
-        console.log(`Coordinate Found via GeocodeService (${getGeocodeServiceInstance().name}).`)
-        return {
-            origin: 'GeocodeService',
-            ...geoAddress
+    try {
+        const geoAddress = await getGeocodeServiceInstance().geocodeAddress(fullAddress)
+        if (geoAddress) {
+            console.log(`Coordinate Found via GeocodeService (${getGeocodeServiceInstance().name}).`)
+            return {
+                origin: 'GeocodeService',
+                ...geoAddress
+            }
         }
+    } catch (e) {
+        console.error(`Failed using GeocodeService for (${joinFullAddress(fullAddress)}).`, e)
     }
-    const countryStateCityAddress = await classifyGeoCountryStateCity(fullAddressToGeoAddress(fullAddress))
-    console.log(`Coordinate Found via classifyGeoCountryStateCity's city|state|country coordinate.`)
-    return {
-        origin: 'CityStateCountry',
-        ...countryStateCityAddressToGeoAddress(countryStateCityAddress)
+    try {
+        const countryStateCityAddress = await classifyGeoCountryStateCity(fullAddressToGeoAddress(fullAddress))
+        console.log(`Coordinate Found via classifyGeoCountryStateCity's city|state|country coordinate.`)
+        return {
+            origin: 'CityStateCountry',
+            ...countryStateCityAddressToGeoAddress(countryStateCityAddress)
+        }
+    } catch (e) {
+        console.error(`Failed classifing address (${joinFullAddress(fullAddress)}).`, e)
     }
+    return undefined
 }
