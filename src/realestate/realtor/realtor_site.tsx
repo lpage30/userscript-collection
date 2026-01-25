@@ -17,11 +17,15 @@ import {
     toSerializedElement,
     deserializeElement
 } from '../serialize_deserialize_functions'
-import { GeoCoordinate, GeodataSourceType, parseAddress } from '../../geocoding/datatypes'
-import { geocodeAddress } from '../../geocoding/geocode_address'
+import { GeoCoordinate, GeodataSourceType, parseAddress, FullAddress, joinFullAddress, CountryAddress } from '../../geocoding/datatypes'
 
 import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 import { cacheWrapper } from '../propertyinfocache'
+
+const countryAddress: CountryAddress = {
+    name: 'United States',
+    codes: ['USA', 'US']
+}
 
 interface ScriptDescription {
     'baths_consolidated': string | null
@@ -87,6 +91,13 @@ interface ScriptNextData {
 function scrapeScriptData(scriptData: ScriptNextData): Partial<PropertyInfo> {
     const serializedElement = toSerializedElement({ elementId: `placeholder_property_${scriptData.property_id}` })
     const element = deserializeElement(serializedElement)
+    const address: FullAddress = {
+        street: scriptData.location.address.line,
+        city: scriptData.location.address.city,
+        state: scriptData.location.address.state_code,
+        postalcode: scriptData.location.address.postal_code,
+        country: countryAddress.name
+    }
     const result = {
         source: 'Realtor.com',
         oceanGeodataSource: 'tl_2025_us_coastline' as GeodataSourceType,
@@ -100,10 +111,10 @@ function scrapeScriptData(scriptData: ScriptNextData): Partial<PropertyInfo> {
         Bathrooms: parseFloat(scriptData.description.baths_consolidated),
         Sqft: scriptData.description.sqft,
         lotSize: scriptData.description.lot_sqft,
-        address: scriptData.location.address.line,
-        city: scriptData.location.address.city,
-        state: scriptData.location.address.state_code,
-        country: 'United States',
+        address: joinFullAddress(address),
+        city: address.city,
+        state: address.state,
+        country: address.country,
         coordinate: scriptData.location.address.coordinate ? { ...scriptData.location.address.coordinate } : undefined,
         href: () => `https://www.realtor.com/realestateandhomes-detail/${scriptData.permalink}`,
         serializedElement,
@@ -214,8 +225,7 @@ export const RealtorSite: RealEstateSite = {
                     result = {
                         ...result,
                         isLand: [null, undefined].includes(result.Bathrooms),
-                        ...parseAddress(addrText),
-                        country: 'United States'
+                        ...parseAddress(addrText, countryAddress),
                     }
                     const coordinate = Array.from(document.querySelectorAll('meta[property*="place:location"]'))
                         .reduce((coordinate, e) => ({

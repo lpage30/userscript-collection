@@ -1,6 +1,14 @@
 import { LineString, Feature, Polygon } from 'geojson'
 import * as turf from '@turf/turf'
 
+export interface CountryAddress {
+    name: string
+    codes: string[]
+}
+function addressContainsCountry(addressLine: string, countryAddress: CountryAddress): boolean {
+    return addressLine.endsWith(countryAddress.name) ||
+        countryAddress.codes.some(code => addressLine.endsWith(code))
+}
 export type GeodataSourceType = 'tl_2025_us_coastline' | 'ukcp18_uk_marine_coastline_hires'
 
 export interface GeojsonIndex {
@@ -72,7 +80,7 @@ export interface FullAddress {
     country?: string
 }
 export function joinFullAddress(address: FullAddress): string {
-    const { street, city, state, postalcode, country} = address
+    const { street, city, state, postalcode, country } = address
     let result = ''
     if (street) {
         result = street
@@ -100,28 +108,82 @@ export function fullAddressToGeoAddress(address: FullAddress, coordinate?: GeoCo
         coordinate
     }
 }
-export function parseFullAddress(addressLine: string): FullAddress {
+export function parseFullAddress(addressLine: string, countryAddress?: CountryAddress): FullAddress {
+    const addressHasCountry = countryAddress ? addressContainsCountry(addressLine, countryAddress) : true
     const parts = addressLine.split(',').map(t => t.trim()).filter(t => 0 < t.length)
-    const street = parts[0]
-    const city = 1 < parts.length ? parts[1] : undefined
-    const [state, postalcode ] = 2 < parts.length ? parts[2].split(' ').map(t => t.trim()).filter(t => 0 < t.length) : [undefined, undefined]
-    const country = 3 < parts.length ? parts[3] : undefined
-    return {
-        street,
-        city,
-        state,
-        postalcode,
-        country
+    switch (parts.length) {
+        case 1:
+            if (addressHasCountry) return { country: parts[0] }
+            return { state: parts[0], country: countryAddress?.name }
+        case 2: {
+            if (addressHasCountry) {
+                const [state, postalcode] = parts[0].split(' ').map(t => t.trim()).filter(t => 0 < t.length)
+                const country = parts[1]
+                return {
+                    state,
+                    postalcode,
+                    country
+                }
+            }
+            const [state, postalcode] = parts[1].split(' ').map(t => t.trim()).filter(t => 0 < t.length)
+            return {
+                city: parts[0],
+                state,
+                postalcode,
+                country: countryAddress?.name
+            }
+        }
+        case 3: {
+            if (addressHasCountry) {
+                const [state, postalcode] = parts[1].split(' ').map(t => t.trim()).filter(t => 0 < t.length)
+                const country = parts[2]
+                return {
+                    city: parts[0],
+                    state,
+                    postalcode,
+                    country
+                }
+            }
+            const [state, postalcode] = parts[2].split(' ').map(t => t.trim()).filter(t => 0 < t.length)
+            return {
+                street: parts[0],
+                city: parts[1],
+                state,
+                postalcode,
+                country: countryAddress?.name
+            }
+        }
+        case 4:
+        default: {
+            if (addressHasCountry) {
+                const [state, postalcode] = parts[2].split(' ').map(t => t.trim()).filter(t => 0 < t.length)
+                const country = parts[3]
+                return {
+                    street: parts[0],
+                    city: parts[1],
+                    state,
+                    postalcode,
+                    country
+                }
+            }
+            const [state, postalcode] = parts[3].split(' ').map(t => t.trim()).filter(t => 0 < t.length)
+            return {
+                street: `${parts[0]} ${parts[1]}`,
+                city: parts[2],
+                state,
+                postalcode,
+                country: countryAddress?.name
+            }
+        }
     }
 }
 
-export function parseAddress(addressLine: string): { address: string, city?: string, state?: string, country?: string } {
-    const address = addressLine
-    const { city, state, country } = parseFullAddress(addressLine)
+export function parseAddress(addressLine: string, countryAddress?: CountryAddress): { address: string, city?: string, state?: string, country?: string } {
+    const fullAddress = parseFullAddress(addressLine, countryAddress)
     return {
-        address,
-        city,
-        state,
-        country
+        address: joinFullAddress(fullAddress),
+        city: fullAddress.city,
+        state: fullAddress.state,
+        country: fullAddress.country
     }
 }

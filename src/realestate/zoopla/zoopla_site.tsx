@@ -11,11 +11,17 @@ import {
 import { PropertyPageType, RealEstateSite } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
 import { toScaledImgSerialized, toSerializedImg, deserializeImg, toSerializedElement, deserializeElement } from '../serialize_deserialize_functions'
-import { parseAddress } from '../../geocoding/datatypes'
+import { CountryAddress, parseAddress } from '../../geocoding/datatypes'
 import { toDurationString } from '../../common/datetime'
 
 import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 import { cacheWrapper } from '../propertyinfocache'
+
+const countryAddress: CountryAddress = {
+    name: 'United Kingdom',
+    codes: ['UK', 'GB']
+}
+
 
 interface ScriptFeature {
     content: number
@@ -104,8 +110,7 @@ function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
         oceanGeodataSource: 'ukcp18_uk_marine_coastline_hires',
         isLand: scriptData.propertyType === 'land',
         Type: scriptData.propertyType,
-        ...parseAddress(scriptData.address),
-        country: 'United Kingdom',
+        ...parseAddress(scriptData.address, countryAddress),
     }
 
     if (scriptData.pos) {
@@ -135,8 +140,7 @@ function scrapeScriptSingleData(scriptData: ScriptSingleData, address: string, s
         oceanGeodataSource: 'ukcp18_uk_marine_coastline_hires',
         isLand: scriptData['@type'] === 'land',
         Type: scriptData['@type'],
-        ...parseAddress(address),
-        country: 'United Kingdom',
+        ...parseAddress(address, countryAddress),
     }
     if (!result.isLand) {
         result.Bedrooms = parseNumber(scriptData.additionalProperty.filter(({ name }) => name.includes('Bed'))[0]?.value)

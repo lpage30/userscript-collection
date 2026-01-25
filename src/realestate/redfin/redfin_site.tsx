@@ -10,7 +10,7 @@ import {
     toPropertyInfoCard,
     geocodePropertyInfoCard,
 } from '../propertyinfotype_functions'
-import { parseAddress, joinFullAddress, FullAddress } from '../../geocoding/datatypes'
+import { parseAddress, joinFullAddress, FullAddress, CountryAddress } from '../../geocoding/datatypes'
 import { RealEstateSite, PropertyPageType } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
 import { toDurationString } from '../../common/datetime'
@@ -19,6 +19,10 @@ import { toPictureSerialized, toScaledPictureSerialized, toScaledImgSerialized, 
 import { awaitQuerySelection, awaitQueryAll, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 import { cacheWrapper } from '../propertyinfocache'
 
+const countryAddress: CountryAddress = {
+    name: 'United States',
+    codes: ['USA', 'US']
+}
 interface ScriptAmenityFeature {
     '@type': string
     'name': string
@@ -93,14 +97,14 @@ async function scrapeScriptData(scriptData: ScriptData, element?: HTMLElement): 
                 city: [undefined, null, ''].includes(scriptData.address.addressLocality) ? undefined : scriptData.address.addressLocality,
                 postalcode: [undefined, null, ''].includes(scriptData.address.postalCode) ? undefined : scriptData.address.postalCode,
                 state: [undefined, null, ''].includes(scriptData.address.addressRegion) ? undefined : scriptData.address.addressRegion,
-                country: [undefined, null, ''].includes(scriptData.address.addressCountry) ? 'United States' : scriptData.address.addressCountry
+                country: [undefined, null, ''].includes(scriptData.address.addressCountry) ? countryAddress.name : scriptData.address.addressCountry
             }
             if (Object.values(fullAddress).some(v => v === undefined) && 0 < elementTextLines.length) {
                 const nonEmptyParts = Object.values(fullAddress).filter(v => v !== undefined)
                 if (0 < nonEmptyParts.length) {
                     const foundLine = elementTextLines.find(line => nonEmptyParts.every(part => line.includes(part)))
                     if (foundLine) {
-                        fullAddress = parseAddress(foundLine)
+                        fullAddress = parseAddress(foundLine, countryAddress)
                     }
                 }
             }
