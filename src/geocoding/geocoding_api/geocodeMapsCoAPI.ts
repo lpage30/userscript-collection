@@ -39,7 +39,7 @@ interface GeocodeMapsCoSearchRequest {
     command: 'search'
     params: string | FullAddress
 }
-function toGeoAddress(response: GeocodeMapsCoPlaceRecord, address?: FullAddress | string, ): GeoAddress {
+function toGeoAddress(response: GeocodeMapsCoPlaceRecord, address?: FullAddress | string,): GeoAddress {
     return {
         address: joinFullAddress({
             street: address ? (typeof address === 'string' ? address : address.street) : undefined,
