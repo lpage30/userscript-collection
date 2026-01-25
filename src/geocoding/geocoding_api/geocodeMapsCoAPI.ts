@@ -142,7 +142,7 @@ class GeocodeMapsCoAPI implements GeocodeServiceAPI {
                             // delay longer and longer
                             delayms = attempts * this.throttlems
                             break
-                        case 403:
+                        case 401:
                             console.error(`GeocodeMapsCoAPI(${requestUrlString}): Not Authorized (401). ${JSON.stringify(this.config)}`, e)
                             throw new Error('GeocodeMapsCoAPI: Not Authorized (401) ${e.statusText}')
                         case 403:
