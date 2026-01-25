@@ -1,6 +1,6 @@
 // @grant       GM_xmlhttpRequest
 import exifr from 'exifr'
-import { GeoCoordinate } from '../geocoding/datatypes'
+import { GeoCoordinate } from '../datatypes'
 
 export interface ExifData {
     gps?: GeoCoordinate

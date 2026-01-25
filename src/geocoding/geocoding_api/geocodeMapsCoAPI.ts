@@ -1,7 +1,8 @@
 // @grant       GM_xmlhttpRequest
 // @connect     maps.co
 import APIConfig from '../data_files/geocode_maps_co_api.config.json'
-import { GeoCoordinate, GeoAddress, FullAddress, joinFullAddress } from '../datatypes'
+import { GeoCoordinate, GeoAddress } from '../datatypes'
+import { cleanStreet, FullAddress, joinFullAddress } from './address_parser'
 import { awaitDelay } from '../../common/await_functions'
 
 export interface GeocodeServiceAPI {
@@ -40,9 +41,17 @@ interface GeocodeMapsCoSearchRequest {
     params: string | FullAddress
 }
 function toGeoAddress(response: GeocodeMapsCoPlaceRecord, address?: FullAddress | string,): GeoAddress {
+    let street: string | undefined = undefined
+    if (address) {
+        if (typeof address === 'string') {
+            street = address
+        } else if (address.street) {
+            street = address.street
+        }
+    }
     return {
         address: joinFullAddress({
-            street: address ? (typeof address === 'string' ? address : address.street) : undefined,
+            street,
             city: response.address.city,
             state: response.address.state,
             postalcode: address ? (typeof address === 'string' ? undefined : address.postalcode) : undefined,
@@ -163,9 +172,15 @@ class GeocodeMapsCoAPI implements GeocodeServiceAPI {
     }
 
     async geocodeAddress(address: FullAddress | string): Promise<GeoAddress | undefined> {
+        if (typeof address === 'string') {
+            return this.geocodePlace(address)
+        }
         const request: GeocodeMapsCoSearchRequest = {
             command: 'search',
-            params: address
+            params: {
+                ...address,
+                street: address.street ? cleanStreet(address.street).street : undefined
+            }
         }
         const response = await this.executeCall(request)
         const result: GeocodeMapsCoPlaceRecord | undefined = Array.isArray(response) ? response[0] : response

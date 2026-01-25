@@ -11,7 +11,8 @@ import {
 import { PropertyPageType, RealEstateSite } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
 import { toScaledImgSerialized, toSerializedImg, deserializeImg, toSerializedElement, deserializeElement } from '../serialize_deserialize_functions'
-import { CountryAddress, parseAddress } from '../../geocoding/datatypes'
+import { CountryAddress } from '../../geocoding/datatypes'
+import { parseAddress } from '../../geocoding/geocoding_api/address_parser'
 import { toDurationString } from '../../common/datetime'
 
 import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'

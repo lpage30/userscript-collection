@@ -14,7 +14,7 @@ import {
 
 } from '../geocoding/geocodedcountrystatecitytypes'
 import { deserializeImgToImgData } from './serialize_deserialize_functions'
-import { geocodeAddress } from '../geocoding/geocode_address'
+import { geocodeAddress } from '../geocoding/geocoding_api/geocode_address'
 import { classifyGeoCountryStateCity } from '../geocoding/countryStateCityGeoAddressClassifiers'
 import { findClosestGeodataPlace } from '../geocoding/findClosestPlace'
 import { PropertyInfo } from './propertyinfotypes'

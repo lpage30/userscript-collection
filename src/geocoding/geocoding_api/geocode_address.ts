@@ -1,10 +1,11 @@
 // @grant       GM_xmlhttpRequest
 // @connect     cdn-redfin.com
 // @connect     maps.co
-import { GeoAddress, parseFullAddress, joinFullAddress, fullAddressToGeoAddress } from "./datatypes"
-import { fetchImgMetadata } from "../common/image_metadata_extractor"
-import { getGeocodeServiceInstance } from "./geocoding_api/geocodeMapsCoAPI"
-import { classifyGeoCountryStateCity, countryStateCityAddressToGeoAddress } from "./countryStateCityGeoAddressClassifiers"
+import { GeoAddress } from "../datatypes"
+import { parseFullAddress, joinFullAddress, fullAddressToGeoAddress } from './address_parser'
+import { fetchImgMetadata } from "./image_metadata_extractor"
+import { getGeocodeServiceInstance } from "./geocodeMapsCoAPI"
+import { classifyGeoCountryStateCity, countryStateCityAddressToGeoAddress } from "../countryStateCityGeoAddressClassifiers"
 export interface GeocodeAddressResult extends GeoAddress {
     origin: 'Image' | 'GeocodeService' | 'CityStateCountry'
 }

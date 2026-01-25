@@ -17,7 +17,8 @@ import {
     toSerializedElement,
     deserializeElement
 } from '../serialize_deserialize_functions'
-import { GeoCoordinate, GeodataSourceType, parseAddress, FullAddress, joinFullAddress, CountryAddress } from '../../geocoding/datatypes'
+import { GeoCoordinate, GeodataSourceType, CountryAddress } from '../../geocoding/datatypes'
+import { parseAddress, FullAddress, joinFullAddress } from '../../geocoding/geocoding_api/address_parser'
 
 import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 import { cacheWrapper } from '../propertyinfocache'

@@ -10,7 +10,8 @@ import {
     toPropertyInfoCard,
     geocodePropertyInfoCard,
 } from '../propertyinfotype_functions'
-import { parseFullAddress, joinFullAddress, FullAddress, CountryAddress } from '../../geocoding/datatypes'
+import { CountryAddress } from '../../geocoding/datatypes'
+import { parseFullAddress, FullAddress, joinFullAddress } from '../../geocoding/geocoding_api/address_parser'
 import { RealEstateSite, PropertyPageType } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
 import { toDurationString } from '../../common/datetime'
