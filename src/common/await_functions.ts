@@ -1,4 +1,11 @@
-const isLoadComplete = (): boolean => document.readyState === "complete";
+import { ONE_MINUTE, toDurationString } from "./datetime";
+const isLoadComplete = (): boolean => {
+  const result = document.readyState === "complete"
+  if (result) {
+    console.log(`${window.location.href} document.readyState is complete`)
+  }
+  return result
+}
 
 export async function awaitCondition(
   testCondition: () => boolean,
@@ -7,6 +14,7 @@ export async function awaitCondition(
     intervalMs: 250,
   },
 ) {
+  const tStart = Date.now()
   let interval: any = null;
   let tries = 0;
 
@@ -17,7 +25,7 @@ export async function awaitCondition(
     if (tries >= options.maxRetries) {
       clearInterval(interval);
       reject(
-        new Error(`awaitCondition(${testCondition.toString()}) failed after ${tries}`),
+        new Error(`awaitCondition(${testCondition.toString()}) failed after ${tries}. ${toDurationString(Date.now() - tStart)}`),
       );
       return;
     }
@@ -34,18 +42,22 @@ export async function awaitCondition(
   });
 }
 export async function awaitPageLoadByEvent() {
+  const tStart = Date.now()
   if (isLoadComplete()) return;
   await new Promise((resolve) => {
     window.addEventListener("load", resolve, { once: true });
   });
+  console.log(`awaitPageLoadByEvent(${window.location.href}): loaded. ${toDurationString(Date.now() - tStart)}`)
 }
 
-export async function awaitPageLoadByMutation(timeout = 10000): Promise<void> {
+export async function awaitPageLoadByMutation(timeout = 5 * ONE_MINUTE): Promise<void> {
+  const tStart = Date.now()
   if (isLoadComplete()) return;
   await new Promise<void>((resolve, reject) => {
     const observer = new MutationObserver(() => {
       if (isLoadComplete()) {
         observer.disconnect();
+        console.log(`awaitPageLoadByMutation(${window.location.href}): loaded. ${toDurationString(Date.now() - tStart)}`)
         resolve();
       }
     });
@@ -55,7 +67,7 @@ export async function awaitPageLoadByMutation(timeout = 10000): Promise<void> {
     });
     const timer = setTimeout(() => {
       observer.disconnect();
-      reject(new Error("Timeout waiting for page mutation"));
+      reject(new Error(`awaitPageLoadByMutation(${window.location.href}): Timeout waiting for page mutation. ${toDurationString(Date.now() - tStart)}`));
     }, timeout);
   });
 }
@@ -64,8 +76,9 @@ export async function awaitQuerySelection(
   selectors: string,
   options: { maxRetries?: number; intervalMs?: number, parentElement?: ParentNode } = {}
 ): Promise<HTMLElement> {
+  const tStart = Date.now()
   const { maxRetries = 60, intervalMs = 250, parentElement = document } = options
-  
+
   let interval: any = null;
   let tries = 0;
 
@@ -76,7 +89,7 @@ export async function awaitQuerySelection(
     if (tries >= options.maxRetries) {
       clearInterval(interval);
       reject(
-        new Error(`awaitQuerySelection(${selectors}) failed after ${tries}`),
+        new Error(`awaitQuerySelection(${selectors}) failed after ${tries}. ${toDurationString(Date.now() - tStart)}`),
       );
       return;
     }
@@ -98,6 +111,7 @@ export async function awaitQueryAll(
   selectors: string,
   options: { maxRetries?: number; intervalMs?: number, parentElement?: ParentNode } = {}
 ): Promise<HTMLElement[]> {
+  const tStart = Date.now()
   const { maxRetries = 60, intervalMs = 250, parentElement = document } = options
   let interval: any = null;
   let tries = 0;
@@ -109,7 +123,7 @@ export async function awaitQueryAll(
     if (tries >= maxRetries) {
       clearInterval(interval);
       reject(
-        new Error(`awaitQuerySelection(${selectors}) failed after ${tries}`),
+        new Error(`awaitQuerySelection(${selectors}) failed after ${tries}. ${toDurationString(Date.now() - tStart)}`),
       );
       return;
     }
@@ -135,6 +149,7 @@ export async function awaitElementById(
     intervalMs: 250,
   },
 ): Promise<HTMLElement> {
+  const tStart = Date.now()
   let interval: any = null;
   let tries = 0;
 
@@ -144,7 +159,7 @@ export async function awaitElementById(
   ): void => {
     if (tries >= options.maxRetries) {
       clearInterval(interval);
-      reject(new Error(`awaitElementById(${elementId}) failed after ${tries}`));
+      reject(new Error(`awaitElementById(${elementId}) failed after ${tries}. ${toDurationString(Date.now() - tStart)}`));
       return;
     }
     tries++;
@@ -168,6 +183,7 @@ export async function awaitDocumentElementFocus(
     intervalMs: 250,
   },
 ): Promise<void> {
+  const tStart = Date.now()
   let interval: any = null;
   let tries = 0;
   const trial = async (
@@ -182,7 +198,7 @@ export async function awaitDocumentElementFocus(
     }
     if (tries >= options.maxRetries) {
       clearInterval(interval);
-      reject(new Error(`awaitDocumentFocus failed after ${tries}`));
+      reject(new Error(`awaitDocumentFocus(${element.tagName.toLowerCase()}[${0 === element.id.length ? `className="${element.className}"` : `id="${element.id}"`}]): failed after ${tries}. ${toDurationString(Date.now() - tStart)}`));
       return;
     }
     element.focus();

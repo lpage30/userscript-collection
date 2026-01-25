@@ -1,14 +1,14 @@
 // @grant       GM_xmlhttpRequest
 // @connect     maps.co
 import APIConfig from '../data_files/geocode_maps_co_api.config.json'
-import { GeoCoordinate, GeoAddress } from '../datatypes'
+import { GeoCoordinate, GeoAddress, FullAddress, joinFullAddress } from '../datatypes'
 import { awaitDelay } from '../../common/await_functions'
 
 export interface GeocodeServiceAPI {
     name: string
-    geocodeAddress(address: Omit<GeoAddress, 'coordinate'>): Promise<GeoCoordinate | undefined>
+    geocodeAddress(address: FullAddress | string): Promise<GeoAddress | undefined>
     resolveToAddress(coordinate: GeoCoordinate): Promise<GeoAddress | undefined>
-    searchPlace(placeName: string): Promise<GeoAddress | undefined>
+    geocodePlace(placeName: string): Promise<GeoAddress | undefined>
 }
 interface GeocodeMapsCoAPIConfig {
     geocodeMapsCoAPIKey: string
@@ -37,15 +37,26 @@ interface GeocodeMapsCoReverseRequest {
 }
 interface GeocodeMapsCoSearchRequest {
     command: 'search'
-    params: string | Partial<{
-        street: string,
-        city: string,
-        state: string,
-        country: string,
-        postalcode: string
-    }>
+    params: string | FullAddress
 }
-
+function toGeoAddress(response: GeocodeMapsCoPlaceRecord, address?: FullAddress | string, ): GeoAddress {
+    return {
+        address: joinFullAddress({
+            street: address ? (typeof address === 'string' ? address : address.street) : undefined,
+            city: response.address.city,
+            state: response.address.state,
+            postalcode: address ? (typeof address === 'string' ? undefined : address.postalcode) : undefined,
+            country: response.address.country,
+        }),
+        city: response.address.city,
+        state: response.address.state,
+        country: response.address.country,
+        coordinate: {
+            lat: parseFloat(response.lat),
+            lon: parseFloat(response.lon),
+        }
+    }
+}
 class GeocodeMapsCoAPI implements GeocodeServiceAPI {
     private config: GeocodeMapsCoAPIConfig
     private lastCallTimestamp: number
@@ -151,23 +162,15 @@ class GeocodeMapsCoAPI implements GeocodeServiceAPI {
         } while (attempts < this.config.maxAttempts)
     }
 
-    async geocodeAddress(address: Omit<GeoAddress, 'coordinate'>): Promise<GeoCoordinate | undefined> {
+    async geocodeAddress(address: FullAddress | string): Promise<GeoAddress | undefined> {
         const request: GeocodeMapsCoSearchRequest = {
             command: 'search',
-            params: {
-                street: address.address,
-                city: address.city,
-                state: address.state,
-                country: address.country
-            }
+            params: address
         }
         const response = await this.executeCall(request)
         const result: GeocodeMapsCoPlaceRecord | undefined = Array.isArray(response) ? response[0] : response
         return result
-            ? {
-                lat: parseFloat(result.lat),
-                lon: parseFloat(result.lon)
-            }
+            ? toGeoAddress(result, address)
             : undefined
     }
 
@@ -182,19 +185,11 @@ class GeocodeMapsCoAPI implements GeocodeServiceAPI {
         const response = await this.executeCall(request)
         const result: GeocodeMapsCoPlaceRecord | undefined = Array.isArray(response) ? response[0] : response
         return result
-            ? {
-                city: result.address.city,
-                state: result.address.state,
-                country: result.address.country,
-                coordinate: {
-                    lat: parseFloat(result.lat),
-                    lon: parseFloat(result.lon),
-                }
-            }
+            ? toGeoAddress(result)
             : undefined
     }
 
-    async searchPlace(placeName: string): Promise<GeoAddress | undefined> {
+    async geocodePlace(placeName: string): Promise<GeoAddress | undefined> {
         const request: GeocodeMapsCoSearchRequest = {
             command: 'search',
             params: placeName
@@ -202,15 +197,7 @@ class GeocodeMapsCoAPI implements GeocodeServiceAPI {
         const response = await this.executeCall(request)
         const result: GeocodeMapsCoPlaceRecord | undefined = Array.isArray(response) ? response[0] : response
         return result
-            ? {
-                city: result.address.city,
-                state: result.address.state,
-                country: result.address.country,
-                coordinate: {
-                    lat: parseFloat(result.lat),
-                    lon: parseFloat(result.lon),
-                }
-            }
+            ? toGeoAddress(result, placeName)
             : undefined
     }
 

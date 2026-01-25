@@ -18,6 +18,7 @@ import {
     deserializeElement
 } from '../serialize_deserialize_functions'
 import { GeoCoordinate, GeodataSourceType, parseAddress } from '../../geocoding/datatypes'
+import { geocodeAddress } from '../../geocoding/geocode_address'
 
 import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 import { cacheWrapper } from '../propertyinfocache'

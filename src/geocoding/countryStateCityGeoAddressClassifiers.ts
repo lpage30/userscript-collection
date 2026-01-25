@@ -2,8 +2,7 @@ import {
     GeoCoordinate,
     GeoAddress,
     toGeoAddressString,
-    isValidGeoCoordinate,
-    measureDistance,
+    isValidGeoCoordinate
 } from './datatypes'
 import { Country, State, City, CountryStateCityAddress, indexOfClosestOne } from './countrystatecitytypes'
 import { getCountries, getCountry } from './generated_registered_country_state_city_map_functions'
@@ -117,7 +116,25 @@ function classifyGeoStateCity(geoAddress: GeoAddress, country: Country): { state
     }
     return undefined
 }
+export function countryStateCityAddressToGeoAddress(countryStateCity: CountryStateCityAddress): GeoAddress {
 
+    return {
+        address: countryStateCity.address,
+        city: countryStateCity.city ? countryStateCity.city.name : undefined,
+        state: countryStateCity.state ? countryStateCity.state.name : undefined,
+        country: countryStateCity.country ? countryStateCity.country.name : undefined,
+        coordinate: isValidGeoCoordinate(countryStateCity.coordinate)
+            ? countryStateCity.coordinate
+            : isValidGeoCoordinate(countryStateCity.city) 
+                ? { lat: countryStateCity.city.lat, lon: countryStateCity.city.lon }
+                : isValidGeoCoordinate(countryStateCity.state)
+                    ? { lat: countryStateCity.state.lat, lon: countryStateCity.state.lon }
+                    : isValidGeoCoordinate(countryStateCity.country)
+                        ? { lat: countryStateCity.country.lat, lon: countryStateCity.country.lon }
+                        : undefined
+    }
+    
+}
 export async function classifyGeoCountryStateCity(geoAddress: GeoAddress): Promise<CountryStateCityAddress> {
     const country = await classifyGeoCountry(geoAddress)
     let state: State = classifyGeoState(geoAddress, country)

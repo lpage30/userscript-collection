@@ -10,8 +10,7 @@ import {
     toPropertyInfoCard,
     geocodePropertyInfoCard,
 } from '../propertyinfotype_functions'
-import { getGeocodeServiceInstance } from '../../geocoding/geocoding_api/geocodeMapsCoAPI'
-
+import { parseAddress, joinFullAddress, FullAddress } from '../../geocoding/datatypes'
 import { RealEstateSite, PropertyPageType } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
 import { toDurationString } from '../../common/datetime'
@@ -19,7 +18,6 @@ import { toDurationString } from '../../common/datetime'
 import { toPictureSerialized, toScaledPictureSerialized, toScaledImgSerialized, deserializeImg, toSerializedElement, deserializeElement } from '../serialize_deserialize_functions'
 import { awaitQuerySelection, awaitQueryAll, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
 import { cacheWrapper } from '../propertyinfocache'
-import { fetchImgMetadata } from '../../common/image_metadata_extractor'
 
 interface ScriptAmenityFeature {
     '@type': string
@@ -90,32 +88,27 @@ async function scrapeScriptData(scriptData: ScriptData, element?: HTMLElement): 
         result.isLand = (scriptData.floorSize ?? {}).value === undefined
         result.Type = result.isLand ? 'land' : scriptData['@type'] as string
         if (scriptData.address) {
-            let addressParts = [
-                [undefined, null, ''].includes(scriptData.address.streetAddress) ? undefined : scriptData.address.streetAddress,
-                [undefined, null, ''].includes(scriptData.address.addressLocality) ? undefined : scriptData.address.addressLocality,
-                [undefined, null, ''].includes(scriptData.address.addressRegion) ? undefined : scriptData.address.addressRegion,
-                [undefined, null, ''].includes(scriptData.address.addressCountry) ? undefined : scriptData.address.addressCountry
-            ]
-            if (addressParts.some(part => part === undefined) && 0 < elementTextLines.length) {
-                const nonEmptyParts = addressParts.filter(part => part !== undefined)
+            let fullAddress: FullAddress = {
+                street: [undefined, null, ''].includes(scriptData.address.streetAddress) ? undefined : scriptData.address.streetAddress,
+                city: [undefined, null, ''].includes(scriptData.address.addressLocality) ? undefined : scriptData.address.addressLocality,
+                postalcode: [undefined, null, ''].includes(scriptData.address.postalCode) ? undefined : scriptData.address.postalCode,
+                state: [undefined, null, ''].includes(scriptData.address.addressRegion) ? undefined : scriptData.address.addressRegion,
+                country: [undefined, null, ''].includes(scriptData.address.addressCountry) ? 'United States' : scriptData.address.addressCountry
+            }
+            if (Object.values(fullAddress).some(v => v === undefined) && 0 < elementTextLines.length) {
+                const nonEmptyParts = Object.values(fullAddress).filter(v => v !== undefined)
                 if (0 < nonEmptyParts.length) {
                     const foundLine = elementTextLines.find(line => nonEmptyParts.every(part => line.includes(part)))
                     if (foundLine) {
-                        const parsedParts = foundLine.split(',').map(t => t.trim())
-                        addressParts = [
-                            addressParts[0] ?? (3 <= parsedParts.length ? parsedParts[0] : undefined),
-                            addressParts[1] ?? parsedParts[3 <= parsedParts.length ? 1 : 0],
-                            addressParts[2] ?? parsedParts[3 <= parsedParts.length ? 2 : 1]?.split(' ')[0],
-                            addressParts[3] ?? parsedParts[3 <= parsedParts.length ? 3 : 2] ?? 'United States'
-                        ]
+                        fullAddress = parseAddress(foundLine)
                     }
                 }
             }
-            result.city = addressParts[1]
-            result.state = addressParts[2]
-            result.country = addressParts[3]
+            result.city = fullAddress.city
+            result.state = fullAddress.state
+            result.country = fullAddress.country
 
-            result.address = `${addressParts[0] ?? ''}`
+            result.address = joinFullAddress(fullAddress)
         }
         result.Sqft = (scriptData.floorSize ?? {}).value
         if (scriptData.geo) {
@@ -146,27 +139,6 @@ async function scrapeScriptData(scriptData: ScriptData, element?: HTMLElement): 
 
     result.serializedPicture = toScaledImgSerialized(img ? { src: img.url, width: img.width, height: img.height } : undefined, MaxPropertyInfoImageWidth)
     result.Picture = deserializeImg(result.serializedPicture, result)
-    if (undefined === result.coordinate && imgs) {
-        for (const img of imgs) {
-            const metadata = await fetchImgMetadata(img.url, false)
-            if (metadata.exif && metadata.exif.gps) {
-                console.log(`Coordinate Found in Img ${img.url}. EXIF result: ${JSON.stringify(metadata.exif, null, 2)}`)
-                result.coordinate = metadata.exif.gps
-                break
-            }
-        }
-        if (undefined === result.coordinate) {
-            result.coordinate = await getGeocodeServiceInstance().geocodeAddress({
-                address: result.address,
-                city: result.city,
-                state: result.state,
-                country: result.country
-            })
-            if (result.coordinate) {
-                console.log(`Coordinate Found via GeocodeService (${getGeocodeServiceInstance().name}).`)
-            }
-        }
-    }
     return result
 }
 

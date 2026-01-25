@@ -42,8 +42,6 @@ export enum GeoAddressField {
     country = 'country',
     coordinate = 'coordinate'
 }
-export interface Address {
-}
 export interface GeoAddress {
     [GeoAddressField.address]?: string
     [GeoAddressField.city]?: string
@@ -66,12 +64,60 @@ export const toDistanceString = (distance: Distance): string => `${distance.valu
 export function toNameRegex(name: string): RegExp {
     return new RegExp(`^([,\\s]*|.*[,\\s]+)${name}([,\\s]*|[,\\s]+.*)$`, 'ig')
 }
+export interface FullAddress {
+    street?: string
+    city?: string
+    state?: string
+    postalcode?: string
+    country?: string
+}
+export function joinFullAddress(address: FullAddress): string {
+    const { street, city, state, postalcode, country} = address
+    let result = ''
+    if (street) {
+        result = street
+    }
+    if (city) {
+        result = `${result}${0 < result.length ? ', ' : ''}${city}`
+    }
+    if (state) {
+        result = `${result}${0 < result.length ? ', ' : ''}${state}`
+    }
+    if (postalcode) {
+        result = `${result}${0 < result.length ? (state ? ' ' : ', ') : ''}${postalcode}`
+    }
+    if (country) {
+        result = `${result}${0 < result.length ? ', ' : ''}${country}`
+    }
+    return result
+}
+export function fullAddressToGeoAddress(address: FullAddress, coordinate?: GeoCoordinate): GeoAddress {
+    return {
+        address: joinFullAddress(address),
+        city: address.city,
+        state: address.state,
+        country: address.country,
+        coordinate
+    }
+}
+export function parseFullAddress(addressLine: string): FullAddress {
+    const parts = addressLine.split(',').map(t => t.trim()).filter(t => 0 < t.length)
+    const street = parts[0]
+    const city = 1 < parts.length ? parts[1] : undefined
+    const [state, postalcode ] = 2 < parts.length ? parts[2].split(' ').map(t => t.trim()).filter(t => 0 < t.length) : [undefined, undefined]
+    const country = 3 < parts.length ? parts[3] : undefined
+    return {
+        street,
+        city,
+        state,
+        postalcode,
+        country
+    }
+}
+
 export function parseAddress(addressLine: string): { address: string, city?: string, state?: string, country?: string } {
     const address = addressLine
-    const parts = address.split(',').map(t => t.trim()).filter(t => 0 < t.length)
-    const city = 1 < parts.length ? parts[1] : undefined
-    const state = 2 < parts.length ? parts[2].split(' ')[0] : undefined
-    const country = 3 < parts.length ? parts[3] : undefined
+    const { city, state, country } = parseFullAddress(addressLine)
     return {
         address,
         city,

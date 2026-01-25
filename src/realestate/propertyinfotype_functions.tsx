@@ -13,6 +13,8 @@ import {
     toGeocodedCountryStateCityAddress
 
 } from '../geocoding/geocodedcountrystatecitytypes'
+import { deserializeImgToImgData } from './serialize_deserialize_functions'
+import { geocodeAddress } from '../geocoding/geocode_address'
 import { classifyGeoCountryStateCity } from '../geocoding/countryStateCityGeoAddressClassifiers'
 import { findClosestGeodataPlace } from '../geocoding/findClosestPlace'
 import { PropertyInfo } from './propertyinfotypes'
@@ -74,6 +76,16 @@ export function toPropertyInfoCard(data: Partial<PropertyInfo>): PropertyInfo {
 export async function geocodePropertyInfoCard(data: PropertyInfo, reportProgress?: (progress: string) => void): Promise<PropertyInfo> {
     if (data.geoPropertyInfo) return data
     const tstart = Date.now()
+    if (undefined === data.coordinate) {
+        const imgData = deserializeImgToImgData(data.serializedPicture)
+        const geoAddress = await geocodeAddress(data.address, imgData ? [imgData.src] : [])
+        if (geoAddress && geoAddress.coordinate) {
+            data.coordinate = geoAddress.coordinate
+            data.displayLinesArray = [...data.displayLinesArray, `CoordinateSource: ${geoAddress.origin}`]
+        }
+    } else {
+        data.displayLinesArray = [...data.displayLinesArray, `CoordinateSource: Listing`]
+    }
     const propertyPlace: GeocodedCountryStateCityAddress = await toGeocodedCountryStateCityAddress(await classifyGeoCountryStateCity(data as GeoAddress))
     const closestOceanPlace: PlaceDistance | undefined = await findClosestGeodataPlace(data.oceanGeodataSource, propertyPlace)
     const oceanDistance = closestOceanPlace

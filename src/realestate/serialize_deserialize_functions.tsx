@@ -96,6 +96,11 @@ export function toImg(
         style={{ ...bpHomeCardPhotoImage }}
     />)
 }
+export function deserializeImgToImgData(serializedImg: string): { src: string, width?: number, height?: number } | undefined {
+    if ([null, undefined].includes(serializedImg)) return undefined
+    const args: SerializedImg = JSON.parse(serializedImg)
+    return args.imgData
+}
 export function deserializeImg(serializedImg: string, propertyInfo: Partial<PropertyInfo>): ReactNode | undefined {
 
     if ([null, undefined].includes(serializedImg)) return undefined
