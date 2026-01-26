@@ -1,52 +1,60 @@
-import React, { ReactNode, useRef, useState, BaseSyntheticEvent, JSX } from 'react'
+import React, { useRef, useState, JSX, useEffect } from 'react'
 import "../common/ui/styles.scss";
-import { PropertyInfo } from './propertyinfotypes';
 import { PropertyInfoCard } from './PropertyInfoCard';
 import { Button } from 'primereact/button';
 import { ControlPanel } from '../common/ui/control_panel'
-import { ListedPropertyDashboardPopup } from './ListedPropertyDashboard';
+import { AddedHeaderComponent } from '../dashboardcomponents/Dashboard';
+import { toPropertyCardDashboardComponent } from './PropertyInfoCard';
+import { DashboardPopup } from '../dashboardcomponents/DashboardPopup';
 import { createSpinningContentElement } from '../common/ui/style_functions'
+import { ScrapedProperties } from './realestatesitetypes';
+import { toRealestateDashboardFeatures } from './realestate_features';
 
 interface RealestateControlPanelProps {
     id: string
     siteName: string
     title: string
     toggleMapDisplay: (parentElement?: HTMLElement) => void
-    properties: PropertyInfo[]
-    loadProperties?: (force: boolean) => Promise<PropertyInfo[]>
+    scrapedProperties: ScrapedProperties
+    containsOlderResults: boolean
+    loadProperties?: (force: boolean, includeOlderResults?: boolean) => Promise<ScrapedProperties>
 }
 export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
     id,
     siteName,
     title,
     toggleMapDisplay,
-    properties,
+    scrapedProperties,
+    containsOlderResults,
     loadProperties
 }) => {
     const [state, setState] = useState<{
         isLoadingProperties: boolean,
-        properties: PropertyInfo[]
+        scrapedProperties: ScrapedProperties
     }>({
         isLoadingProperties: false,
-        properties
+        scrapedProperties,
     })
-    const closeListing = useRef(null)
+    useEffect(() => {
+
+    }, [state])
+
     const refreshDashboard = useRef(null)
     const toggleMapTitle = 'Toggle Map Display'
 
-    const reloadProperties = async (issueRefreshDashboard: boolean) => {
+    const reloadProperties = async (issueRefreshDashboard: boolean, includeOlderResults?: boolean) => {
         if (undefined === loadProperties) return
         setState({ ...state, isLoadingProperties: true })
-        const newProperties = await loadProperties(true)
+        const newProperties = await loadProperties(true, includeOlderResults)
         setState({
             isLoadingProperties: false,
-            properties: newProperties,
+            scrapedProperties: newProperties
         })
-        if (issueRefreshDashboard && refreshDashboard.current) refreshDashboard.current(true)
+        if (issueRefreshDashboard && refreshDashboard.current) refreshDashboard.current()
     }
     const getMapButton = (getParentElement?: () => HTMLElement): JSX.Element => {
-        if (0 < state.properties.length && state.properties[0].createMapButton) {
-            return state.properties[0].createMapButton(toggleMapTitle, () => toggleMapDisplay(getParentElement ? getParentElement() : undefined))
+        if (0 < state.scrapedProperties.properties.length && state.scrapedProperties.properties[0].createMapButton) {
+            return state.scrapedProperties.properties[0].createMapButton(toggleMapTitle, () => toggleMapDisplay(getParentElement ? getParentElement() : undefined))
         }
         return (
             <Button
@@ -56,24 +64,26 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
         )
     }
 
-    const getReloadPropertiesButton = (usage: 'dashboard' | 'controlpanel'): JSX.Element => {
-        let loadPropertiesButtonContent: string | JSX.Element = 'Reload Properties'
+    const getReloadPropertiesButton = (usage: 'dashboard' | 'controlpanel', includeOlderResults?: boolean): JSX.Element => {
+        const propertyListingType = `${includeOlderResults === true ? 'All (old & new)' : containsOlderResults ? 'Most Recent' : ''} Properties`.trim()
+        let loadPropertiesButtonContent: string | JSX.Element = `Reload ${propertyListingType}`
         if (state.isLoadingProperties) {
 
             loadPropertiesButtonContent = createSpinningContentElement({
                 popupElementType: 'NoPopup',
                 spinnerSize: 'small',
                 content: {
-                    content: 'Reloading Properties'
+                    content: `Reloading ${propertyListingType}`
                 }
             })
         }
         return <Button
             className={'app-button'}
-            onClick={() => reloadProperties('dashboard' === usage)}
+            onClick={() => reloadProperties('dashboard' === usage, includeOlderResults)}
             disabled={state.isLoadingProperties}>{loadPropertiesButtonContent}</Button>
     }
     const getContent = () => {
+        const dashboardTitle = `${title} (${state.scrapedProperties.properties.length}) ${containsOlderResults ? (state.scrapedProperties.containsOlderResults ? '(old and new)' : ('most recent')) : ''}`.trim()
         return (
             <table style={{
                 tableLayout: 'auto',
@@ -85,32 +95,52 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
             }}
             ><tbody>
                     <>
-                        {1 < state.properties.length &&
-                            <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><ListedPropertyDashboardPopup
-                                title={`${title} (${state.properties.length})`}
-                                siteName={siteName}
-                                properties={state.properties}
-                                onDashboardClose={() => setState({ ...state, properties: [...properties] })}
-                                registerClose={(closeDashboard: () => void) => {
-                                    closeListing.current = closeDashboard
-                                }}
-                                registerRefreshFunction={(refreshFunction: (showDialog: boolean) => void) => {
-                                    refreshDashboard.current = refreshFunction
-                                }}
-                                addedDashboardHeaderComponent={loadProperties ? {
-                                    after: 'picklist',
-                                    element: getReloadPropertiesButton('dashboard')
+                        {1 < state.scrapedProperties.properties.length &&
+                            <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><DashboardPopup
+                                dashboardShortName={dashboardTitle}
+                                dashboardProps={{
+                                    title: dashboardTitle,
+                                    getCards: () => state.scrapedProperties.properties,
+                                    contentLayout: {
+                                        type: 'Card',
+                                        properties: {
+                                            layout: 'grid-2',
+                                            cardStyle: { height: '520px', width: '600px' },
+                                            toCardComponent: toPropertyCardDashboardComponent
+                                        }
+                                    },
+                                    onClose: () => setState({ ...state, scrapedProperties: { ...scrapedProperties } }),
+                                    features: toRealestateDashboardFeatures(siteName, state.scrapedProperties.properties),
+                                    registerRerenderFunction: (rerenderFunction) => {
+                                        refreshDashboard.current = rerenderFunction
+                                    },
+                                    addedHeaderComponents: loadProperties
+                                        ? [
+                                            {
+                                                after: 'picklist',
+                                                element: getReloadPropertiesButton('dashboard')
 
-                                } : undefined}
-                            /></td></tr>
+                                            } as AddedHeaderComponent,
+                                            containsOlderResults === true
+                                                ? {
+                                                    after: 'picklist',
+                                                    element: getReloadPropertiesButton('dashboard', true)
+                                                } as AddedHeaderComponent
+                                                : undefined
+                                        ].filter(a => ![undefined, null].includes(a))
+                                        : undefined
+                                }}
+                            />
+                            </td></tr>
                         }
-                        {1 === state.properties.length &&
+                        {1 === state.scrapedProperties.properties.length &&
                             <>
-                                <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state.properties[0]} usage={'controlpanel'} /></td></tr>
+                                <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state.scrapedProperties.properties[0]} usage={'controlpanel'} /></td></tr>
                             </>
                         }
                         <tr><td style={{ padding: 5, margin: 0 }} className={'text-center'}>{getMapButton()}</td></tr>
                         {loadProperties && <tr><td style={{ padding: 5, margin: 0 }} className={'text-center'}>{getReloadPropertiesButton('controlpanel')}</td></tr>}
+                        {loadProperties && containsOlderResults === true && <tr><td style={{ padding: 5, margin: 0 }} className={'text-center'}>{getReloadPropertiesButton('controlpanel', true)}</td></tr>}
                     </>
                 </tbody></table>
         )

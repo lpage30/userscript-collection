@@ -12,13 +12,19 @@ export const propertyPageTypeString = (type: PropertyPageType): string => {
         default: return 'Single Property'
     }
 }
+export interface ScrapedProperties {
+    properties: PropertyInfo[]
+    containsOlderResults: boolean
+}
+
 export interface RealestatePage {
     pageType: PropertyPageType
+    containsOlderResults: boolean
     isPage: (href: string) => boolean;
     isMapToggleElement: (element: HTMLElement) => boolean
     awaitForPageLoad: () => Promise<void>
     insertContainerOnPage: (container: HTMLElement) => Promise<void>
-    scrapePage: (reportProgress: (progress: string) => void, force?: boolean) => Promise<PropertyInfo[]>
+    scrapePage: (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean) => Promise<ScrapedProperties>
     getMapToggleElements: (parentElement?: HTMLElement) => Promise<HTMLElement[]>
 }
 export interface RealEstateSite {

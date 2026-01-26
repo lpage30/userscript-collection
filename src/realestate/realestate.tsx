@@ -79,17 +79,18 @@ export function toUserscript(site: RealEstateSite): Userscript {
       const reportProgress = (progress: string) => {
         console.log(`Progress: ${progress}`)
       }
-      const loadProperties = (force: boolean) => page.scrapePage(reportProgress, force)
+      const loadProperties = (force: boolean, includeOlderResults?: boolean) => page.scrapePage(reportProgress, force, includeOlderResults)
 
-      const properties = await loadProperties(false)
-      console.log(`${site.name} ${propertyPageTypeString(page.pageType)} ${properties.length} properties: ${toDurationString(Date.now() - tstartLoad)}`)
-      const title = `${site.name} (${properties[0].country}) ${propertyPageTypeString(page.pageType)}${PropertyPageType.Single === page.pageType ? ` ${properties[0].address}` : ''}`
+      const scrapedProperties = await loadProperties(false)
+      console.log(`${site.name} ${propertyPageTypeString(page.pageType)} ${scrapedProperties.properties.length} properties: ${toDurationString(Date.now() - tstartLoad)}`)
+      const title = `${site.name} (${scrapedProperties.properties[0].country}) ${propertyPageTypeString(page.pageType)}${PropertyPageType.Single === page.pageType ? ` ${scrapedProperties.properties[0].address}` : ''}`
       renderInContainer(container, <RealestateControlPanel
         id={renderableId}
         siteName={site.name}
         title={title}
         toggleMapDisplay={toggleMaps}
-        properties={properties}
+        scrapedProperties={scrapedProperties}
+        containsOlderResults={page.containsOlderResults}
         loadProperties={loadProperties}
       />
       )

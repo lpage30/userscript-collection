@@ -1,11 +1,10 @@
 import React, { JSX, useState, useRef, useEffect } from 'react'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
-import { awaitDelay } from "../common/await_functions";
 import { LabelValueTable } from '../common/ui/LabelValueTable'
 import { GeoPropertyInfo, PropertyDetails, PropertyDetailsFields } from './propertyinfotypes'
 import { GeocodedCity, GeocodedCountry, GeocodedCountryStateCityAddress, GeocodedState, PlaceDistance } from '../geocoding/geocodedcountrystatecitytypes'
-import { GeoCoordinate, toGeoCoordinateString } from '../geocoding/datatypes'
+import { GeoCoordinate, toGeoCoordinateString, toGoogleMapsPlace } from '../geocoding/datatypes'
 import { splitByCapitals, wordsToTitleCase } from '../common/functions'
 
 const countryStateCityToJSXElement = (name: string, data: GeocodedCity | GeocodedState | GeocodedCountry): JSX.Element => {
@@ -26,7 +25,7 @@ const countryStateCityToJSXElement = (name: string, data: GeocodedCity | Geocode
                 )}
             </details>
         ))
-        return <details><summary>{`${data.name} ${coordinates}`}</summary>{datasourceDetails}</details>
+        return <details><summary><a href={toGoogleMapsPlace(data as GeoCoordinate)} target={'_blank'}>{`${data.name} ${coordinates}`}</a></summary>{datasourceDetails}</details>
     }
     return <>{`${name} Not Found`}</>
 }
@@ -49,7 +48,7 @@ const PlaceDistanceCard: React.FC<PlaceDistanceCardProps> = ({
         ] : []
 
     const placeDetails: [string, JSX.Element][] = [
-        ['Coordinate', <>{toGeoCoordinateString(info.place.coordinate)}</>],
+        ['Coordinate', <a href={toGoogleMapsPlace(info.place.coordinate)} target={'_blank'}>{toGeoCoordinateString(info.place.coordinate)}</a>],
         ['Region', info.place.region
             ? <LabelValueTable id={`${id}-place-region`} labelValueArray={countryStateCity} border={true} />
             : <>Not Found</>
@@ -75,7 +74,7 @@ const GeocodedCountryStateCityAddressCard: React.FC<GeocodedCountryStateCityAddr
 
     const details: [string, JSX.Element][] = [
         ['Address', <>{info.address ?? 'address not disclosed'}</>],
-        ['Coordinates', <>{toGeoCoordinateString(info.coordinate)}</>],
+        ['Coordinates', <a href={toGoogleMapsPlace(info.coordinate)} target={'_blank'}>{toGeoCoordinateString(info.coordinate)}</a>],
         ['City', countryStateCityToJSXElement('City', info.city)],
         ['State', countryStateCityToJSXElement('State', info.state)],
         ['Country', countryStateCityToJSXElement('Country', info.country)],
@@ -114,7 +113,7 @@ const PropertyFullDetailTable: React.FC<PropertyFullDetailTableProps> = ({
     const details: [string, JSX.Element][] = Object.values(PropertyDetailsFields).map(fieldName => {
         const label: string = wordsToTitleCase(splitByCapitals(fieldName), () => false).join(' ')
         const value: JSX.Element = fieldName === 'coordinate'
-            ? <>{toGeoCoordinateString(property[fieldName])}</>
+            ? <a href={toGoogleMapsPlace(property[fieldName])} target={'_blank'}>{toGeoCoordinateString(property[fieldName])}</a>
             : fieldName === 'geoPropertyInfo'
                 ? <GeoPropertyInfoCard id={`${id}-geoproperty-info`} info={property[fieldName]} />
                 : <>{`${property[fieldName]}`}</>

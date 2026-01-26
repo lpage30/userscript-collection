@@ -31,7 +31,7 @@ export const toGeoCoordinateString = (coordinate: GeoCoordinate): string =>
     coordinate ? `Lat: ${coordinate.lat}, Lon: ${coordinate.lon}` : 'Coordinates not disclosed'
 
 export const toGoogleMapsPlace = (coordinate: GeoCoordinate): string | undefined =>
-    coordinate ? `https://www.google.com/maps/place/@${coordinate.lat},${coordinate.lon}` : undefined
+    coordinate ? `https://www.google.com/maps/place/${coordinate.lat},${coordinate.lon}` : undefined
 
 export interface Geocoding {
     [geodataSource: string]: {

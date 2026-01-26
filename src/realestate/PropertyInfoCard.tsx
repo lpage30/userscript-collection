@@ -2,6 +2,7 @@ import React, { JSX, CSSProperties } from "react";
 import { PropertyInfo } from "./propertyinfotypes";
 import { PropertyFullDetailCardPopup } from "./PropertyFullDetailCard";
 import { Card } from "../dashboardcomponents/datatypes";
+import { toGoogleMapsPlace } from "../geocoding/datatypes";
 import { reactToHTMLElement } from "../common/ui/renderRenderable";
 
 interface PropertyInfoCardProps {
@@ -130,8 +131,8 @@ const PropertyInfoDashboardCard: React.FC<Omit<PropertyInfoCardProps, 'usage'>> 
           <span style={bpHomeCardStatsData}>{sqft} sq ft</span>
         </div>
         <a href={info.href('')} target={'_target'} style={{ textDecoration: 'none', color: 'inherit' }}>
-          <span style={bpHomeCardAddress}>{info.address}</span>
-          {info.geoPropertyInfo && <span style={bpHomeCardAddress}>{info.geoPropertyInfo.displayString}</span>}
+          <span style={bpHomeCardAddress}><a href={toGoogleMapsPlace(info.coordinate)} target={'_blank'}>{info.address}</a></span>
+          {info.geoPropertyInfo && <span style={bpHomeCardAddress}><a href={toGoogleMapsPlace(info.geoPropertyInfo.closestOceanPlace.place.coordinate)} target={'_blank'}>{info.geoPropertyInfo.displayString}</a></span>}
         </a>
       </div>
     </div>
@@ -153,7 +154,7 @@ const PropertyInfoDisplayCard: React.FC<Omit<PropertyInfoCardProps, 'usage'>> = 
       result.push(<tr><td colSpan={2} style={{ padding: 0, margin: 0 }} className={'text-center'}>{info.Picture}</td></tr>)
     }
     if (info.address) {
-      result.push(<tr><td colSpan={2} style={{ padding: 0, margin: 0 }} className={'text-sm text-center'}>{info.address}</td></tr>)
+      result.push(<tr><td colSpan={2} style={{ padding: 0, margin: 0 }} className={'text-sm text-center'}><a href={toGoogleMapsPlace(info.coordinate)} target={'_blank'}>{info.address}</a></td></tr>)
     }
     if (info.Type) {
       result.push(<tr><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'}>Type</td><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'}>{info.Type}</td></tr>)
@@ -177,7 +178,7 @@ const PropertyInfoDisplayCard: React.FC<Omit<PropertyInfoCardProps, 'usage'>> = 
       result.push(<tr><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'}>Bathrooms</td><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'}>{info.Bathrooms}</td></tr>)
     }
     if (info.geoPropertyInfo) {
-      result.push(<tr><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'} colSpan={2}>{info.geoPropertyInfo.displayString}</td></tr>)
+      result.push(<tr><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'} colSpan={2}><a href={toGoogleMapsPlace(info.geoPropertyInfo.closestOceanPlace.place.coordinate)} target={'_blank'}>{info.geoPropertyInfo.displayString}</a></td></tr>)
     }
     return result
   }

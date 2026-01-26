@@ -12,7 +12,7 @@ import {
 } from '../propertyinfotype_functions'
 import { CountryAddress } from '../../geocoding/datatypes'
 import { parseFullAddress, FullAddress, joinFullAddress } from '../../geocoding/geocoding_api/address_parser'
-import { RealEstateSite, PropertyPageType } from '../realestatesitetypes'
+import { RealEstateSite, PropertyPageType, ScrapedProperties } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
 import { toDurationString } from '../../common/datetime'
 
@@ -149,11 +149,15 @@ async function scrapeScriptData(scriptData: ScriptData, element?: HTMLElement): 
     return result
 }
 
-async function scrapeListing(reportProgress: (progress: string) => void): Promise<PropertyInfo[]> {
+async function scrapeListing(reportProgress: (progress: string) => void, containsOlderResults: boolean, includeOlderResults?: boolean): Promise<PropertyInfo[]> {
     let tBegin = Date.now()
     const properties: PropertyInfo[] = []
-    const elements = Array.from(await awaitQueryAll('div[class*="bp-Homecard "]')).filter(e => 0 < e.innerText.trim().length)
-    const scriptData = Array.from(document.querySelectorAll('script'))
+    let parentElement: ParentNode = document
+    if (containsOlderResults && [undefined, null, false].includes(includeOlderResults)) {
+        parentElement = Array.from(await awaitQueryAll('div[class*="homecard-carousel"]')).slice(-1)[0]
+    }
+    const elements = Array.from(await awaitQueryAll('div[class*="bp-Homecard "]', { parentElement })).filter(e => 0 < e.innerText.trim().length)
+    const scriptData = Array.from(parentElement.querySelectorAll('script'))
         .map(s => s.innerText)
         .filter(t => 0 < t.length && ['{\"@context\"', '[{\"@context\"'].some(prefix => t.startsWith(prefix)))
         .map(t => JSON.parse(t))
@@ -189,6 +193,7 @@ export const RedfinSite: RealEstateSite = {
 
         [PropertyPageType.Feed]: {
             pageType: PropertyPageType.Feed,
+            containsOlderResults: false,
             isPage: (href: string): boolean => ('https://www.redfin.com/#userFeed' === href || 'https://www.redfin.com/' === href),
             awaitForPageLoad: async (): Promise<void> => {
                 await awaitPageLoadByMutation()
@@ -209,17 +214,18 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean): Promise<ScrapedProperties> => {
                 const href = window.location.href
                 const collectData = async (): Promise<PropertyInfo[]> => {
-                    return [...(await scrapeListing(reportProgress))]
+                    return [...(await scrapeListing(reportProgress, RedfinSite.pages[PropertyPageType.Feed].containsOlderResults))]
                 }
-                return cacheWrapper(RedfinSite.name, href, collectData, force)
+                return cacheWrapper(RedfinSite.name, href, collectData, force, includeOlderResults === true)
             }
         },
 
         [PropertyPageType.Listing]: {
             pageType: PropertyPageType.Listing,
+            containsOlderResults: window.location.href.includes('/chat'),
             isPage: (href: string): boolean => (
                 null !== href.match(/^https:\/\/www.redfin.com\/(city|zipcode|neighborhood|chat).*/)
             ),
@@ -239,17 +245,18 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean): Promise<ScrapedProperties> => {
                 const href = window.location.href
                 const collectData = async (): Promise<PropertyInfo[]> => {
-                    return [...(await scrapeListing(reportProgress))]
+                    return [...(await scrapeListing(reportProgress, RedfinSite.pages[PropertyPageType.Listing].containsOlderResults, includeOlderResults))]
                 }
-                return cacheWrapper(RedfinSite.name, href, collectData, force)
+                return cacheWrapper(RedfinSite.name, href, collectData, force, includeOlderResults === true)
             }
         },
 
         [PropertyPageType.Single]: {
             pageType: PropertyPageType.Single,
+            containsOlderResults: false,
             isPage: (href: string): boolean => (null !== href.match(/^https:\/\/www.redfin.com\/.*\/home\/\d+$/)),
             awaitForPageLoad: async (): Promise<void> => {
                 await awaitPageLoadByMutation()
@@ -261,7 +268,7 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean): Promise<ScrapedProperties> => {
                 const href = window.location.href
 
                 const collectData = async (): Promise<PropertyInfo[]> => {
@@ -284,7 +291,7 @@ export const RedfinSite: RealEstateSite = {
                     }
                     return [await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress)]
                 }
-                return cacheWrapper(RedfinSite.name, href, collectData, force)
+                return cacheWrapper(RedfinSite.name, href, collectData, force, includeOlderResults === true)
             }
         }
     }

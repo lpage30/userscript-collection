@@ -7,7 +7,7 @@ import {
     geocodePropertyInfoCard,
     toCreateButtonFunction,
 } from '../propertyinfotype_functions'
-import { PropertyPageType, RealEstateSite } from '../realestatesitetypes'
+import { PropertyPageType, RealEstateSite, ScrapedProperties } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
 import { toDurationString } from '../../common/datetime'
 import {
@@ -136,6 +136,7 @@ export const RealtorSite: RealEstateSite = {
     pages: {
         [PropertyPageType.Listing]: {
             pageType: PropertyPageType.Listing,
+            containsOlderResults: false,
             isPage: (href: string): boolean => href.startsWith('https://www.realtor.com/realestateandhomes-search') || href.startsWith('https://www.realtor.com/recommended'),
             awaitForPageLoad: async (): Promise<void> => {
                 await awaitPageLoadByMutation()
@@ -152,7 +153,7 @@ export const RealtorSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean): Promise<ScrapedProperties> => {
                 const href = window.location.href
                 const collectData = async (): Promise<PropertyInfo[]> => {
                     let tBegin = Date.now()
@@ -166,12 +167,13 @@ export const RealtorSite: RealEstateSite = {
                     if (reportProgress) reportProgress(`Geocoded ${result.length} properties ${toDurationString(Date.now() - tBegin)}`)
                     return result
                 }
-                return cacheWrapper(RealtorSite.name, href, collectData, force)
+                return cacheWrapper(RealtorSite.name, href, collectData, force, includeOlderResults === true)
             },
 
         },
         [PropertyPageType.Single]: {
             pageType: PropertyPageType.Single,
+            containsOlderResults: false,
             isPage: (href: string): boolean => href.startsWith('https://www.realtor.com/realestateandhomes-detail'),
             awaitForPageLoad: async (): Promise<void> => {
                 await awaitPageLoadByMutation()
@@ -189,7 +191,7 @@ export const RealtorSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean): Promise<PropertyInfo[]> => {
+            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean): Promise<ScrapedProperties> => {
                 const href = window.location.href
                 const collectData = async (): Promise<PropertyInfo[]> => {
                     let result: Partial<PropertyInfo> = {
@@ -259,7 +261,7 @@ export const RealtorSite: RealEstateSite = {
                     }
                     return [await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress)]
                 }
-                return cacheWrapper(RealtorSite.name, href, collectData, force)
+                return cacheWrapper(RealtorSite.name, href, collectData, force, includeOlderResults === true)
             }
         },
     }
