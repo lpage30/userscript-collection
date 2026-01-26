@@ -33,6 +33,26 @@ export const toGeoCoordinateString = (coordinate: GeoCoordinate): string =>
 export const toGoogleMapsPlace = (coordinate: GeoCoordinate): string | undefined =>
     coordinate ? `https://www.google.com/maps/place/${coordinate.lat},${coordinate.lon}` : undefined
 
+export const toGoogleFromHereMapsDirections = (destinationCoordinate: GeoCoordinate): string | undefined => {
+    if (destinationCoordinate) {
+        return `https://www.google.com/maps/dir/?api=1&destination=${destinationCoordinate.lat},${destinationCoordinate.lon}`
+    }
+    return undefined
+}
+export const toGoogleMapsDirections = (originCoordinate: GeoCoordinate, destinationCoordinate: GeoCoordinate): string | undefined => {
+    if (originCoordinate && destinationCoordinate) {
+        return `https://www.google.com/maps/dir/?api=1&origin=${originCoordinate.lat},${originCoordinate.lon}&destination=${destinationCoordinate.lat},${destinationCoordinate.lon}`
+    }
+    if (originCoordinate) {
+        return toGoogleMapsPlace(originCoordinate)
+    }
+    if (destinationCoordinate) {
+        return toGoogleMapsPlace(destinationCoordinate)
+    }
+    return undefined
+}
+
+
 export interface Geocoding {
     [geodataSource: string]: {
         geojsonIndexes: number[]

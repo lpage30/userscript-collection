@@ -4,7 +4,7 @@ import { Dialog } from 'primereact/dialog'
 import { LabelValueTable } from '../common/ui/LabelValueTable'
 import { GeoPropertyInfo, PropertyDetails, PropertyDetailsFields } from './propertyinfotypes'
 import { GeocodedCity, GeocodedCountry, GeocodedCountryStateCityAddress, GeocodedState, PlaceDistance } from '../geocoding/geocodedcountrystatecitytypes'
-import { GeoCoordinate, toGeoCoordinateString, toGoogleMapsPlace } from '../geocoding/datatypes'
+import { GeoCoordinate, toGeoCoordinateString, toGoogleMapsPlace, toGoogleFromHereMapsDirections, toGoogleMapsDirections } from '../geocoding/datatypes'
 import { splitByCapitals, wordsToTitleCase } from '../common/functions'
 
 const countryStateCityToJSXElement = (name: string, data: GeocodedCity | GeocodedState | GeocodedCountry): JSX.Element => {
@@ -33,10 +33,12 @@ const countryStateCityToJSXElement = (name: string, data: GeocodedCity | Geocode
 interface PlaceDistanceCardProps {
     id: string
     info: PlaceDistance
+    origin?: GeoCoordinate
 }
 const PlaceDistanceCard: React.FC<PlaceDistanceCardProps> = ({
     id,
-    info
+    info,
+    origin
 }) => {
     if ([undefined, null].includes(info)) return <>Not Found</>
 
@@ -48,7 +50,7 @@ const PlaceDistanceCard: React.FC<PlaceDistanceCardProps> = ({
         ] : []
 
     const placeDetails: [string, JSX.Element][] = [
-        ['Coordinate', <a href={toGoogleMapsPlace(info.place.coordinate)} target={'_blank'}>{toGeoCoordinateString(info.place.coordinate)}</a>],
+        ['Coordinate', <><a href={toGoogleMapsDirections(origin, info.place.coordinate)} target={'_blank'}>{toGeoCoordinateString(info.place.coordinate)}</a><a href={toGoogleFromHereMapsDirections(info.place.coordinate)} target={'_blank'}>&nbsp; (directions)</a></>],
         ['Region', info.place.region
             ? <LabelValueTable id={`${id}-place-region`} labelValueArray={countryStateCity} border={true} />
             : <>Not Found</>
@@ -74,7 +76,7 @@ const GeocodedCountryStateCityAddressCard: React.FC<GeocodedCountryStateCityAddr
 
     const details: [string, JSX.Element][] = [
         ['Address', <>{info.address ?? 'address not disclosed'}</>],
-        ['Coordinates', <a href={toGoogleMapsPlace(info.coordinate)} target={'_blank'}>{toGeoCoordinateString(info.coordinate)}</a>],
+        ['Coordinates', <><a href={toGoogleMapsPlace(info.coordinate)} target={'_blank'}>{toGeoCoordinateString(info.coordinate)}</a><a href={toGoogleFromHereMapsDirections(info.coordinate)} target={'_blank'}>&nbsp; (directions)</a></>],
         ['City', countryStateCityToJSXElement('City', info.city)],
         ['State', countryStateCityToJSXElement('State', info.state)],
         ['Country', countryStateCityToJSXElement('Country', info.country)],
@@ -94,7 +96,7 @@ const GeoPropertyInfoCard: React.FC<GeoPropertyInfoCardProps> = ({
 
     const details: [string, JSX.Element][] = [
         ['Property Place', <GeocodedCountryStateCityAddressCard id={`${id}-property-place`} info={info.propertyPlace} />],
-        ['Closest Ocean Place', <PlaceDistanceCard id={`${id}-closest-ocean-place`} info={info.closestOceanPlace} />],
+        ['Closest Ocean Place', <PlaceDistanceCard id={`${id}-closest-ocean-place`} info={info.closestOceanPlace} origin={info.propertyPlace.coordinate} />],
         ['Display String', <>{info.displayString}</>]
     ]
     return <LabelValueTable id={id} labelValueArray={details} border={true} />
@@ -113,7 +115,12 @@ const PropertyFullDetailTable: React.FC<PropertyFullDetailTableProps> = ({
     const details: [string, JSX.Element][] = Object.values(PropertyDetailsFields).map(fieldName => {
         const label: string = wordsToTitleCase(splitByCapitals(fieldName), () => false).join(' ')
         const value: JSX.Element = fieldName === 'coordinate'
-            ? <a href={toGoogleMapsPlace(property[fieldName])} target={'_blank'}>{toGeoCoordinateString(property[fieldName])}</a>
+            ? (
+                <>
+                    <a href={toGoogleMapsPlace(property[fieldName])} target={'_blank'}>{toGeoCoordinateString(property[fieldName])}</a>
+                    <a href={toGoogleFromHereMapsDirections(property[fieldName])} target={'_blank'}>&nbsp; (directions)</a>
+                </>
+            )
             : fieldName === 'geoPropertyInfo'
                 ? <GeoPropertyInfoCard id={`${id}-geoproperty-info`} info={property[fieldName]} />
                 : <>{`${property[fieldName]}`}</>

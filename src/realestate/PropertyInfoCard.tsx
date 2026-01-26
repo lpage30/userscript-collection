@@ -2,7 +2,7 @@ import React, { JSX, CSSProperties } from "react";
 import { PropertyInfo } from "./propertyinfotypes";
 import { PropertyFullDetailCardPopup } from "./PropertyFullDetailCard";
 import { Card } from "../dashboardcomponents/datatypes";
-import { toGoogleMapsPlace } from "../geocoding/datatypes";
+import { toGoogleMapsPlace, toGoogleMapsDirections, toGoogleFromHereMapsDirections } from "../geocoding/datatypes";
 import { reactToHTMLElement } from "../common/ui/renderRenderable";
 
 interface PropertyInfoCardProps {
@@ -132,7 +132,7 @@ const PropertyInfoDashboardCard: React.FC<Omit<PropertyInfoCardProps, 'usage'>> 
         </div>
         <a href={info.href('')} target={'_target'} style={{ textDecoration: 'none', color: 'inherit' }}>
           <span style={bpHomeCardAddress}><a href={toGoogleMapsPlace(info.coordinate)} target={'_blank'}>{info.address}</a></span>
-          {info.geoPropertyInfo && <span style={bpHomeCardAddress}><a href={toGoogleMapsPlace(info.geoPropertyInfo.closestOceanPlace.place.coordinate)} target={'_blank'}>{info.geoPropertyInfo.displayString}</a></span>}
+          {info.geoPropertyInfo && <span style={bpHomeCardAddress}><a href={toGoogleMapsDirections(info.coordinate, info.geoPropertyInfo.closestOceanPlace.place.coordinate)} target={'_blank'}>{info.geoPropertyInfo.displayString}</a></span>}
         </a>
       </div>
     </div>
@@ -154,7 +154,7 @@ const PropertyInfoDisplayCard: React.FC<Omit<PropertyInfoCardProps, 'usage'>> = 
       result.push(<tr><td colSpan={2} style={{ padding: 0, margin: 0 }} className={'text-center'}>{info.Picture}</td></tr>)
     }
     if (info.address) {
-      result.push(<tr><td colSpan={2} style={{ padding: 0, margin: 0 }} className={'text-sm text-center'}><a href={toGoogleMapsPlace(info.coordinate)} target={'_blank'}>{info.address}</a></td></tr>)
+      result.push(<tr><td colSpan={2} style={{ padding: 0, margin: 0 }} className={'text-sm text-center'}><a href={toGoogleMapsPlace(info.coordinate)} target={'_blank'}>{info.address}</a><a href={toGoogleFromHereMapsDirections(info.coordinate)} target={'_blank'}>&nbsp; (directions)</a></td></tr>)
     }
     if (info.Type) {
       result.push(<tr><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'}>Type</td><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'}>{info.Type}</td></tr>)
@@ -178,7 +178,7 @@ const PropertyInfoDisplayCard: React.FC<Omit<PropertyInfoCardProps, 'usage'>> = 
       result.push(<tr><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'}>Bathrooms</td><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'}>{info.Bathrooms}</td></tr>)
     }
     if (info.geoPropertyInfo) {
-      result.push(<tr><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'} colSpan={2}><a href={toGoogleMapsPlace(info.geoPropertyInfo.closestOceanPlace.place.coordinate)} target={'_blank'}>{info.geoPropertyInfo.displayString}</a></td></tr>)
+      result.push(<tr><td style={{ padding: 0, margin: 0 }} className={'text-sm text-left'} colSpan={2}><a href={toGoogleMapsDirections(info.coordinate, info.geoPropertyInfo.closestOceanPlace.place.coordinate)} target={'_blank'}>{info.geoPropertyInfo.displayString}</a><a href={toGoogleFromHereMapsDirections(info.geoPropertyInfo.closestOceanPlace.place.coordinate)} target={'_blank'}>&nbsp; (directions)</a></td></tr>)
     }
     return result
   }
