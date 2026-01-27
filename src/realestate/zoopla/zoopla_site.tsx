@@ -4,20 +4,20 @@ import {
 } from '../propertyinfotypes'
 import {
     toCreateButtonFunction,
-    toPropertyInfoCard,
-    geocodePropertyInfoCard,
 } from '../propertyinfotype_functions'
 
 import { PropertyPageType, RealEstateSite, ScrapedProperties } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
 import { toScaledImgSerialized, toSerializedImg, deserializeImg, toSerializedElement, deserializeElement } from '../serialize_deserialize_functions'
-import { CountryAddress } from '../../geocoding/datatypes'
+import { CountryAddress, GeodataSourceType } from '../../geocoding/datatypes'
 import { parseAddress } from '../../geocoding/geocoding_api/address_parser'
 import { toDurationString } from '../../common/datetime'
 
 import { awaitQuerySelection, awaitPageLoadByMutation, awaitElementById } from '../../common/await_functions'
-import { cacheWrapper } from '../propertyinfocache'
 
+const source = 'zoopla.co.uk'
+const oceanGeodataSource: GeodataSourceType = 'ukcp18_uk_marine_coastline_hires'
+const currencySymbol = '\u00A3'
 const countryAddress: CountryAddress = {
     name: 'United Kingdom',
     codes: ['UK', 'GB']
@@ -106,9 +106,9 @@ interface ScriptSingleData {
 }
 function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
     const result: Partial<PropertyInfo> = {
-        source: 'zoopla.co.uk',
-        currencySymbol: '\u00A3',
-        oceanGeodataSource: 'ukcp18_uk_marine_coastline_hires',
+        source,
+        currencySymbol,
+        oceanGeodataSource,
         isLand: scriptData.propertyType === 'land',
         Type: scriptData.propertyType,
         ...parseAddress(scriptData.address, countryAddress),
@@ -136,9 +136,9 @@ function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
 const srcSetCoordinateRegex = new RegExp(/.*\/([-\.\d]+),([-\.\d]+).*/g)
 function scrapeScriptSingleData(scriptData: ScriptSingleData, address: string, srcset: string): Partial<PropertyInfo> {
     const result: Partial<PropertyInfo> = {
-        source: 'zoopla.co.uk',
-        currencySymbol: '\u00A3',
-        oceanGeodataSource: 'ukcp18_uk_marine_coastline_hires',
+        source,
+        currencySymbol,
+        oceanGeodataSource,
         isLand: scriptData['@type'] === 'land',
         Type: scriptData['@type'],
         ...parseAddress(address, countryAddress),
@@ -179,8 +179,8 @@ export const ZooplaSite: RealEstateSite = {
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
                 const mapViewTagName = window.location.href.startsWith('https://www.zoopla.co.uk/for-sale/map')
                     ? 'button' : 'a'
-                const List = document.querySelector('a[data-testid="list-view-button"]') as HTMLElement
-                const Map = document.querySelector(`${mapViewTagName}[data-testid="map-view-link"]`) as HTMLElement
+                const List = (parentElement ?? document).querySelector('a[data-testid="list-view-button"]') as HTMLElement
+                const Map = (parentElement ?? document).querySelector(`${mapViewTagName}[data-testid="map-view-link"]`) as HTMLElement
                 return [List ? List : Map]
             },
             isMapToggleElement: (element: HTMLElement): boolean => {
@@ -189,46 +189,44 @@ export const ZooplaSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean): Promise<ScrapedProperties> => {
+            scrapePage: (reportProgress: (progress: string) => void, includeOlderResults?: boolean): ScrapedProperties => {
                 const href = window.location.href
-                const collectData = async (): Promise<PropertyInfo[]> => {
-                    let tBegin = Date.now()
-                    const result: PropertyInfo[] = []
-                    const regexReplacements: [RegExp, string][] = [
-                        [/\{\\"/g, '{"'],
-                        [/\\"\}/g, '"}'],
-                        [/\[\\"/g, '["'],
-                        [/\\"]/g, '"]'],
-                        [/:\\"/g, ':"'],
-                        [/\\":/g, '":'],
-                        [/,\\"/g, ',"'],
-                        [/\\",/g, '",']
-                    ]
-                    const scriptDataArray: ScriptData[] =
-                        window.location.href.startsWith('https://www.zoopla.co.uk/for-sale/map')
-                            ? Array.from(document.querySelectorAll('script[id="__NEXT_DATA__"]'))
-                                .map((s: HTMLElement) => JSON.parse(s.innerText)
-                                    .props.pageProps.listings
-                                ).flat()
-                            : Array.from(document.querySelectorAll('script'))
-                                .map(e => e.innerText)
-                                .filter(t => t.includes('lng'))
-                                .map(t => JSON.parse(
-                                    regexReplacements.reduce(
-                                        (jsonString, [regex, replacement]) =>
-                                            jsonString.replace(regex, replacement),
-                                        /^self.__next_f.push\(\[\d,[^\[]*(.*)\\n\"\]\)/.exec(t)[1]
-                                    )
-                                ))[0][3].regularListingsFormatted
-                    if (reportProgress) reportProgress(`Scraped ${scriptDataArray.length} properties ${toDurationString(Date.now() - tBegin)}`)
-                    tBegin = Date.now()
-                    for (const scriptData of scriptDataArray) {
-                        result.push(await geocodePropertyInfoCard(toPropertyInfoCard(scrapeScriptData(scriptData)), reportProgress))
-                    }
-                    return result
+                const tBegin = Date.now()
+                const result: Partial<PropertyInfo>[] = []
+                const regexReplacements: [RegExp, string][] = [
+                    [/\{\\"/g, '{"'],
+                    [/\\"\}/g, '"}'],
+                    [/\[\\"/g, '["'],
+                    [/\\"]/g, '"]'],
+                    [/:\\"/g, ':"'],
+                    [/\\":/g, '":'],
+                    [/,\\"/g, ',"'],
+                    [/\\",/g, '",']
+                ]
+                const scriptDataArray: ScriptData[] =
+                    window.location.href.startsWith('https://www.zoopla.co.uk/for-sale/map')
+                        ? Array.from(document.querySelectorAll('script[id="__NEXT_DATA__"]'))
+                            .map((s: HTMLElement) => JSON.parse(s.innerText)
+                                .props.pageProps.listings
+                            ).flat()
+                        : Array.from(document.querySelectorAll('script'))
+                            .map(e => e.innerText)
+                            .filter(t => t.includes('lng'))
+                            .map(t => JSON.parse(
+                                regexReplacements.reduce(
+                                    (jsonString, [regex, replacement]) =>
+                                        jsonString.replace(regex, replacement),
+                                    /^self.__next_f.push\(\[\d,[^\[]*(.*)\\n\"\]\)/.exec(t)[1]
+                                )
+                            ))[0][3].regularListingsFormatted
+                for (const scriptData of scriptDataArray) {
+                    result.push(scrapeScriptData(scriptData))
                 }
-                return cacheWrapper(ZooplaSite.name, href, collectData, force, includeOlderResults === true)
-
+                if (reportProgress) reportProgress(`Scraped ${result.length} properties ${toDurationString(Date.now() - tBegin)}`)
+                return {
+                    properties: result,
+                    containsOlderResults: includeOlderResults === true
+                }
             },
 
         },
@@ -244,7 +242,7 @@ export const ZooplaSite: RealEstateSite = {
                 await awaitElementById('main-content')
             },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
-                const mapButtons: HTMLElement[] = Array.from(document.querySelectorAll('button')).filter(e => ['Map'].includes(e.innerText))
+                const mapButtons: HTMLElement[] = Array.from((parentElement ?? document).querySelectorAll('button')).filter(e => ['Map'].includes(e.innerText))
                 const fakeButton: HTMLElement = {
                     ...mapButtons[0],
                     click: () => history.back()
@@ -257,28 +255,31 @@ export const ZooplaSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean): Promise<ScrapedProperties> => {
+            scrapePage: (reportProgress: (progress: string) => void, includeOlderResults?: boolean): ScrapedProperties => {
                 const href = window.location.href
-                const collectData = async (): Promise<PropertyInfo[]> => {
-                    const result: Partial<PropertyInfo> = scrapeScriptSingleData(
-                        Array.from(document.querySelectorAll('script')).filter(e => e.innerText.startsWith('{\"@context\"')).map(e => JSON.parse(e.innerText)).slice(-1)[0],
-                        Array.from(document.querySelectorAll('address'))[0].innerText,
-                        Array.from(document.querySelectorAll('source')).filter(e => e.srcset.startsWith('https://maps.zoopla.co.uk/styles/portal/static/')).map(e => e.srcset)[0]
-                    )
-                    result.serializedElement = toSerializedElement({
-                        elementIdPickChild: {
-                            elementId: 'main-content',
-                            childGrandchildIndexes: [0, 0]
-                        }
-                    })
-                    result.element = deserializeElement(result.serializedElement)
-                    const mapBtns = Array.from(document.querySelectorAll('button')).filter(e => ['Map'].includes(e.innerText))
-                    if (1 === mapBtns.length) {
-                        result.createMapButton = toCreateButtonFunction()
+                const tBegin = Date.now()
+                const result: Partial<PropertyInfo> = scrapeScriptSingleData(
+                    Array.from(document.querySelectorAll('script')).filter(e => e.innerText.startsWith('{\"@context\"')).map(e => JSON.parse(e.innerText)).slice(-1)[0],
+                    Array.from(document.querySelectorAll('address'))[0].innerText,
+                    Array.from(document.querySelectorAll('source')).filter(e => e.srcset.startsWith('https://maps.zoopla.co.uk/styles/portal/static/')).map(e => e.srcset)[0]
+                )
+                result.serializedElement = toSerializedElement({
+                    elementIdPickChild: {
+                        elementId: 'main-content',
+                        childGrandchildIndexes: [0, 0]
                     }
-                    return [await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress)]
+                })
+                result.element = deserializeElement(result.serializedElement)
+                const mapBtns = Array.from(document.querySelectorAll('button')).filter(e => ['Map'].includes(e.innerText))
+                if (1 === mapBtns.length) {
+                    result.createMapButton = toCreateButtonFunction()
                 }
-                return cacheWrapper(ZooplaSite.name, href, collectData, force, includeOlderResults === true)
+                if (reportProgress) reportProgress(`Scraped 1 property ${toDurationString(Date.now() - tBegin)}`)
+
+                return {
+                    properties: [result],
+                    containsOlderResults: includeOlderResults === true
+                }
             }
         },
     }

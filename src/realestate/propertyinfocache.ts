@@ -10,7 +10,7 @@ import {
     serializeProperties,
     deserializeProperties
 } from './serialize_deserialize_functions';
-import { ScrapedProperties } from './realestatesitetypes';
+import { GeocodedScrapedProperties } from './realestatesitetypes';
 
 const MaxDataAgems = 30 * ONE_MINUTE
 
@@ -22,10 +22,11 @@ interface CachedData {
 async function cacheIndividualProperties(source: string, properties: PropertyInfo[]): Promise<void> {
     for (const property of properties) {
         const pageUrl = property.href('')
-        await cacheProperties(source, pageUrl, [property], false)
+        await cacheProperties(source, pageUrl, { properties: [property], containsOlderResults: false })
     }
 }
-export async function cacheProperties(source: string, pageUrl: string, properties: PropertyInfo[], containsOlderResults: boolean): Promise<void> {
+export async function cacheProperties(source: string, pageUrl: string, cacheProperties: GeocodedScrapedProperties): Promise<void> {
+    const { properties, containsOlderResults } = cacheProperties
     const cacheData: CachedData = {
         timestamp: Date.now(),
         serializedData: serializeProperties(properties),
@@ -39,7 +40,7 @@ export async function cacheProperties(source: string, pageUrl: string, propertie
 
 }
 
-export async function getCachedProperties(source: string, pageUrl: string): Promise<ScrapedProperties> {
+export async function getCachedProperties(source: string, pageUrl: string): Promise<GeocodedScrapedProperties> {
     const cacheKey = `${source}.${toHashCode(pageUrl)}`
     const cacheData: CachedData | undefined = await IndexedDB_GM_getValue(cacheKey)
     if ([undefined, null].includes(cacheData)) {
@@ -54,17 +55,14 @@ export async function getCachedProperties(source: string, pageUrl: string): Prom
         containsOlderResults: cacheData.containsOlderResults
     }
 }
-
-export async function cacheWrapper(source: string, pageUrl: string, collectData: () => Promise<PropertyInfo[]>, force: boolean, includeOlderResults: boolean): Promise<ScrapedProperties> {
+export async function cacheWrapper(source: string, pageUrl: string, collectData: () => Promise<GeocodedScrapedProperties>, force: boolean): Promise<GeocodedScrapedProperties> {
     const skipCacheRead = undefined !== force && force === true
-    const cachedProperties: ScrapedProperties = skipCacheRead ? { properties: [], containsOlderResults: true } : await getCachedProperties(source, pageUrl)
-    if (0 === cachedProperties.properties.length) {
-        const properties = await collectData()
-        await cacheProperties(source, pageUrl, properties, includeOlderResults === true)
-        return {
-            properties,
-            containsOlderResults: includeOlderResults === true
-        }
+    let cacheableProperties: GeocodedScrapedProperties = skipCacheRead
+        ? { properties: [], containsOlderResults: false }
+        : await getCachedProperties(source, pageUrl)
+    if (0 === cacheableProperties.properties.length) { // cache-miss or force == true
+        cacheableProperties = await collectData()
+        await cacheProperties(source, pageUrl, cacheableProperties)
     }
-    return cachedProperties
+    return cacheableProperties
 }

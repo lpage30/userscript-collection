@@ -13,10 +13,13 @@ export const propertyPageTypeString = (type: PropertyPageType): string => {
     }
 }
 export interface ScrapedProperties {
+    properties: Partial<PropertyInfo>[]
+    containsOlderResults: boolean
+}
+export interface GeocodedScrapedProperties {
     properties: PropertyInfo[]
     containsOlderResults: boolean
 }
-
 export interface RealestatePage {
     pageType: PropertyPageType
     containsOlderResults: boolean
@@ -24,7 +27,7 @@ export interface RealestatePage {
     isMapToggleElement: (element: HTMLElement) => boolean
     awaitForPageLoad: () => Promise<void>
     insertContainerOnPage: (container: HTMLElement) => Promise<void>
-    scrapePage: (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean) => Promise<ScrapedProperties>
+    scrapePage: (reportProgress: (progress: string) => void, includeOlderResults?: boolean) => ScrapedProperties
     getMapToggleElements: (parentElement?: HTMLElement) => Promise<HTMLElement[]>
 }
 export interface RealEstateSite {

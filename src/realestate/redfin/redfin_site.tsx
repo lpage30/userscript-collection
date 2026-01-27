@@ -7,10 +7,8 @@ import {
 } from '../propertyinfotypes'
 import {
     toCreateButtonFunction,
-    toPropertyInfoCard,
-    geocodePropertyInfoCard,
 } from '../propertyinfotype_functions'
-import { CountryAddress } from '../../geocoding/datatypes'
+import { CountryAddress, GeodataSourceType } from '../../geocoding/datatypes'
 import { parseFullAddress, FullAddress, joinFullAddress } from '../../geocoding/geocoding_api/address_parser'
 import { RealEstateSite, PropertyPageType, ScrapedProperties } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
@@ -18,8 +16,10 @@ import { toDurationString } from '../../common/datetime'
 
 import { toPictureSerialized, toScaledPictureSerialized, toScaledImgSerialized, deserializeImg, toSerializedElement, deserializeElement } from '../serialize_deserialize_functions'
 import { awaitQuerySelection, awaitQueryAll, awaitPageLoadByMutation } from '../../common/await_functions'
-import { cacheWrapper } from '../propertyinfocache'
 
+const source = 'Redfin.com'
+const oceanGeodataSource: GeodataSourceType = 'tl_2025_us_coastline'
+const currencySymbol = '$'
 const countryAddress: CountryAddress = {
     name: 'United States',
     codes: ['USA', 'US']
@@ -84,10 +84,10 @@ interface LayoutMenuButtons {
     Table?: HTMLElement
 }
 
-async function scrapeScriptData(scriptData: ScriptData, element?: HTMLElement): Promise<Partial<PropertyInfo>> {
+function scrapeScriptData(scriptData: ScriptData, element?: HTMLElement): Partial<PropertyInfo> {
     const result: Partial<PropertyInfo> = scriptData.mainEntity
-        ? await scrapeScriptData(scriptData.mainEntity, element)
-        : { source: 'redfin.com', }
+        ? scrapeScriptData(scriptData.mainEntity, element)
+        : { source, oceanGeodataSource, currencySymbol }
     const elementTextLines = element ? element.innerText.split('\n').map(t => t.trim()) : []
     if (scriptData.mainEntity === undefined) {
         result.isLand = (scriptData.floorSize ?? {}).value === undefined
@@ -129,8 +129,6 @@ async function scrapeScriptData(scriptData: ScriptData, element?: HTMLElement): 
         if (scriptData.yearBuilt) result.Year = scriptData.yearBuilt
     }
 
-    result.currencySymbol = '$'
-    result.oceanGeodataSource = 'tl_2025_us_coastline'
     const href = scriptData.url
     result.href = () => href
     let imgs: ScriptImageData[] = Array.isArray(scriptData.image) ? scriptData.image : scriptData.image ? [scriptData.image] : undefined
@@ -149,14 +147,14 @@ async function scrapeScriptData(scriptData: ScriptData, element?: HTMLElement): 
     return result
 }
 
-async function scrapeListing(reportProgress: (progress: string) => void, containsOlderResults: boolean, includeOlderResults?: boolean): Promise<PropertyInfo[]> {
+function scrapeListing(reportProgress: (progress: string) => void, containsOlderResults: boolean, includeOlderResults?: boolean): Partial<PropertyInfo>[] {
     let tBegin = Date.now()
-    const properties: PropertyInfo[] = []
+    const properties: Partial<PropertyInfo>[] = []
     let parentElement: ParentNode = document
     if (containsOlderResults && [undefined, null, false].includes(includeOlderResults)) {
-        parentElement = Array.from(await awaitQueryAll('div[class*="homecard-carousel"]')).slice(-1)[0]
+        parentElement = Array.from(document.querySelectorAll('div[class*="homecard-carousel"]')).slice(-1)[0]
     }
-    const elements = Array.from(await awaitQueryAll('div[class*="bp-Homecard "]', { parentElement })).filter(e => 0 < e.innerText.trim().length)
+    const elements: HTMLElement[] = Array.from(parentElement.querySelectorAll('div[class*="bp-Homecard "]')).filter((e: HTMLElement): e is HTMLElement => 0 < e.innerText.trim().length)
     const scriptData = Array.from(parentElement.querySelectorAll('script'))
         .map(s => s.innerText)
         .filter(t => 0 < t.length && ['{\"@context\"', '[{\"@context\"'].some(prefix => t.startsWith(prefix)))
@@ -164,12 +162,10 @@ async function scrapeListing(reportProgress: (progress: string) => void, contain
         .flat()
         .filter(data => !['BreadcrumbList', 'Product', 'Organization', 'Event'].includes(data['@type']))
 
-    if (reportProgress) reportProgress(`Scraped ${scriptData.length
-        } properties ${toDurationString(Date.now() - tBegin)} `)
     tBegin = Date.now()
     for (let i = 0; i < Math.min(elements.length, scriptData.length); i = i + 1) {
         const elementLines = elements[i].innerText.split('\n').map(t => t.trim())
-        const property: Partial<PropertyInfo> = await scrapeScriptData(scriptData[i], elements[i])
+        const property: Partial<PropertyInfo> = scrapeScriptData(scriptData[i], elements[i])
         property.Price = property.Price ?? parseNumber(elementLines.find(p => p.startsWith('$')))
         property.Bathrooms = property.Bathrooms ?? parseNumber(elementLines.find(p => (/^[\d\.]+\s*bath?/ig).test(p)))
         property.Bedrooms = property.Bedrooms ?? parseNumber(elementLines.find(p => (/^[\d\.]+\s*bed?/ig).test(p)))
@@ -178,10 +174,9 @@ async function scrapeListing(reportProgress: (progress: string) => void, contain
         property.serializedPicture = toPictureSerialized(elements[i].querySelector('img'))
         property.Picture = deserializeImg(property.serializedPicture, property)
 
-        properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(property), reportProgress))
+        properties.push(property)
     }
-    if (reportProgress) reportProgress(`Geocoded ${properties.length} properties ${toDurationString(Date.now() - tBegin)} `)
-
+    if (reportProgress) reportProgress(`Scraped ${properties.length} properties ${toDurationString(Date.now() - tBegin)} `)
     return properties
 }
 
@@ -214,12 +209,12 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean): Promise<ScrapedProperties> => {
+            scrapePage: (reportProgress: (progress: string) => void, includeOlderResults?: boolean): ScrapedProperties => {
                 const href = window.location.href
-                const collectData = async (): Promise<PropertyInfo[]> => {
-                    return [...(await scrapeListing(reportProgress, RedfinSite.pages[PropertyPageType.Feed].containsOlderResults))]
+                return {
+                    properties: scrapeListing(reportProgress, RedfinSite.pages[PropertyPageType.Feed].containsOlderResults),
+                    containsOlderResults: includeOlderResults === true
                 }
-                return cacheWrapper(RedfinSite.name, href, collectData, force, includeOlderResults === true)
             }
         },
 
@@ -227,30 +222,41 @@ export const RedfinSite: RealEstateSite = {
             pageType: PropertyPageType.Listing,
             containsOlderResults: window.location.href.includes('/chat'),
             isPage: (href: string): boolean => (
-                null !== href.match(/^https:\/\/www.redfin.com\/(city|zipcode|neighborhood|chat).*/)
+                null !== href.match(/^https:\/\/www.redfin.com\/(city|zipcode|neighborhood|chat|myredfin\/favorites).*/)
             ),
             awaitForPageLoad: async (): Promise<void> => {
                 await awaitPageLoadByMutation()
             },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
-                (await awaitQuerySelection('div[class="ExposedLayoutButtonContainer"]')).querySelector('button').click()
-                const buttons = Array.from((await awaitQuerySelection('div[class*="ExposedLayoutMenu"]')).querySelectorAll('li[class="MenuItem"]'))
+                if (window.location.href.includes('/chat')) {
+                    return RedfinSite.pages[PropertyPageType.Feed].getMapToggleElements(parentElement)
+                }
+                if (window.location.href.includes('/myredfin/favorites')) {
+                    return Array.from(await awaitQueryAll('div[class*="SegmentedControl__option "]', { parentElement })).filter(div => div.ariaChecked === 'false')
+                }
+                (await awaitQuerySelection('div[class="ExposedLayoutButtonContainer"]', { parentElement })).querySelector('button').click()
+                const buttons = Array.from((await awaitQuerySelection('div[class*="ExposedLayoutMenu"]', { parentElement })).querySelectorAll('li[class="MenuItem"]'))
                     .reduce((obj, li) => ({ ...obj, [(li as HTMLElement).innerText]: li.querySelector('button') }), {} as LayoutMenuButtons)
                 return [buttons.Map ?? buttons.Grid]
             },
             isMapToggleElement: (element: HTMLElement): boolean => {
+                if (window.location.href.includes('/chat')) {
+                    return RedfinSite.pages[PropertyPageType.Feed].isMapToggleElement(element)
+                }
+                if (window.location.href.includes('/myredfin/favorites')) {
+                    return element.tagName === 'DIV' && element.className.includes('SegmentedControl__option')
+                }
                 return element.tagName === 'BUTTON'
             },
 
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean): Promise<ScrapedProperties> => {
-                const href = window.location.href
-                const collectData = async (): Promise<PropertyInfo[]> => {
-                    return [...(await scrapeListing(reportProgress, RedfinSite.pages[PropertyPageType.Listing].containsOlderResults, includeOlderResults))]
+            scrapePage: (reportProgress: (progress: string) => void, includeOlderResults?: boolean): ScrapedProperties => {
+                return {
+                    properties: scrapeListing(reportProgress, RedfinSite.pages[PropertyPageType.Listing].containsOlderResults),
+                    containsOlderResults: includeOlderResults === true
                 }
-                return cacheWrapper(RedfinSite.name, href, collectData, force, includeOlderResults === true)
             }
         },
 
@@ -268,30 +274,32 @@ export const RedfinSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: async (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean): Promise<ScrapedProperties> => {
+            scrapePage: (reportProgress: (progress: string) => void, includeOlderResults?: boolean): ScrapedProperties => {
                 const href = window.location.href
+                const tBegin = Date.now()
+                const element: HTMLElement = document.querySelector('div[class="detailsContent"]')
+                const result: Partial<PropertyInfo> = scrapeScriptData(JSON.parse(
+                    Array.from(element.querySelectorAll('script'))
+                        .filter(s => s.innerText.startsWith('{\"@context\"'))[0].innerText
+                ))
+                result.serializedElement = toSerializedElement({ queryString: 'div[class="detailsContent"]' })
+                result.element = deserializeElement(result.serializedElement)
+                result.serializedPicture = toScaledPictureSerialized(
+                    document.getElementById('MBImage').querySelector('img'),
+                    MaxPropertyInfoImageWidth
+                ) ?? result.serializedPicture
+                result.Picture = deserializeImg(result.serializedPicture, result)
 
-                const collectData = async (): Promise<PropertyInfo[]> => {
-                    const element: HTMLElement = await awaitQuerySelection('div[class="detailsContent"]')
-                    const result: Partial<PropertyInfo> = await scrapeScriptData(JSON.parse(
-                        Array.from(element.querySelectorAll('script'))
-                            .filter(s => s.innerText.startsWith('{\"@context\"'))[0].innerText
-                    ))
-                    result.serializedElement = toSerializedElement({ queryString: 'div[class="detailsContent"]' })
-                    result.element = deserializeElement(result.serializedElement)
-                    result.serializedPicture = toScaledPictureSerialized(
-                        document.getElementById('MBImage').querySelector('img'),
-                        MaxPropertyInfoImageWidth
-                    ) ?? result.serializedPicture
-                    result.Picture = deserializeImg(result.serializedPicture, result)
-
-                    const imgBtn = document.querySelector('div[class*="static-map"]').querySelector('img')
-                    if (imgBtn) {
-                        result.createMapButton = toCreateButtonFunction()
-                    }
-                    return [await geocodePropertyInfoCard(toPropertyInfoCard(result), reportProgress)]
+                const imgBtn = document.querySelector('div[class*="static-map"]').querySelector('img')
+                if (imgBtn) {
+                    result.createMapButton = toCreateButtonFunction()
                 }
-                return cacheWrapper(RedfinSite.name, href, collectData, force, includeOlderResults === true)
+                if (reportProgress) reportProgress(`Scraped 1 property ${toDurationString(Date.now() - tBegin)} `)
+
+                return {
+                    properties: [result],
+                    containsOlderResults: includeOlderResults === true
+                }
             }
         }
     }

@@ -2,7 +2,7 @@ import './registergeocoding'
 import React from "react";
 import "../common/ui/styles.scss";
 import { Userscript, RunUserscripts } from "../common/userscript";
-import { RealEstateSite, PropertyPageType, propertyPageTypeString } from "./realestatesitetypes";
+import { RealEstateSite, PropertyPageType, propertyPageTypeString, GeocodedScrapedProperties, ScrapedProperties } from "./realestatesitetypes";
 import { RedfinSite } from "./redfin/redfin_site";
 import { RealtorSite } from "./realtor/realtor_site";
 import { ZooplaSite } from "./zoopla/zoopla_site";
@@ -14,6 +14,9 @@ import {
 import { RealestateControlPanel } from "./RealestateControlPanel";
 import { getMaximumZIndex } from '../common/ui/style_functions';
 import { toDurationString } from '../common/datetime';
+import { cacheProperties, cacheWrapper } from './propertyinfocache';
+import { PropertyInfo } from './propertyinfotypes';
+import { geocodePropertyInfoCard, toPropertyInfoCard } from './propertyinfotype_functions';
 
 const realestateSites: RealEstateSite[] = [
   RedfinSite,
@@ -79,17 +82,34 @@ export function toUserscript(site: RealEstateSite): Userscript {
       const reportProgress = (progress: string) => {
         console.log(`Progress: ${progress}`)
       }
-      const loadProperties = (force: boolean, includeOlderResults?: boolean) => page.scrapePage(reportProgress, force, includeOlderResults)
+      const loadProperties = (force: boolean, includeOlderResults?: boolean): Promise<GeocodedScrapedProperties> => {
+        const collectData = async (): Promise<GeocodedScrapedProperties> => {
+          const scrapedProperties: ScrapedProperties = page.scrapePage(reportProgress, includeOlderResults)
+          const properties: PropertyInfo[] = []
+          for (const property of scrapedProperties.properties) {
+            if (isNaN(property.Price)) {
+              reportProgress(`Skipping, Price is missing or invalid. ${property.source}-${property.address}`)
+              continue
+            }
+            properties.push(await geocodePropertyInfoCard(toPropertyInfoCard(property), reportProgress))
+          }
+          return {
+            properties,
+            containsOlderResults: scrapedProperties.containsOlderResults
+          }
+        }
+        return cacheWrapper(site.name, href, collectData, force)
+      }
 
-      const scrapedProperties = await loadProperties(false)
-      console.log(`${site.name} ${propertyPageTypeString(page.pageType)} ${scrapedProperties.properties.length} properties: ${toDurationString(Date.now() - tstartLoad)}`)
-      const title = `${site.name} (${scrapedProperties.properties[0].country}) ${propertyPageTypeString(page.pageType)}${PropertyPageType.Single === page.pageType ? ` ${scrapedProperties.properties[0].address}` : ''}`
+      const geocodedScrapedProperties = await loadProperties(false)
+      console.log(`${site.name} ${propertyPageTypeString(page.pageType)} ${geocodedScrapedProperties.properties.length} properties: ${toDurationString(Date.now() - tstartLoad)}`)
+      const title = `${site.name} (${geocodedScrapedProperties.properties[0].country}) ${propertyPageTypeString(page.pageType)}${PropertyPageType.Single === page.pageType ? ` ${geocodedScrapedProperties.properties[0].address}` : ''}`
       renderInContainer(container, <RealestateControlPanel
         id={renderableId}
         siteName={site.name}
         title={title}
         toggleMapDisplay={toggleMaps}
-        scrapedProperties={scrapedProperties}
+        geocodedScrapedProperties={geocodedScrapedProperties}
         containsOlderResults={page.containsOlderResults}
         loadProperties={loadProperties}
       />

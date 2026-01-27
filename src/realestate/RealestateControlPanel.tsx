@@ -7,7 +7,7 @@ import { AddedHeaderComponent } from '../dashboardcomponents/Dashboard';
 import { toPropertyCardDashboardComponent } from './PropertyInfoCard';
 import { DashboardPopup } from '../dashboardcomponents/DashboardPopup';
 import { createSpinningContentElement } from '../common/ui/style_functions'
-import { ScrapedProperties } from './realestatesitetypes';
+import { GeocodedScrapedProperties } from './realestatesitetypes';
 import { toRealestateDashboardFeatures } from './realestate_features';
 
 interface RealestateControlPanelProps {
@@ -15,25 +15,25 @@ interface RealestateControlPanelProps {
     siteName: string
     title: string
     toggleMapDisplay: (parentElement?: HTMLElement) => void
-    scrapedProperties: ScrapedProperties
+    geocodedScrapedProperties: GeocodedScrapedProperties
     containsOlderResults: boolean
-    loadProperties?: (force: boolean, includeOlderResults?: boolean) => Promise<ScrapedProperties>
+    loadProperties?: (force: boolean, includeOlderResults?: boolean) => Promise<GeocodedScrapedProperties>
 }
 export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
     id,
     siteName,
     title,
     toggleMapDisplay,
-    scrapedProperties,
+    geocodedScrapedProperties,
     containsOlderResults,
     loadProperties
 }) => {
     const [state, setState] = useState<{
         isLoadingProperties: boolean,
-        scrapedProperties: ScrapedProperties
+        geocodedScrapedProperties: GeocodedScrapedProperties
     }>({
         isLoadingProperties: false,
-        scrapedProperties,
+        geocodedScrapedProperties,
     })
     useEffect(() => {
 
@@ -48,13 +48,13 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
         const newProperties = await loadProperties(true, includeOlderResults)
         setState({
             isLoadingProperties: false,
-            scrapedProperties: newProperties
+            geocodedScrapedProperties: newProperties
         })
         if (issueRefreshDashboard && refreshDashboard.current) refreshDashboard.current()
     }
     const getMapButton = (getParentElement?: () => HTMLElement): JSX.Element => {
-        if (0 < state.scrapedProperties.properties.length && state.scrapedProperties.properties[0].createMapButton) {
-            return state.scrapedProperties.properties[0].createMapButton(toggleMapTitle, () => toggleMapDisplay(getParentElement ? getParentElement() : undefined))
+        if (0 < state.geocodedScrapedProperties.properties.length && state.geocodedScrapedProperties.properties[0].createMapButton) {
+            return state.geocodedScrapedProperties.properties[0].createMapButton(toggleMapTitle, () => toggleMapDisplay(getParentElement ? getParentElement() : undefined))
         }
         return (
             <Button
@@ -83,7 +83,7 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
             disabled={state.isLoadingProperties}>{loadPropertiesButtonContent}</Button>
     }
     const getContent = () => {
-        const dashboardTitle = `${title} (${state.scrapedProperties.properties.length}) ${containsOlderResults ? (state.scrapedProperties.containsOlderResults ? '(old and new)' : ('most recent')) : ''}`.trim()
+        const dashboardTitle = `${title} (${state.geocodedScrapedProperties.properties.length}) ${containsOlderResults ? (state.geocodedScrapedProperties.containsOlderResults ? '(old and new)' : ('most recent')) : ''}`.trim()
         return (
             <table style={{
                 tableLayout: 'auto',
@@ -95,12 +95,12 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
             }}
             ><tbody>
                     <>
-                        {1 < state.scrapedProperties.properties.length &&
+                        {1 < state.geocodedScrapedProperties.properties.length &&
                             <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><DashboardPopup
                                 dashboardShortName={dashboardTitle}
                                 dashboardProps={{
                                     title: dashboardTitle,
-                                    getCards: () => state.scrapedProperties.properties,
+                                    getCards: () => state.geocodedScrapedProperties.properties,
                                     contentLayout: {
                                         type: 'Card',
                                         properties: {
@@ -109,8 +109,8 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
                                             toCardComponent: toPropertyCardDashboardComponent
                                         }
                                     },
-                                    onClose: () => setState({ ...state, scrapedProperties: { ...scrapedProperties } }),
-                                    features: toRealestateDashboardFeatures(siteName, state.scrapedProperties.properties),
+                                    onClose: () => setState({ ...state, geocodedScrapedProperties: { ...geocodedScrapedProperties } }),
+                                    features: toRealestateDashboardFeatures(siteName, state.geocodedScrapedProperties.properties),
                                     registerRerenderFunction: (rerenderFunction) => {
                                         refreshDashboard.current = rerenderFunction
                                     },
@@ -133,9 +133,9 @@ export const RealestateControlPanel: React.FC<RealestateControlPanelProps> = ({
                             />
                             </td></tr>
                         }
-                        {1 === state.scrapedProperties.properties.length &&
+                        {1 === state.geocodedScrapedProperties.properties.length &&
                             <>
-                                <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state.scrapedProperties.properties[0]} usage={'controlpanel'} /></td></tr>
+                                <tr><td style={{ padding: 0, margin: 0 }} className={'text-center'}><PropertyInfoCard id={`${id}-info`} info={state.geocodedScrapedProperties.properties[0]} usage={'controlpanel'} /></td></tr>
                             </>
                         }
                         <tr><td style={{ padding: 5, margin: 0 }} className={'text-center'}>{getMapButton()}</td></tr>
