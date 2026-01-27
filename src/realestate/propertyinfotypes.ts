@@ -21,10 +21,13 @@ interface LabelColorHref {
     color: string
     href: string
 }
+export type PropertyStatusType = 'ForSale' | 'UnderContact' | 'OffMarket' | 'Sold' | 'Pending'
+
 export const PropertyDetailsFields = [
     'source',
     'isLand',
     'Type',
+    'Status',
     'address',
     'city',
     'state',
@@ -52,6 +55,7 @@ export interface PropertyDetails extends GeocodeAddressOrigin {
     oceanGeodataSource: GeodataSourceType
     isLand: boolean
     Type?: string
+    Status?: PropertyStatusType
     Year?: number
     HOA?: number
     Garage?: number

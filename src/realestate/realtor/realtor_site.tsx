@@ -1,9 +1,10 @@
 import {
     PropertyInfo,
-    MaxPropertyInfoImageWidth
+    MaxPropertyInfoImageWidth,
 } from '../propertyinfotypes'
 import {
     toCreateButtonFunction,
+    toPropertyStatusType
 } from '../propertyinfotype_functions'
 import { PropertyPageType, RealEstateSite, ScrapedProperties } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
@@ -119,6 +120,7 @@ function scrapeScriptData(scriptData: ScriptNextData): Partial<PropertyInfo> {
         href: () => `https://www.realtor.com/realestateandhomes-detail/${scriptData.permalink}`,
         serializedElement,
         element,
+        Status: toPropertyStatusType(scriptData.status),
     }
     const serializedPicture = toPictureSerialized(result.element.querySelector('img[data-testid="picture-img"]'))
     const Picture = deserializeImg(serializedPicture, result)
@@ -142,8 +144,8 @@ export const RealtorSite: RealEstateSite = {
                 await awaitQuerySelection('div[class*="ListView_lazyWrapperPlaceholder__bcuKe"]')
             },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
-                const List = document.querySelector('button[data-testid="map-to-list-view-toggle"]') as HTMLElement
-                const Map = document.querySelector('button[data-testid="list-to-map-view-toggle"]') as HTMLElement
+                const List = (parentElement ?? document).querySelector('button[data-testid="map-to-list-view-toggle"]') as HTMLElement
+                const Map = (parentElement ?? document).querySelector('button[data-testid="list-to-map-view-toggle"]') as HTMLElement
                 return [List.ariaPressed === 'false' ? List : Map]
             },
             isMapToggleElement: (element: HTMLElement): boolean => {
@@ -152,7 +154,7 @@ export const RealtorSite: RealEstateSite = {
             insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
                 document.body.insertBefore(container, document.body.firstElementChild)
             },
-            scrapePage: (reportProgress: (progress: string) => void, force?: boolean, includeOlderResults?: boolean): ScrapedProperties => {
+            scrapePage: (reportProgress: (progress: string) => void, includeOlderResults?: boolean): ScrapedProperties => {
                 const tBegin = Date.now()
                 const result: Partial<PropertyInfo>[] = []
                 const scrapedProperties = JSON.parse(document.getElementById('__NEXT_DATA__').innerText).props.pageProps.properties.map(scrapeScriptData)
@@ -162,10 +164,87 @@ export const RealtorSite: RealEstateSite = {
                 if (reportProgress) reportProgress(`Scraped ${scrapedProperties.length} properties ${toDurationString(Date.now() - tBegin)}`)
                 return {
                     properties: result,
-                    containsOlderResults: includeOlderResults === true
+                    containsOlderResults: false
                 }
             },
 
+        },
+        [PropertyPageType.Saved]: {
+            pageType: PropertyPageType.Saved,
+            containsOlderResults: false,
+            isPage: (href: string): boolean => href.startsWith('https://www.realtor.com/myaccount/saved'),
+            awaitForPageLoad: async (): Promise<void> => {
+                await awaitPageLoadByMutation()
+            },
+            getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
+                const List = (parentElement ?? document).querySelector('button[data-testid="list-toggle-button"]') as HTMLElement
+                const Map = (parentElement ?? document).querySelector('button[data-testid="map-toggle-button"]') as HTMLElement
+                return [List.ariaPressed === 'false' ? List : Map]
+            },
+            isMapToggleElement: (element: HTMLElement): boolean => {
+                return element.dataset.testid.endsWith('-toggle-button')
+            },
+            insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
+                document.body.insertBefore(container, document.body.firstElementChild)
+            },
+            scrapePage: (reportProgress: (progress: string) => void, includeOlderResults?: boolean): ScrapedProperties => {
+                const tBegin = Date.now()
+                const results: Partial<PropertyInfo>[] = []
+                Array.from(document.querySelectorAll('div[data-testid="saved-home-card"]')).forEach((e: HTMLElement, index) => {
+                    const result: Partial<PropertyInfo> = {
+                        source,
+                        oceanGeodataSource,
+                        currencySymbol
+                    }
+                    result.serializedElement = toSerializedElement({ queryAllPickItemChild: { queryAllString: 'div[data-testid="saved-home-card"]', itemChildGrandchildIndexes: [index] } })
+                    result.element = deserializeElement(result.serializedElement)
+                    const href = e.querySelector('a').href
+                    result.href = () => href
+                    result.serializedPicture = toPictureSerialized(e.querySelector('img'))
+                    result.Picture = deserializeImg(result.serializedPicture, result)
+                    result.Status = toPropertyStatusType((e.querySelector('div[class*="card-label-group"]') as HTMLElement).innerText.split('\n'))
+
+                    const cardContent: HTMLElement = e.querySelector('div[data-testid="card-content"]')
+                    cardContent.innerText.split('\n').map((t: string) => t.trim()).filter((t: string) => 0 < t.length).forEach((data, index, array) => {
+                        if (data.startsWith(currencySymbol)) {
+                            result.Price = parseNumber(data)
+                            return
+                        }
+                        if (data.endsWith('sqft')) {
+                            result.Sqft = parseNumber(data)
+                            return
+                        }
+                        if (data.includes('bed')) {
+                            result.Bedrooms = parseNumber(array[index - 1])
+                            return
+                        }
+                        if (data.includes('bath')) {
+                            result.Bathrooms = parseNumber(array[index - 1])
+                            return
+                        }
+                        if (data.includes('lot')) {
+                            result.lotSize = parseNumber(data)
+                            return
+                        }
+                        if (array.length <= (index + 1)) {
+                            const emailAgentIndex = data.includes('Email Agent') ? index : index + 1
+                            const address = parseAddress(`${array[emailAgentIndex - 2]}, ${array[emailAgentIndex - 1]}`, countryAddress)
+                            result.address = address.address
+                            result.city = address.city
+                            result.state = address.state
+                            result.country = address.country
+                            return
+                        }
+                    })
+                    result.isLand = result.Sqft === undefined && undefined !== result.lotSize
+                    results.push(result)
+                })
+                if (reportProgress) reportProgress(`Scraped ${results.length} properties ${toDurationString(Date.now() - tBegin)}`)
+                return {
+                    properties: results,
+                    containsOlderResults: false
+                }
+            },
         },
         [PropertyPageType.Single]: {
             pageType: PropertyPageType.Single,
@@ -176,9 +255,9 @@ export const RealtorSite: RealEstateSite = {
                 await awaitElementById('Property details')
             },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
-                const List = document.querySelector('button[aria-label="close"]') as HTMLElement
-                const MapSvg = document.querySelector('svg[data-testid="listing-summary-map__container"]') as HTMLElement
-                const Map = document.querySelector('button[data-testid="map-snapshot-map-btn"]') as HTMLElement
+                const List = (parentElement ?? document).querySelector('button[aria-label="close"]') as HTMLElement
+                const MapSvg = (parentElement ?? document).querySelector('svg[data-testid="listing-summary-map__container"]') as HTMLElement
+                const Map = (parentElement ?? document).querySelector('button[data-testid="map-snapshot-map-btn"]') as HTMLElement
                 return [List ?? Map ?? MapSvg]
             },
             isMapToggleElement: (element: HTMLElement): boolean => {
@@ -196,7 +275,13 @@ export const RealtorSite: RealEstateSite = {
                     currencySymbol,
                     href: () => href,
                 }
-                result.serializedElement = toSerializedElement({ queryString: 'div[data-testid="ldp-main-container"]' })
+                const queryString = document.querySelector('div[data-testid="ldp-main-container"]')
+                    ? 'div[data-testid="ldp-main-container"]'
+                    : document.querySelector('div[data-testid="rsp-main-container"]')
+                        ? 'div[data-testid="rsp-main-container"]'
+                        : ''
+                result.Status = toPropertyStatusType([(document.querySelector(queryString).querySelector('span[data-label="property-meta-status"]') as HTMLElement).innerText])
+                result.serializedElement = toSerializedElement({ queryString })
                 result.element = deserializeElement(result.serializedElement)
                 result.Price = parseNumber((document.querySelector('div[data-testid="ldp-list-price"]') as HTMLElement).innerText)
                 result = {
@@ -255,11 +340,11 @@ export const RealtorSite: RealEstateSite = {
                 if (mapBtn) {
                     result.createMapButton = toCreateButtonFunction()
                 }
-                if (reportProgress) reportProgress(`Scraped 1 property ${toDurationString(Date.now() - tBegin)}`)
+                if (reportProgress) reportProgress(`Scraped 1 property ${toDurationString(Date.now() - tBegin)} `)
 
                 return {
                     properties: [result],
-                    containsOlderResults: includeOlderResults === true
+                    containsOlderResults: false
                 }
             }
         },

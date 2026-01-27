@@ -1,14 +1,14 @@
 import { PropertyInfo } from './propertyinfotypes'
 
 export enum PropertyPageType {
-    Feed = 0,
-    Listing = 1,
-    Single = 2,
+    Listing = 0,
+    Single = 1,
+    Saved = 2,
 }
 export const propertyPageTypeString = (type: PropertyPageType): string => {
     switch (type) {
-        case PropertyPageType.Feed: return 'Property Feed'
         case PropertyPageType.Listing: return 'Property Listing'
+        case PropertyPageType.Saved: return 'Saved Properties'
         default: return 'Single Property'
     }
 }

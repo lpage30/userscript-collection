@@ -8,7 +8,7 @@ import {
 
 import { PropertyPageType, RealEstateSite, ScrapedProperties } from '../realestatesitetypes'
 import { parseNumber } from '../../common/functions'
-import { toScaledImgSerialized, toSerializedImg, deserializeImg, toSerializedElement, deserializeElement } from '../serialize_deserialize_functions'
+import { toPictureSerialized, toScaledImgSerialized, toSerializedImg, deserializeImg, toSerializedElement, deserializeElement } from '../serialize_deserialize_functions'
 import { CountryAddress, GeodataSourceType } from '../../geocoding/datatypes'
 import { parseAddress } from '../../geocoding/geocoding_api/address_parser'
 import { toDurationString } from '../../common/datetime'
@@ -112,6 +112,7 @@ function scrapeScriptData(scriptData: ScriptData): Partial<PropertyInfo> {
         isLand: scriptData.propertyType === 'land',
         Type: scriptData.propertyType,
         ...parseAddress(scriptData.address, countryAddress),
+        Status: 'ForSale',
     }
 
     if (scriptData.pos) {
@@ -142,6 +143,7 @@ function scrapeScriptSingleData(scriptData: ScriptSingleData, address: string, s
         isLand: scriptData['@type'] === 'land',
         Type: scriptData['@type'],
         ...parseAddress(address, countryAddress),
+        Status: 'ForSale',
     }
     if (!result.isLand) {
         result.Bedrooms = parseNumber(scriptData.additionalProperty.filter(({ name }) => name.includes('Bed'))[0]?.value)
@@ -167,7 +169,6 @@ export const ZooplaSite: RealEstateSite = {
     containerId: 'zoopla-realestate-id',
     isSupported: (href: string): boolean => Object.values(ZooplaSite.pages).some(page => page.isPage(href)),
     pages: {
-        /*https://www.zoopla.co.uk/for-sale*/
         [PropertyPageType.Listing]: {
             pageType: PropertyPageType.Listing,
             containsOlderResults: false,
@@ -225,7 +226,74 @@ export const ZooplaSite: RealEstateSite = {
                 if (reportProgress) reportProgress(`Scraped ${result.length} properties ${toDurationString(Date.now() - tBegin)}`)
                 return {
                     properties: result,
-                    containsOlderResults: includeOlderResults === true
+                    containsOlderResults: false
+                }
+            },
+        },
+        [PropertyPageType.Saved]: {
+            pageType: PropertyPageType.Saved,
+            containsOlderResults: false,
+            isPage: (href: string): boolean => href.startsWith('https://www.zoopla.co.uk/favourites'),
+            awaitForPageLoad: async (): Promise<void> => {
+                await awaitPageLoadByMutation()
+            },
+            getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
+                return []
+            },
+            isMapToggleElement: (element: HTMLElement): boolean => {
+                return false
+            },
+            insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
+                document.body.insertBefore(container, document.body.firstElementChild)
+            },
+            scrapePage: (reportProgress: (progress: string) => void, includeOlderResults?: boolean): ScrapedProperties => {
+                const href = window.location.href
+                const tBegin = Date.now()
+                const results: Partial<PropertyInfo>[] = []
+                Array.from(document.querySelectorAll('div[class*="Card_cardContainer"]')).forEach((e: HTMLElement, index) => {
+                    const result: Partial<PropertyInfo> = {
+                        source,
+                        oceanGeodataSource,
+                        currencySymbol
+                    }
+                    result.serializedElement = toSerializedElement({ queryAllPickItemChild: { queryAllString: 'div[class*="Card_cardContainer"]', itemChildGrandchildIndexes: [index] } })
+                    result.element = deserializeElement(result.serializedElement)
+                    result.serializedPicture = toPictureSerialized(e.querySelector('img'))
+                    result.Picture = deserializeImg(result.serializedPicture, result)
+                    result.Status = 'ForSale'
+                    const cardDetail: HTMLElement = e.querySelector('div[class*="ListingCard_listingCardDetailGrid"]')
+
+                    const addressHrefDetail: HTMLAnchorElement = cardDetail.querySelector('a')
+                    const href = addressHrefDetail.href
+                    const address = parseAddress(addressHrefDetail.innerText, countryAddress)
+                    result.href = () => href
+                    result.address = address.address
+                    result.city = address.city
+                    result.state = address.state
+                    result.country = address.country
+                    result.isLand = (addressHrefDetail.previousElementSibling as HTMLElement).innerText.includes('Land')
+
+                    const priceDetail: HTMLDivElement = cardDetail.querySelector('div[class*="ListingCard_priceText"]')
+                    result.Price = parseNumber(priceDetail.innerText)
+
+                    const featureList = cardDetail.querySelector('ul[data-name="feature-list"]')
+                    Array.from(featureList ? featureList.querySelectorAll('li') : []).forEach(li => {
+                        if (li.dataset.testid.includes('bed')) {
+                            result.Bedrooms = parseNumber(li.innerText)
+                            return
+                        }
+                        if (li.dataset.testid.includes('bath')) {
+                            result.Bathrooms = parseNumber(li.innerText)
+                            return
+                        }
+                    })
+                    results.push(result)
+
+                })
+                if (reportProgress) reportProgress(`Scraped ${results.length} properties ${toDurationString(Date.now() - tBegin)}`)
+                return {
+                    properties: results,
+                    containsOlderResults: false
                 }
             },
 
@@ -278,7 +346,7 @@ export const ZooplaSite: RealEstateSite = {
 
                 return {
                     properties: [result],
-                    containsOlderResults: includeOlderResults === true
+                    containsOlderResults: false
                 }
             }
         },

@@ -17,9 +17,25 @@ import { deserializeImgToImgData } from './serialize_deserialize_functions'
 import { geocodeAddress } from '../geocoding/geocoding_api/geocode_address'
 import { classifyGeoCountryStateCity } from '../geocoding/countryStateCityGeoAddressClassifiers'
 import { findClosestGeodataPlace } from '../geocoding/findClosestPlace'
-import { PropertyInfo } from './propertyinfotypes'
+import { PropertyInfo, PropertyStatusType } from './propertyinfotypes'
 import { toDurationString } from '../common/datetime'
 
+export function toPropertyStatusType(statuses: string[]): PropertyStatusType {
+    if (['OFF'].some(v => statuses.includes(v))) {
+        return 'OffMarket'
+    }
+    if (['UNDER', 'Contingent'].some(v => statuses.includes(v))) {
+        return 'UnderContact'
+    }
+    if (['PENDING', 'Pending'].some(v => statuses.includes(v))) {
+        return 'Pending'
+    }
+    if (['SOLD', 'sold'].some(v => statuses.includes(v))) {
+        return 'Sold'
+    }
+    return 'ForSale'
+
+}
 export function toCreateButtonFunction(): (text: string, onClick: () => void) => JSX.Element {
     return (text: string, onClick: () => void): JSX.Element => (
         <Button
@@ -43,9 +59,9 @@ export function toCreateButtonFunction(): (text: string, onClick: () => void) =>
                 className={'text-center'}
             >{text}</span>
         </Button>
-
     )
 }
+
 export function toPropertyInfoCard(data: Partial<PropertyInfo>): PropertyInfo {
     const result: Partial<PropertyInfo> = {
         ...data

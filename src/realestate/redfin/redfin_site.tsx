@@ -7,6 +7,7 @@ import {
 } from '../propertyinfotypes'
 import {
     toCreateButtonFunction,
+    toPropertyStatusType
 } from '../propertyinfotype_functions'
 import { CountryAddress, GeodataSourceType } from '../../geocoding/datatypes'
 import { parseFullAddress, FullAddress, joinFullAddress } from '../../geocoding/geocoding_api/address_parser'
@@ -173,6 +174,8 @@ function scrapeListing(reportProgress: (progress: string) => void, containsOlder
         property.element = deserializeElement(property.serializedElement)
         property.serializedPicture = toPictureSerialized(elements[i].querySelector('img'))
         property.Picture = deserializeImg(property.serializedPicture, property)
+        property.Status = toPropertyStatusType(((elements[i].querySelector('div[class*="bp-Homecard__Sashes "]') ?? { innerText: '' }) as HTMLElement).innerText.split('\n'))
+
 
         properties.push(property)
     }
@@ -185,54 +188,18 @@ export const RedfinSite: RealEstateSite = {
     containerId: 'redfin-realestate-id',
     isSupported: (href: string): boolean => Object.values(RedfinSite.pages).some(page => page.isPage(href)),
     pages: {
-
-        [PropertyPageType.Feed]: {
-            pageType: PropertyPageType.Feed,
-            containsOlderResults: false,
-            isPage: (href: string): boolean => ('https://www.redfin.com/#userFeed' === href || 'https://www.redfin.com/' === href),
-            awaitForPageLoad: async (): Promise<void> => {
-                await awaitPageLoadByMutation()
-            },
-            getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
-                let result: HTMLElement[] = []
-                const toggleButtonSelector = 'button[aria-label*="Toggle to "]'
-                result = Array.from(parentElement
-                    ? parentElement.querySelectorAll(toggleButtonSelector)
-                    : await awaitQueryAll(toggleButtonSelector)
-                )
-                return result
-
-            },
-            isMapToggleElement: (element: HTMLElement): boolean => {
-                return element.ariaLabel.startsWith('Toggle to')
-            },
-            insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
-                document.body.insertBefore(container, document.body.firstElementChild)
-            },
-            scrapePage: (reportProgress: (progress: string) => void, includeOlderResults?: boolean): ScrapedProperties => {
-                const href = window.location.href
-                return {
-                    properties: scrapeListing(reportProgress, RedfinSite.pages[PropertyPageType.Feed].containsOlderResults),
-                    containsOlderResults: includeOlderResults === true
-                }
-            }
-        },
-
         [PropertyPageType.Listing]: {
             pageType: PropertyPageType.Listing,
             containsOlderResults: window.location.href.includes('/chat'),
             isPage: (href: string): boolean => (
-                null !== href.match(/^https:\/\/www.redfin.com\/(city|zipcode|neighborhood|chat|myredfin\/favorites).*/)
+                null !== href.match(/^https:\/\/www.redfin.com\/(city|zipcode|neighborhood|chat).*/)
             ),
             awaitForPageLoad: async (): Promise<void> => {
                 await awaitPageLoadByMutation()
             },
             getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
                 if (window.location.href.includes('/chat')) {
-                    return RedfinSite.pages[PropertyPageType.Feed].getMapToggleElements(parentElement)
-                }
-                if (window.location.href.includes('/myredfin/favorites')) {
-                    return Array.from(await awaitQueryAll('div[class*="SegmentedControl__option "]', { parentElement })).filter(div => div.ariaChecked === 'false')
+                    return Array.from(await awaitQueryAll('button[aria-label*="Toggle to "]', { parentElement }))
                 }
                 (await awaitQuerySelection('div[class="ExposedLayoutButtonContainer"]', { parentElement })).querySelector('button').click()
                 const buttons = Array.from((await awaitQuerySelection('div[class*="ExposedLayoutMenu"]', { parentElement })).querySelectorAll('li[class="MenuItem"]'))
@@ -241,10 +208,7 @@ export const RedfinSite: RealEstateSite = {
             },
             isMapToggleElement: (element: HTMLElement): boolean => {
                 if (window.location.href.includes('/chat')) {
-                    return RedfinSite.pages[PropertyPageType.Feed].isMapToggleElement(element)
-                }
-                if (window.location.href.includes('/myredfin/favorites')) {
-                    return element.tagName === 'DIV' && element.className.includes('SegmentedControl__option')
+                    return element.ariaLabel.startsWith('Toggle to')
                 }
                 return element.tagName === 'BUTTON'
             },
@@ -255,11 +219,36 @@ export const RedfinSite: RealEstateSite = {
             scrapePage: (reportProgress: (progress: string) => void, includeOlderResults?: boolean): ScrapedProperties => {
                 return {
                     properties: scrapeListing(reportProgress, RedfinSite.pages[PropertyPageType.Listing].containsOlderResults),
-                    containsOlderResults: includeOlderResults === true
+                    containsOlderResults: RedfinSite.pages[PropertyPageType.Listing].containsOlderResults && includeOlderResults === true
                 }
             }
         },
+        [PropertyPageType.Saved]: {
+            pageType: PropertyPageType.Saved,
+            containsOlderResults: false,
+            isPage: (href: string): boolean => (
+                null !== href.match(/^https:\/\/www.redfin.com\/myredfin\/favorites.*/)
+            ),
+            awaitForPageLoad: async (): Promise<void> => {
+                await awaitPageLoadByMutation()
+            },
+            getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => {
+                return Array.from(await awaitQueryAll('div[class*="SegmentedControl__option "]', { parentElement })).filter(div => div.ariaChecked === 'false')
+            },
+            isMapToggleElement: (element: HTMLElement): boolean => {
+                return element.tagName === 'DIV' && element.className.includes('SegmentedControl__option')
+            },
 
+            insertContainerOnPage: async (container: HTMLElement): Promise<void> => {
+                document.body.insertBefore(container, document.body.firstElementChild)
+            },
+            scrapePage: (reportProgress: (progress: string) => void, includeOlderResults?: boolean): ScrapedProperties => {
+                return {
+                    properties: scrapeListing(reportProgress, RedfinSite.pages[PropertyPageType.Saved].containsOlderResults),
+                    containsOlderResults: false
+                }
+            }
+        },
         [PropertyPageType.Single]: {
             pageType: PropertyPageType.Single,
             containsOlderResults: false,
@@ -267,7 +256,7 @@ export const RedfinSite: RealEstateSite = {
             awaitForPageLoad: async (): Promise<void> => {
                 await awaitPageLoadByMutation()
             },
-            getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => [await awaitQuerySelection('div[class*="static-map"]')],
+            getMapToggleElements: async (parentElement?: HTMLElement): Promise<HTMLElement[]> => [await awaitQuerySelection('div[class*="static-map"]', { parentElement })],
             isMapToggleElement: (element: HTMLElement): boolean => {
                 return Array.from(element.classList).some(name => name === 'static-map')
             },
@@ -282,6 +271,7 @@ export const RedfinSite: RealEstateSite = {
                     Array.from(element.querySelectorAll('script'))
                         .filter(s => s.innerText.startsWith('{\"@context\"'))[0].innerText
                 ))
+                result.Status = toPropertyStatusType(((element.querySelector('div[class*="home-sash-container"]') as HTMLElement) ?? { innerText: '' }).innerText.split('\n'))
                 result.serializedElement = toSerializedElement({ queryString: 'div[class="detailsContent"]' })
                 result.element = deserializeElement(result.serializedElement)
                 result.serializedPicture = toScaledPictureSerialized(
@@ -298,7 +288,7 @@ export const RedfinSite: RealEstateSite = {
 
                 return {
                     properties: [result],
-                    containsOlderResults: includeOlderResults === true
+                    containsOlderResults: false
                 }
             }
         }
