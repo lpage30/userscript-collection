@@ -1,11 +1,15 @@
-import React, { JSX, useState, useRef, useEffect } from 'react'
+import React, { JSX, useState, useEffect } from 'react'
 import { Button } from 'primereact/button'
 import { Dialog } from 'primereact/dialog'
 import { LabelValueTable } from '../common/ui/LabelValueTable'
-import { GeoPropertyInfo, PropertyDetails, PropertyDetailsFields } from './propertyinfotypes'
+import { GeoPropertyInfo, PropertyDetails, PropertyDetailsFields, toGeocodeAddressOrigin } from './propertyinfotypes'
 import { GeocodedCity, GeocodedCountry, GeocodedCountryStateCityAddress, GeocodedState, PlaceDistance } from '../geocoding/geocodedcountrystatecitytypes'
-import { GeoCoordinate, toGeoCoordinateString, toGoogleMapsPlace, toGoogleFromHereMapsDirections, toGoogleMapsDirections } from '../geocoding/datatypes'
+import { GeoCoordinate, toGeoCoordinateString, toGoogleMapsPlace, toGoogleFromHereMapsDirections, toGoogleMapsDirections, sameCoordinates } from '../geocoding/datatypes'
 import { splitByCapitals, wordsToTitleCase } from '../common/functions'
+import { GeocodeAddressOrigin, geocodeAddress } from '../geocoding/geocoding_api/geocode_address'
+import { findClosestGeodataPlace } from '../geocoding/findClosestPlace'
+import { classifyGeoCountryStateCity } from '../geocoding/countryStateCityGeoAddressClassifiers'
+import { toGeocodedCountryStateCityAddress } from '../geocoding/geocodedcountrystatecitytypes'
 
 const countryStateCityToJSXElement = (name: string, data: GeocodedCity | GeocodedState | GeocodedCountry): JSX.Element => {
     if (data) {
@@ -112,20 +116,64 @@ const PropertyFullDetailTable: React.FC<PropertyFullDetailTableProps> = ({
     id,
     property,
 }) => {
-    const details: [string, JSX.Element][] = Object.values(PropertyDetailsFields).map(fieldName => {
-        const label: string = wordsToTitleCase(splitByCapitals(fieldName), () => false).join(' ')
-        const value: JSX.Element = fieldName === 'coordinate'
-            ? (
-                <>
-                    <a href={toGoogleMapsPlace(property[fieldName])} target={'_blank'}>{toGeoCoordinateString(property[fieldName])}</a>
-                    <a href={toGoogleFromHereMapsDirections(property[fieldName])} target={'_blank'}>&nbsp; (directions)</a>
-                </>
-            )
-            : fieldName === 'geoPropertyInfo'
-                ? <GeoPropertyInfoCard id={`${id}-geoproperty-info`} info={property[fieldName]} />
-                : <>{`${property[fieldName]}`}</>
-        return [label, value]
-    })
+    const [geocodedAddressOrigin, setGeocodedAddressOrigin] = useState<GeocodeAddressOrigin>(toGeocodeAddressOrigin(property))
+    const [closestOceanPlace, setClosestOceanPlace] = useState<PlaceDistance>(property.geoPropertyInfo.closestOceanPlace)
+
+    const findClosestToOceanPlace = async (geocodedAddress: GeocodeAddressOrigin) => {
+        if (sameCoordinates(geocodedAddress.coordinate, property.coordinate)) {
+            return
+        }
+        setClosestOceanPlace(await findClosestGeodataPlace(
+            property.oceanGeodataSource,
+            await toGeocodedCountryStateCityAddress(await classifyGeoCountryStateCity(geocodedAddress))
+        ))
+
+    }
+    const geocodePropertyAddress = async () => {
+        const newGeocodedAddressOrigin = await geocodeAddress(property.address, [])
+        setGeocodedAddressOrigin(newGeocodedAddressOrigin)
+    }
+    const details: [string, JSX.Element][] = PropertyDetailsFields
+        .filter(fieldName => !['coordinateOrigin'].includes(fieldName))
+        .map(fieldName => {
+            const label: string = wordsToTitleCase(splitByCapitals(fieldName), () => false).join(' ')
+            let value: JSX.Element = undefined
+            switch (fieldName) {
+                case 'coordinate':
+                    value = (
+                        <div>
+                            <div style={{ display: 'flex' }}>
+                                <span>Origin: {`${property.coordinateOrigin}`}</span>&nbsp;
+                                <a href={toGoogleMapsPlace(property[fieldName])} target={'_blank'}>{toGeoCoordinateString(property[fieldName])}</a>
+                                <a href={toGoogleFromHereMapsDirections(property[fieldName])} target={'_blank'}>&nbsp; (directions)</a>
+                            </div>
+                            <Button className={'app-button'} onClick={geocodePropertyAddress}>Re-Geocode Address</Button>
+                            {!sameCoordinates(geocodedAddressOrigin.coordinate, property.coordinate) && (<>
+                                <div style={{ display: 'flex' }}>
+                                    <span>Origin: {`${geocodedAddressOrigin.coordinateOrigin}`}</span>&nbsp;
+                                    <a href={toGoogleMapsPlace(geocodedAddressOrigin.coordinate)} target={'_blank'}>{toGeoCoordinateString(geocodedAddressOrigin.coordinate)}</a>
+                                    <a href={toGoogleFromHereMapsDirections(geocodedAddressOrigin.coordinate)} target={'_blank'}>&nbsp; (directions)</a>
+                                </div>
+                                <Button className={'app-button'} onClick={() => findClosestToOceanPlace(geocodedAddressOrigin)}>Find Closest Ocean Place</Button>
+                                {!sameCoordinates(closestOceanPlace.place.coordinate, property.geoPropertyInfo.closestOceanPlace.place.coordinate) && (
+                                    <div style={{ display: 'flex' }}>
+                                        <span>Closest Ocean Place:</span>&nbsp;
+                                        <PlaceDistanceCard id={`${id}-regeocoded-closest-ocean-place`} info={closestOceanPlace} origin={geocodedAddressOrigin.coordinate} />
+                                    </div>
+                                )}
+                            </>)}
+                        </div>
+                    )
+                    break
+                case 'geoPropertyInfo':
+                    value = <GeoPropertyInfoCard id={`${id}-geoproperty-info`} info={property[fieldName]} />
+                    break
+                default:
+                    value = <span>{`${property[fieldName]}`}</span>
+                    break
+            }
+            return [label, value]
+        })
     return <LabelValueTable id={id} labelValueArray={details} />
 }
 

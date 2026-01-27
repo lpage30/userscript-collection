@@ -81,11 +81,12 @@ export async function geocodePropertyInfoCard(data: PropertyInfo, reportProgress
         const geoAddress = await geocodeAddress(data.address, imgData ? [imgData.src] : [])
         if (geoAddress && geoAddress.coordinate) {
             data.coordinate = geoAddress.coordinate
-            data.displayLinesArray = [...data.displayLinesArray, `CoordinateSource: ${geoAddress.origin}`]
+            data.coordinateOrigin = geoAddress.coordinateOrigin
         }
     } else {
-        data.displayLinesArray = [...data.displayLinesArray, `CoordinateSource: Listing`]
+        data.coordinateOrigin = 'Listing'
     }
+    data.displayLinesArray = [...data.displayLinesArray, `CoordinateSource: ${data.coordinateOrigin}`]
     const propertyPlace: GeocodedCountryStateCityAddress = await toGeocodedCountryStateCityAddress(await classifyGeoCountryStateCity(data as GeoAddress))
     const closestOceanPlace: PlaceDistance | undefined = await findClosestGeodataPlace(data.oceanGeodataSource, propertyPlace)
     const oceanDistance = closestOceanPlace

@@ -6,13 +6,13 @@ import { parseFullAddress, joinFullAddress, fullAddressToGeoAddress } from './ad
 import { fetchImgMetadata } from "./image_metadata_extractor"
 import { getGeocodeServiceInstance } from "./geocodeMapsCoAPI"
 import { classifyGeoCountryStateCity, countryStateCityAddressToGeoAddress } from "../countryStateCityGeoAddressClassifiers"
-export interface GeocodeAddressResult extends GeoAddress {
-    origin: 'Image' | 'GeocodeService' | 'CityStateCountry'
+export interface GeocodeAddressOrigin extends GeoAddress {
+    coordinateOrigin: 'Image' | 'GeocodeService' | 'CityStateCountry' | 'Listing'
 }
 export async function geocodeAddress(
     address: string,
     imgSrcs?: string[]
-): Promise<GeocodeAddressResult | undefined> {
+): Promise<GeocodeAddressOrigin | undefined> {
     const fullAddress = parseFullAddress(address)
     try {
         for (const imgSrc of (imgSrcs ?? [])) {
@@ -20,7 +20,7 @@ export async function geocodeAddress(
             if (metadata.exif && metadata.exif.gps) {
                 console.log(`Coordinate Found in Img ${imgSrc}. EXIF result: ${JSON.stringify(metadata.exif, null, 2)}`)
                 return {
-                    origin: 'Image',
+                    coordinateOrigin: 'Image',
                     address: joinFullAddress(fullAddress),
                     city: fullAddress.city,
                     state: fullAddress.state,
@@ -37,7 +37,7 @@ export async function geocodeAddress(
         if (geoAddress) {
             console.log(`Coordinate Found via GeocodeService (${getGeocodeServiceInstance().name}).`)
             return {
-                origin: 'GeocodeService',
+                coordinateOrigin: 'GeocodeService',
                 ...geoAddress
             }
         }
@@ -48,7 +48,7 @@ export async function geocodeAddress(
         const countryStateCityAddress = await classifyGeoCountryStateCity(fullAddressToGeoAddress(fullAddress))
         console.log(`Coordinate Found via classifyGeoCountryStateCity's city|state|country coordinate.`)
         return {
-            origin: 'CityStateCountry',
+            coordinateOrigin: 'CityStateCountry',
             ...countryStateCityAddressToGeoAddress(countryStateCityAddress)
         }
     } catch (e) {

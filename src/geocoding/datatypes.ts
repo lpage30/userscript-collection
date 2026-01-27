@@ -13,14 +13,11 @@ export interface GeojsonIndex {
     lineString: Feature<LineString>
     polygon: Feature<Polygon>
 }
-export enum GeoCoordinateField {
-    lat = 'lat',
-    lon = 'lon'
-}
 export interface GeoCoordinate {
-    [GeoCoordinateField.lat]: number
-    [GeoCoordinateField.lon]: number
+    lat: number
+    lon: number
 }
+export const sameCoordinates = (left: GeoCoordinate, right: GeoCoordinate): boolean => left.lat === right.lat && left.lon === right.lon
 
 export const isValidGeoCoordinate = (value: Partial<GeoCoordinate>): value is GeoCoordinate => undefined !== value && ![value.lat, value.lon].some(v => [null, undefined].includes(v))
 export const toGeoPoint = (value: GeoCoordinate) => turf.point([value.lon, value.lat])
@@ -59,19 +56,13 @@ export interface Geocoding {
         distantGeojsonIndexes: number[]
     }
 }
-export enum GeoAddressField {
-    address = 'address',
-    city = 'city',
-    state = 'state',
-    country = 'country',
-    coordinate = 'coordinate'
-}
+
 export interface GeoAddress {
-    [GeoAddressField.address]?: string
-    [GeoAddressField.city]?: string
-    [GeoAddressField.state]?: string,
-    [GeoAddressField.country]: string,
-    [GeoAddressField.coordinate]?: GeoCoordinate
+    address?: string
+    city?: string
+    state?: string,
+    country: string,
+    coordinate?: GeoCoordinate
 }
 export const toGeoAddressString = (address: GeoAddress): string => [
     address.address ?? 'address not disclosed',

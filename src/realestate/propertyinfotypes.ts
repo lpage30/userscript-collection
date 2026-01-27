@@ -1,15 +1,13 @@
 import { JSX, ReactNode } from 'react'
 import { Card } from '../dashboardcomponents/datatypes'
 import {
-    GeoAddress,
-    GeoAddressField,
-    GeoCoordinate,
     GeodataSourceType
 } from '../geocoding/datatypes'
 import {
     PlaceDistance,
     GeocodedCountryStateCityAddress
 } from '../geocoding/geocodedcountrystatecitytypes'
+import { GeocodeAddressOrigin } from '../geocoding/geocoding_api/geocode_address'
 
 export const MaxPropertyInfoImageWidth = 325
 export interface GeoPropertyInfo {
@@ -23,48 +21,50 @@ interface LabelColorHref {
     color: string
     href: string
 }
-export enum PropertyDetailsField {
-    source = 'source',
-    currencySymbol = 'currencySymbol',
-    oceanGeodataSource = 'oceanGeodataSource',
-    isLand = 'isLand',
-    Type = 'Type',
-    Year = 'Year',
-    HOA = 'HOA',
-    Garage = 'Garage',
-    Price = 'Price',
-    Bedrooms = 'Bedrooms',
-    Bathrooms = 'Bathrooms',
-    Sqft = 'Sqft',
-    lotSize = 'lotSize',
-    coordinate = 'coordinate',
-    DistanceToOcean = 'DistanceToOcean',
-    geoPropertyInfo = 'geoPropertyInfo',
-    elementId = 'elementId',
+export const PropertyDetailsFields = [
+    'source',
+    'isLand',
+    'Type',
+    'address',
+    'city',
+    'state',
+    'country',
+    'coordinate',
+    'coordinateOrigin',
+    'Price',
+    'currencySymbol',
+    'Year',
+    'HOA',
+    'Garage',
+    'Bedrooms',
+    'Bathrooms',
+    'Sqft',
+    'lotSize',
+    'oceanGeodataSource',
+    'DistanceToOcean',
+    'geoPropertyInfo',
+    'elementId',
+]
+
+export interface PropertyDetails extends GeocodeAddressOrigin {
+    source: string
+    currencySymbol: string,
+    oceanGeodataSource: GeodataSourceType
+    isLand: boolean
+    Type?: string
+    Year?: number
+    HOA?: number
+    Garage?: number
+    Price?: number
+    Bedrooms?: number
+    Bathrooms?: number
+    Sqft?: number
+    lotSize?: number
+    DistanceToOcean?: number
+    geoPropertyInfo?: GeoPropertyInfo
+    elementId: string
 }
-export const PropertyDetailsFields = {
-    ...GeoAddressField,
-    ...PropertyDetailsField
-}
-export interface PropertyDetails extends GeoAddress {
-    [PropertyDetailsField.source]: string
-    [PropertyDetailsField.currencySymbol]: string,
-    [PropertyDetailsField.oceanGeodataSource]: GeodataSourceType
-    [PropertyDetailsField.isLand]: boolean
-    [PropertyDetailsField.Type]?: string
-    [PropertyDetailsField.Year]?: number
-    [PropertyDetailsField.HOA]?: number
-    [PropertyDetailsField.Garage]?: number
-    [PropertyDetailsField.Price]?: number
-    [PropertyDetailsField.Bedrooms]?: number
-    [PropertyDetailsField.Bathrooms]?: number
-    [PropertyDetailsField.Sqft]?: number
-    [PropertyDetailsField.lotSize]?: number
-    [PropertyDetailsField.coordinate]?: GeoCoordinate
-    [PropertyDetailsField.DistanceToOcean]?: number
-    [PropertyDetailsField.geoPropertyInfo]?: GeoPropertyInfo
-    [PropertyDetailsField.elementId]: string
-}
+export const toGeocodeAddressOrigin = (property: PropertyDetails): GeocodeAddressOrigin => property as GeocodeAddressOrigin
 
 export interface PropertyInfo extends Card, PropertyDetails {
     serializedPicture?: string
