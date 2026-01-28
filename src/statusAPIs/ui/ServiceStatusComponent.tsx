@@ -1,34 +1,15 @@
 import React, { useState, JSX } from 'react'
 import { Button } from 'primereact/button'
-import { ServiceStatus, Incident, CompanyHealthStatus, isServiceStatusForCompany } from '../statustypes'
+import { ServiceStatus, Incident } from '../statustypes'
 import StatusComponent from './StatusComponent'
 import IncidentComponent from './IncidentComponent'
-import { CompanyHealthLevelTypeInfoMap } from './IndicatorStatusTypeInfoMaps'
 import { getStatusMetadata } from '../statusService'
-import { companyHealthStatusToMultirowElement } from './multirowElementConversions'
+import { companyHealthStatusToMultirowElement } from '../../common/ui/CompanyHealthStatusComponents'
+import { CompanyHealthStatus, sortAndTablifyCompanyHealthStatuses } from '../../common/CompanyHealthStatus'
 
 interface ServiceStatusComponentProps {
     serviceStatus: ServiceStatus
     companyHealthStatuses?: CompanyHealthStatus[]
-}
-
-function sortAndTablifyCompanyHealthStatuses(statuses: CompanyHealthStatus[], columnsPerRow: number): CompanyHealthStatus[][] {
-    return Object.keys(CompanyHealthLevelTypeInfoMap)
-        .sort((l: string, r: string) => CompanyHealthLevelTypeInfoMap[l].rank - CompanyHealthLevelTypeInfoMap[r].rank)
-        .reduce((result, level) => ([
-            ...result,
-            ...statuses
-                .filter(({ healthStatus }) => level === healthStatus.toLowerCase().trim())
-                .sort((l: CompanyHealthStatus, r: CompanyHealthStatus) => l.companyName.localeCompare(r.companyName))
-        ]), [] as CompanyHealthStatus[])
-        .reduce((rows, status, index) => {
-            const result = [...rows]
-            if (0 === (index % columnsPerRow)) {
-                result.push([])
-            }
-            result[result.length - 1].push(status)
-            return result
-        }, [])
 }
 
 export const ServiceStatusComponent: React.FC<ServiceStatusComponentProps> = ({
@@ -36,10 +17,14 @@ export const ServiceStatusComponent: React.FC<ServiceStatusComponentProps> = ({
     companyHealthStatuses
 }) => {
     const companyStatuses = sortAndTablifyCompanyHealthStatuses((companyHealthStatuses ?? [])
-        .filter(({ companyName }) => isServiceStatusForCompany(serviceStatus, companyName)), 10)
+        .filter(({ dependentServiceStatuses }) => (dependentServiceStatuses ?? []).some(({ serviceName }) => serviceName === serviceStatus.serviceName)), 10)
     const [incidents, setIncidents] = useState<Incident[]>([])
     const toggleIncidents = () => {
-        setIncidents(0 < incidents.length ? [] : serviceStatus.incidents)
+        setIncidents(0 < incidents.length ? [] : serviceStatus.incidents
+            .sort((l: Incident, r: Incident) => {
+                const order1 = (r.statusLevel) - (l.statusLevel ?? 0)
+                return 0 !== order1 ? order1 : l.name.localeCompare(r.name)
+            }))
     }
 
     return (<div style={{

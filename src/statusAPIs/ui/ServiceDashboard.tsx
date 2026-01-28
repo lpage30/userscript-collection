@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, JSX } from 'react'
 import { Button } from 'primereact/button'
-import { ServiceStatus, CompanyHealthStatus, isServiceStatusForAnyCompanies } from '../statustypes'
+import { CompanyHealthStatus } from '../../common/CompanyHealthStatus'
+import { ServiceStatus, isServiceStatusForAnyCompanies } from '../statustypes'
 import { Card } from '../../dashboardcomponents/datatypes'
 import { Dashboard } from '../../dashboardcomponents/Dashboard'
 import { StatusAPIs } from '../statusAPIs'
@@ -88,7 +89,12 @@ export const ServiceDashboardPopup: React.FC<ServiceDashboardPopupProps> = ({
         {state.visible && (
           <Dashboard
             title={'Service Status Dashboard'}
-            getCards={() => state.initialStatuses.map(s => s as Card)}
+            getCards={() => state
+              .initialStatuses
+              .sort((l: ServiceStatus, r: ServiceStatus) => {
+                const order1 = (r.status.statusLevel ?? 0) - (l.status.statusLevel ?? 0)
+                return 0 != order1 ? order1 : l.serviceName.localeCompare(r.serviceName)
+              }).map(s => s as Card)}
             contentLayout={{
               type: 'Card',
               properties: {

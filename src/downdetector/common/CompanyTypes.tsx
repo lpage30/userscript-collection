@@ -1,10 +1,6 @@
 import React, { JSX } from 'react'
+import { CompanyHealthStatus, HealthLevelType } from '../../common/CompanyHealthStatus';
 import { Card, FilterableItems, ItemFilter } from '../../dashboardcomponents/datatypes';
-import { ServiceStatus } from "../../statusAPIs/statustypes";
-import { OutageBreakdown } from "../../geoblackout/outageBreakdownAPItypes";
-
-export const HealthLevelTypes = ['danger', 'warning', 'success'] as const;
-export type HealthLevelType = (typeof HealthLevelTypes)[number];
 
 export const CompanyPageTypes = ['dashboard', 'status', 'map'] as const;
 export type CompanyPageType = (typeof CompanyPageTypes)[number];
@@ -60,17 +56,13 @@ export interface CompanyDivMetadata {
     }[]
   }
 }
-export interface CompanyMetadata extends Card {
+export interface CompanyMetadata extends CompanyHealthStatus, Card {
   timestamp: number;
   rank: number;
-  level: HealthLevelType;
-  companyName: string;
   incidentReports?: IncidentReports;
   incidentRisk: number
   pageInfo: CompanyPageInfo
   displayLinesArray: string[]
-  dependentServiceStatuses?: ServiceStatus[]
-  outageBreakdownService?: OutageBreakdown
   companyDiv: CompanyDivMetadata
 }
 

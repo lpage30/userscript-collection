@@ -33,7 +33,12 @@ const IncidentComponent: React.FC<IncidentComponentProps> = ({
     const [updates, setUpdates] = useState<IncidentUpdate[]>([])
 
     const toggleUpdates = () => {
-        setUpdates(0 < updates.length ? [] : incident.updates)
+        setUpdates(0 < updates.length ? [] : incident.updates
+            .sort((l: IncidentUpdate, r: IncidentUpdate) => {
+                const order1 = (r.statusLevel ?? 0) - (l.statusLevel ?? 0)
+                return 0 !== order1 ? order1 : l.name.localeCompare(r.name)
+            })
+        )
     }
 
     const maxTimestamp = incident.updated > incident.timestamp ? incident.updated : incident.timestamp
@@ -44,7 +49,7 @@ const IncidentComponent: React.FC<IncidentComponentProps> = ({
         <>
             <div style={{ display: 'flex', padding: '10px', alignItems: 'center' }}>
                 {title && <span style={{ paddingRight: '10px' }}><strong>{title}</strong></span>}
-                <span style={{ paddingRight: '10px' }}><strong>{impactMetadata.impactName}</strong></span>
+                <span style={{ paddingRight: '10px' }}><strong>{impactMetadata ? impactMetadata.impactName : incident.impact}</strong></span>
                 <span style={{ paddingRight: '10px' }}><strong>{statusMetadata ? statusMetadata.statusName : incident.status}</strong></span>
                 <span style={{ paddingRight: '10px' }}>{incident.name}</span>
                 <span style={{ paddingRight: '10px' }}>{toMonthDayYearDateTime(maxTimestamp)}</span>

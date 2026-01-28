@@ -1,12 +1,13 @@
 import React, { JSX } from 'react'
+import { HealthLevelType, CompanyHealthLevelTypeInfoMap } from '../../common/CompanyHealthStatus'
 import { toCardIndex } from '../../dashboardcomponents/datatypes'
-import { CompanyDivMetadata, CompanyMetadata, IncidentReports, HealthLevelType, CompanyPageInfo, CompanyPageType, CompanyStatusCard } from './CompanyTypes'
+import { CompanyDivMetadata, CompanyMetadata, IncidentReports, CompanyPageInfo, CompanyPageType, CompanyStatusCard } from './CompanyTypes'
 import { PersistenceClass, StaleDuration } from '../../dashboardcomponents/persistence';
 import { toTitleCase } from '../../common/functions';
 
 
 export const toCard = (elementId: string, pageName: string, companies: CompanyMetadata[] | undefined): CompanyMetadata | null => {
-    const index = toCardIndex(elementId, pageName, companies)
+    const index = toCardIndex(elementId, companies)
     return index === null ? companies[index] : null
 }
 function toCompanyDivMetadata(companyDiv: HTMLElement): CompanyDivMetadata {
@@ -64,7 +65,7 @@ function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata 
     metadata.displayLines = () => metadata.displayLinesArray
     metadata.groupName = metadata.companyName
     metadata.label = () => `#${metadata.rank} ${metadata.companyName}`
-    metadata.color = () => metadata.level === 'danger' ? 'red' : metadata.level === 'warning' ? 'yellow' : 'lightblue'
+    metadata.color = () => CompanyHealthLevelTypeInfoMap[metadata.level].bgColor
     metadata.href = (pageName: string) => metadata.pageInfo[pageName].href
     metadata.companyDiv = { ...data.companyDiv }
     return metadata as CompanyMetadata

@@ -1,9 +1,8 @@
 
 import React from 'react'
-import { ServiceStatus, toServiceStatusCard } from '../statustypes'
+import { ServiceStatus } from '../statustypes'
 import { StatusLevel, getStatusMetadata } from '../statusService'
-import { CompanyHealthStatus } from '../statustypes'
-import { ServiceHealthStatusSpan, CompanyHealthStatusSpan } from './IndicatorStatusComponents'
+import { ServiceHealthStatusSpan } from './IndicatorStatusComponents'
 import { MultirowArrayItem } from '../../common/ui/multirow_element'
 
 export const serviceStatusToMultirowElement = (serviceStatus: ServiceStatus): MultirowArrayItem => ({
@@ -30,19 +29,4 @@ export const statusLevelToMultrowElement = (statusLevel: StatusLevel): MultirowA
             paddingRight: `5px`
         }} onClick={onClick}>{getStatusMetadata(statusLevel).statusName}</span>
     )
-})
-
-export const companyHealthStatusToMultirowElement = (healthStatus: CompanyHealthStatus): MultirowArrayItem => ({
-    id: healthStatus.companyName.toString(),
-    getElement: (isFirst: boolean, isLast: boolean, onClick?: () => void) => (<>
-        {!isFirst && <span>&nbsp;&#x2022;&nbsp;</span>}
-        {CompanyHealthStatusSpan(
-            healthStatus.companyName,
-            healthStatus.healthStatus,
-            !isFirst ? 5 : 3,
-            !isLast ? 5 : 3,
-            false,
-            onClick
-        )}
-    </>)
 })

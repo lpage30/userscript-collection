@@ -62,11 +62,6 @@ export interface ServiceAPI {
     load(force: boolean): Promise<ServiceStatus[]>
 }
 
-export interface CompanyHealthStatus {
-    companyName: string,
-    healthStatus: 'danger' | 'warning' | 'success'
-}
-
 export async function classifyServiceStatus(status: ServiceStatus): Promise<ServiceStatus> {
     const incidents: Incident[] = []
     for (const incident of status.incidents) {
