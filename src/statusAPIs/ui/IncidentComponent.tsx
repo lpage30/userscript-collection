@@ -1,4 +1,4 @@
-import React, { useState} from 'react'
+import React, { useState } from 'react'
 import { Button } from 'primereact/button'
 import { Incident, IncidentUpdate } from '../statustypes'
 import { getStatusMetadata, classifyStatus } from '../statusService'
@@ -13,10 +13,10 @@ const IncidentUpdateComponent: React.FC<IncidentUpdateComponentProps> = ({
 }) => {
     const statusMetadata = getStatusMetadata(update.statusLevel ?? classifyStatus(update.status))
     return (
-        <div style={{display: 'flex', padding: '10px', alignItems: 'center'}}>
-            <span style={{paddingRight: '10px'}}>{toMonthDayYearDateTime(update.updated)}</span>
-            <span style={{paddingRight: '10px'}}><strong>{statusMetadata.statusName}</strong></span>
-            <span style={{paddingRight: '10px'}}>{update.name}</span>
+        <div style={{ display: 'flex', padding: '10px', alignItems: 'center' }}>
+            <span style={{ paddingRight: '10px' }}>{toMonthDayYearDateTime(update.updated)}</span>
+            <span style={{ paddingRight: '10px' }}><strong>{statusMetadata ? statusMetadata.statusName : update.status}</strong></span>
+            <span style={{ paddingRight: '10px' }}>{update.name}</span>
         </div>
     )
 }
@@ -42,23 +42,23 @@ const IncidentComponent: React.FC<IncidentComponentProps> = ({
 
     return (
         <>
-            <div style={{display: 'flex', padding: '10px', alignItems: 'center'}}>
-                {title && <span style={{paddingRight: '10px'}}><strong>{title}</strong></span>}
-                <span style={{paddingRight: '10px'}}><strong>{impactMetadata.impactName}</strong></span>
-                <span style={{paddingRight: '10px'}}><strong>{statusMetadata.statusName}</strong></span>
-                <span style={{paddingRight: '10px'}}>{incident.name}</span>
-                <span style={{paddingRight: '10px'}}>{toMonthDayYearDateTime(maxTimestamp)}</span>
+            <div style={{ display: 'flex', padding: '10px', alignItems: 'center' }}>
+                {title && <span style={{ paddingRight: '10px' }}><strong>{title}</strong></span>}
+                <span style={{ paddingRight: '10px' }}><strong>{impactMetadata.impactName}</strong></span>
+                <span style={{ paddingRight: '10px' }}><strong>{statusMetadata ? statusMetadata.statusName : incident.status}</strong></span>
+                <span style={{ paddingRight: '10px' }}>{incident.name}</span>
+                <span style={{ paddingRight: '10px' }}>{toMonthDayYearDateTime(maxTimestamp)}</span>
                 <Button
                     className="app-button"
-                    style={{border: '2px solid #007bff', borderRadius: '5px'}} 
+                    style={{ border: '2px solid #007bff', borderRadius: '5px' }}
                     onClick={() => toggleUpdates()}
                 >
                     {0 === updates.length ? 'Expand' : 'Collapse'} Updates({incident.updates.length})
                 </Button>
             </div>
             {updates.map(update => (
-                <div style={{marginLeft: '20px'}}>
-                    <IncidentUpdateComponent update={update}/>
+                <div style={{ marginLeft: '20px' }}>
+                    <IncidentUpdateComponent update={update} />
                 </div>
             ))}
         </>
