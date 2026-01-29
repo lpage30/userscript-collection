@@ -17,7 +17,9 @@ export const ServiceStatusComponent: React.FC<ServiceStatusComponentProps> = ({
     companyHealthStatuses
 }) => {
     const companyStatuses = sortAndTablifyCompanyHealthStatuses((companyHealthStatuses ?? [])
-        .filter(({ dependentServiceStatuses }) => (dependentServiceStatuses ?? []).some(({ serviceName }) => serviceName === serviceStatus.serviceName)), 10)
+        .filter(({ dependentServiceStatuses }) => (dependentServiceStatuses ?? [])
+            .some(({ serviceName }) => serviceName === serviceStatus.serviceName)),
+        6)
     const [incidents, setIncidents] = useState<Incident[]>([])
     const toggleIncidents = () => {
         setIncidents(0 < incidents.length ? [] : serviceStatus.incidents

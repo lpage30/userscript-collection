@@ -29,7 +29,7 @@ export const CompanyCardComponent: React.FC<CompanyCardComponentProps> = ({
       )}
     </div>
     <CompanyDownDetectorCard id={`${id}-downdetector-card`} companyDivMetadata={company.companyDiv} />
-    <div id={`${id}-wrapped-breakdown`} style={{ display: 'flex', float: 'inline-end' }}>
+    <div id={`${id}-wrapped-breakdown`} style={{ display: 'flex' }}>
       {company.outageBreakdownService && (
         <OutageBreakdownListingComponent service={company.outageBreakdownService} />
       )}

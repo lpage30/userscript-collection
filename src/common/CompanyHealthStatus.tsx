@@ -7,6 +7,7 @@ export type HealthLevelType = (typeof HealthLevelTypes)[number];
 export interface CompanyHealthStatus {
     companyName: string,
     level: HealthLevelType;
+    riskFactor: number
     dependentServiceStatuses: ServiceStatus[]
     outageBreakdownService?: OutageBreakdown
 }
@@ -16,16 +17,14 @@ export const CompanyHealthLevelTypeInfoMap = {
     warning: { rank: 2, bgColor: 'orange', fgColor: 'black', displayName: 'Minor Impact' },
     success: { rank: 3, bgColor: 'green', fgColor: 'white', displayName: 'No Impact' }
 }
+export function CompanyHealthStatusSort(l: CompanyHealthStatus, r: CompanyHealthStatus) {
+    const order1 = CompanyHealthLevelTypeInfoMap[l.level].rank - CompanyHealthLevelTypeInfoMap[r.level].rank
+    const order2 = r.riskFactor - l.riskFactor
+    return 0 !== order1 ? order1 : (0 !== order2 ? order2 : l.companyName.localeCompare(r.companyName))
+}
 
 export function sortAndTablifyCompanyHealthStatuses(statuses: CompanyHealthStatus[], columnsPerRow: number): CompanyHealthStatus[][] {
-    return Object.keys(CompanyHealthLevelTypeInfoMap)
-        .sort((l: string, r: string) => CompanyHealthLevelTypeInfoMap[l].rank - CompanyHealthLevelTypeInfoMap[r].rank)
-        .reduce((result, healthStatus) => ([
-            ...result,
-            ...statuses
-                .filter(({ level }) => healthStatus === level.toLowerCase().trim())
-                .sort((l: CompanyHealthStatus, r: CompanyHealthStatus) => l.companyName.localeCompare(r.companyName))
-        ]), [] as CompanyHealthStatus[])
+    return statuses.sort(CompanyHealthStatusSort)
         .reduce((rows, status, index) => {
             const result = [...rows]
             if (0 === (index % columnsPerRow)) {
@@ -34,4 +33,8 @@ export function sortAndTablifyCompanyHealthStatuses(statuses: CompanyHealthStatu
             result[result.length - 1].push(status)
             return result
         }, [])
+}
+
+export function toCompanyTitleText(company: CompanyHealthStatus, prefix?: String, suffix?: string): string {
+    return `${prefix ?? ''} ${company.companyName} (RiskFactor: ${company.riskFactor}) ${suffix ?? ''}`.trim()
 }

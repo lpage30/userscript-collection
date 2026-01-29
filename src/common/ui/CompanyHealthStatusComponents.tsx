@@ -1,6 +1,6 @@
 import React, { CSSProperties, JSX } from 'react'
 import { MultirowArrayItem } from './multirow_element'
-import { CompanyHealthStatus, HealthLevelType, CompanyHealthLevelTypeInfoMap } from '../CompanyHealthStatus'
+import { CompanyHealthStatus, HealthLevelType, CompanyHealthLevelTypeInfoMap, toCompanyTitleText } from '../CompanyHealthStatus'
 
 export function CompanyHealthStatusSpan(
     companyName: string,
@@ -27,7 +27,7 @@ export const companyHealthStatusToMultirowElement = (healthStatus: CompanyHealth
     getElement: (isFirst: boolean, isLast: boolean, onClick?: () => void) => (<>
         {!isFirst && <span>&nbsp;&#x2022;&nbsp;</span>}
         {CompanyHealthStatusSpan(
-            healthStatus.companyName,
+            toCompanyTitleText(healthStatus),
             healthStatus.level,
             !isFirst ? 5 : 3,
             !isLast ? 5 : 3,

@@ -24,7 +24,7 @@ import { createOnExternalDataUpdates } from "../common/onexternaldataupdate";
 import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
 import { OutageBreakdownDashboardPopupAndSummary } from "../../geoblackout/ui/OutageBreakdownDashboard";
 import { toCompanyCardComponent } from "../common/CompanyCardComponent";
-import { CompanyHealthStatus } from "../../common/CompanyHealthStatus";
+import { CompanyHealthStatus, CompanyHealthStatusSort } from "../../common/CompanyHealthStatus";
 
 export const DownDetectorDashboard: Userscript = {
   name: "DownDetectorDashboard",
@@ -63,7 +63,7 @@ export const DownDetectorDashboard: Userscript = {
     const cards = processCompanyDashboardCards(
       await awaitQueryAll(dashboardCardsQueryAllSelector),
       persistence
-    );
+    ).sort(CompanyHealthStatusSort);
     const { onServiceStatus, onOutageBreakdowns } = createOnExternalDataUpdates(cards, persistence)
 
     const features = createFeatures(() => persistence, {
@@ -114,6 +114,10 @@ export const DownDetectorDashboard: Userscript = {
               onOutageBreakdowns(breakdowns)
               if (rerenderDashboard) rerenderDashboard()
             }}
+            companyHealthStatuses={
+              cards.map(c => c as CompanyHealthStatus)
+            }
+
           />
         },
         {

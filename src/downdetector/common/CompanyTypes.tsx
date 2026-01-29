@@ -5,7 +5,7 @@ import { Card, FilterableItems, ItemFilter } from '../../dashboardcomponents/dat
 export const CompanyPageTypes = ['dashboard', 'status', 'map'] as const;
 export type CompanyPageType = (typeof CompanyPageTypes)[number];
 
-export const sortingFields = ['level', 'groupName', 'incidentRisk'];
+export const sortingFields = ['level', 'groupName', 'riskFactor'];
 export const filterableItems: FilterableItems = {
   level: {
     field: 'level',
@@ -31,7 +31,7 @@ export type CompanyPageInfo = {
 export interface IncidentReports {
   baseline15minAvg: number
   pastHr15minAvg: number
-  incidentRiskFactor: number
+  riskFactorFactor: number
 }
 export interface CompanyDivMetadata {
   id: string
@@ -60,7 +60,6 @@ export interface CompanyMetadata extends CompanyHealthStatus, Card {
   timestamp: number;
   rank: number;
   incidentReports?: IncidentReports;
-  incidentRisk: number
   pageInfo: CompanyPageInfo
   displayLinesArray: string[]
   companyDiv: CompanyDivMetadata

@@ -9,6 +9,7 @@ import { OutageBreakdownAPI } from '../OutageBreakdownAPI'
 import { OutageBreakdownSpan } from './OutageBreakdownListing'
 import { OutageBreakdownComponent } from './OutageBreakdownComponent'
 import { MultirowElement, MultirowArrayItem } from '../../common/ui/multirow_element'
+import { CompanyHealthStatus, CompanyHealthLevelTypeInfoMap, CompanyHealthStatusSort } from '../../common/CompanyHealthStatus'
 
 const outageToMultirowArrayItem = (outage: OutageBreakdown): MultirowArrayItem => ({
   id: outage.elementId,
@@ -26,6 +27,7 @@ const outageToMultirowArrayItem = (outage: OutageBreakdown): MultirowArrayItem =
 
 interface OutageBreakdownDashboardPopupProps {
   onOutageBreakdowns?: (outageBreakdowns: OutageBreakdown[]) => void
+  companyHealthStatuses?: CompanyHealthStatus[]
   outagesPerRow?: number
 }
 
@@ -37,6 +39,7 @@ interface OutageBreakdownDashboardPopupState {
 }
 export const OutageBreakdownDashboardPopup: React.FC<OutageBreakdownDashboardPopupProps> = ({
   onOutageBreakdowns,
+  companyHealthStatuses,
   outagesPerRow = 10,
 }) => {
   const [state, setState] = useState<OutageBreakdownDashboardPopupState>({
@@ -56,13 +59,23 @@ export const OutageBreakdownDashboardPopup: React.FC<OutageBreakdownDashboardPop
   })
   useEffect(() => {
     OutageBreakdownAPI.load(false).then(breakdowns => {
-      const cardBreakdowns = breakdowns.map(toOutageBreakdownCard).map(c => c as OutageBreakdown)
+      const cardBreakdowns = breakdowns
+        .map(toOutageBreakdownCard)
+        .map(c => c as OutageBreakdown)
+        .sort((l: OutageBreakdown, r: OutageBreakdown) => l.service.localeCompare(r.service))
       if (onOutageBreakdowns) {
         onOutageBreakdowns(cardBreakdowns)
       }
+      const orderedCompanyStatuses = (companyHealthStatuses ?? []).sort(CompanyHealthStatusSort)
+      const orderedBreakdownServiceNames: string[] = []
+      orderedCompanyStatuses.filter(({ outageBreakdownService }) => undefined !== outageBreakdownService).forEach(({ outageBreakdownService }) => {
+        const breakdown = cardBreakdowns.find(breakdown => breakdown.service === outageBreakdownService.service)
+        orderedBreakdownServiceNames.push(breakdown.service)
+      })
+      orderedBreakdownServiceNames.push(...cardBreakdowns.map(({ service }) => service).filter(service => !orderedBreakdownServiceNames.includes(service)))
       setState({
         ...state,
-        initialBreakdowns: cardBreakdowns
+        initialBreakdowns: orderedBreakdownServiceNames.map(serviceName => cardBreakdowns.find(({ service }) => serviceName === service))
       })
     })
   }, [])
@@ -112,6 +125,7 @@ export const OutageBreakdownDashboardPopup: React.FC<OutageBreakdownDashboardPop
                   reactToHTMLElement(card.elementId,
                     <OutageBreakdownComponent
                       outageBreakdown={card as OutageBreakdown}
+                      companyHealthStatuses={companyHealthStatuses}
                     />)
               }
             }}
@@ -175,6 +189,7 @@ interface OutageBreakdownDashboardPopupAndSummaryProps extends OutageBreakdownDa
 
 export const OutageBreakdownDashboardPopupAndSummary: React.FC<OutageBreakdownDashboardPopupAndSummaryProps> = ({
   onOutageBreakdowns,
+  companyHealthStatuses,
   outagesPerRow = 10,
 }) => {
   const [outages, setOutages] = useState<OutageBreakdown[]>([])
@@ -188,6 +203,7 @@ export const OutageBreakdownDashboardPopupAndSummary: React.FC<OutageBreakdownDa
       <div style={{ display: 'flex' }}>
         <OutageBreakdownDashboardPopup
           onOutageBreakdowns={setOutageBreakdowns}
+          companyHealthStatuses={companyHealthStatuses}
         />
         {0 < outages.length && (
           <table

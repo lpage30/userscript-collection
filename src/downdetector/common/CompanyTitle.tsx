@@ -1,9 +1,6 @@
-import React from 'react'
+import React, { CSSProperties } from 'react'
 import { CompanyMetadata } from './CompanyTypes'
-
-export function toCompanyTitleText(company: CompanyMetadata, prefix?: String, suffix?: string): string {
-    return `${prefix ?? ''} ${company.companyName} (RiskFactor: ${company.incidentRisk}) ${suffix ?? ''}`.trim()
-}
+import { CompanyHealthLevelTypeInfoMap, toCompanyTitleText } from '../../common/CompanyHealthStatus'
 
 interface CompanyTitleProps {
     titleType: 'page' | 'card' | 'text'
@@ -16,12 +13,14 @@ export const CompanyTitle: React.FC<CompanyTitleProps> = ({
     titleType,
     company,
     prefix,
-    suffix
+    suffix,
 }) => {
+    const { bgColor, fgColor } = CompanyHealthLevelTypeInfoMap[company.level]
     const titleText = toCompanyTitleText(company, prefix, suffix)
+
     switch (titleType) {
-        case 'page': return <h2>{titleText}</h2>
-        case 'card': return <h6>{titleText}</h6>
+        case 'page': return <h2 style={{ backgroundColor: bgColor, color: fgColor }}>{titleText}</h2>
+        case 'card': return <h6 style={{ backgroundColor: bgColor, color: fgColor }}>{titleText}</h6>
         default: return titleText
     }
 }

@@ -59,7 +59,7 @@ function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata 
             }
         })
     }
-    metadata.incidentRisk = data.incidentRisk ?? 0
+    metadata.riskFactor = data.riskFactor ?? 0
     metadata.displayLinesArray = [...(data.displayLinesArray ?? [])]
 
     metadata.displayLines = () => metadata.displayLinesArray
@@ -79,7 +79,7 @@ export function toDisplayLines(company: CompanyMetadata, newLines: string[] = []
     }
     return [
         company.companyName,
-        ...(nullIncidentReports ? [] : [`IncidentRiskFactor: ${company.incidentReports.incidentRiskFactor}`]),
+        ...(nullIncidentReports ? [] : [`riskFactorFactor: ${company.incidentReports.riskFactorFactor}`]),
         ...newLines.map(t => t.trim()),
         ...(nullIncidentReports
             ? ['missing incident data']
@@ -104,15 +104,15 @@ export function toCompanyInfo(
     const pastHourIncidentTotal = parseInt(companyDiv.dataset.hour)
     const pastDayIncidentTotal = parseInt(companyDiv.dataset.day)
     let incidentReports: IncidentReports | undefined = undefined
-    let incidentRiskFactor = 0
+    let riskFactorFactor = 0
     if (!isNaN(pastHourIncidentTotal) && !isNaN(pastDayIncidentTotal)) {
         const baseline15minAvg = Math.trunc(pastDayIncidentTotal / 96)
         const pastHr15minAvg = Math.trunc(pastHourIncidentTotal / 4)
-        incidentRiskFactor = Math.floor(Math.abs(pastHr15minAvg - baseline15minAvg) / baseline15minAvg)
+        riskFactorFactor = Math.floor(Math.abs(pastHr15minAvg - baseline15minAvg) / baseline15minAvg)
         incidentReports = {
             baseline15minAvg,
             pastHr15minAvg,
-            incidentRiskFactor
+            riskFactorFactor
         }
     } else {
         console.error(`${companyName} has empty dataset hour/day hour(${companyDiv.dataset.hour}) day(${companyDiv.dataset.day})`)
@@ -130,7 +130,7 @@ export function toCompanyInfo(
         }
     }
     const nullIncidentReports = [null, undefined].includes(incidentReports) || Object.values(incidentReports).some(value => null === value)
-    incidentReports = nullIncidentReports ? { baseline15minAvg: -1, pastHr15minAvg: -1, incidentRiskFactor: -1 } : incidentReports
+    incidentReports = nullIncidentReports ? { baseline15minAvg: -1, pastHr15minAvg: -1, riskFactorFactor: -1 } : incidentReports
     const company: Partial<CompanyMetadata> = {
         timestamp,
         rank,
@@ -138,7 +138,7 @@ export function toCompanyInfo(
         companyName,
         incidentReports,
         pageInfo,
-        incidentRisk: incidentRiskFactor < 0 /*nullreport*/ ? 0 : incidentRiskFactor,
+        riskFactor: riskFactorFactor < 0 /*nullreport*/ ? 0 : riskFactorFactor,
         elementId,
         companyDiv: divMetadata,
     }

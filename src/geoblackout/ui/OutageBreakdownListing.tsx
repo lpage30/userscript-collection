@@ -11,9 +11,12 @@ export const OutageBreakdownListingComponent: React.FC<OutageBreakdownListingCom
     service
 }) => {
     return (
-        <>{
-            service.data.map(item => (OutageBreakdownDataDiv(item, 0, 3)))
-        }</>
+        <div>
+            <h6>Breakdown</h6>
+            <div style={{ display: 'flex' }}>
+                {service.data.map(item => (OutageBreakdownDataDiv(item, 0, 3)))}
+            </div>
+        </div>
     )
 }
 

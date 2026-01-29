@@ -9,7 +9,7 @@ import { Card, FilterableItems } from "../../dashboardcomponents/datatypes";
 import { createFeatures } from "../../dashboardcomponents/OptionalFeatures";
 import { Dashboard } from "../../dashboardcomponents/Dashboard";
 import { PersistenceClass } from "../../dashboardcomponents/persistence";
-import { toCompanyTitleText } from "../common/CompanyTitle";
+import { toCompanyTitleText } from "../../common/CompanyHealthStatus";
 import { createOnExternalDataUpdates } from "../common/onexternaldataupdate";
 import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
 import { OutageBreakdownDashboardPopupAndSummary } from "../../geoblackout/ui/OutageBreakdownDashboard";

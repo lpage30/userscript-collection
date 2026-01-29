@@ -12,15 +12,12 @@ export const DependentServiceListingComponent: React.FC<DependentServiceListingC
     serviceStatuses
 }) => {
     return (
-        <>
-            <div
-                className="text-sm"
-                style={{ paddingLeft: `0px`, paddingRight: `3px` }}
-            >Dependent Services</div>
+        <div>
+            <h6 style={{ paddingLeft: `0px`, paddingRight: `3px` }}>Dependent Services</h6>
             {serviceStatuses
                 .sort(sortServiceByStatusIndicatorRank)
                 .map(status => (ServiceHealthStatusSpan(status, 0, 3, true)))
             }
-        </>
+        </div>
     )
 }
