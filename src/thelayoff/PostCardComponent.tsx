@@ -2,6 +2,7 @@ import React, { JSX } from 'react'
 import { Post } from './posts'
 import { reactToHTMLElement } from '../common/ui/renderRenderable'
 import { Card } from '../dashboardcomponents/datatypes'
+import { formatDuration, TIME_TYPE, TIME_FORMAT_TYPE } from '../common/datetime'
 
 interface PostCardComponentProps {
     id: string
@@ -11,11 +12,12 @@ export const PostCardComponent: React.FC<PostCardComponentProps> = ({
     id,
     post
 }) => {
-    const getReplyElement = (): JSX.Element => {
+    const getFooterContentElements = (): JSX.Element => {
+        const text = `Posted ${formatDuration(Date.now() - post.date, { timeType: TIME_TYPE.MILLISECOND, timeFormat: TIME_FORMAT_TYPE.LARGESTSINGLE })} | ${post.postDiv.lastReplyText}`
         if (post.postDiv.replyHref) {
-            return <a href={post.postDiv.replyHref}>{post.postDiv.lastReplyText}</a>
+            return <a href={post.postDiv.replyHref}>{text}</a>
         }
-        return <span>{post.postDiv.lastReplyText}</span>
+        return <span>{text}</span>
     }
     return (
         <article id={id} style={{
@@ -85,7 +87,7 @@ export const PostCardComponent: React.FC<PostCardComponentProps> = ({
             }}>
                 <div>
                     <div style={{ display: 'inline-block' }}>
-                        {getReplyElement()}
+                        {getFooterContentElements()}
                     </div>
                 </div>
             </footer>

@@ -4,7 +4,7 @@ import { Button } from "primereact/button";
 import "../common/ui/styles.scss";
 import { Userscript } from "../common/userscript";
 import { Persistence } from "../dashboardcomponents/persistence";
-import { Post } from "./posts";
+import { Post, sortPosts } from "./posts";
 import { sortingFields, getFilterableItems } from './posts_functions'
 import {
   awaitPageLoadByMutation,
@@ -66,7 +66,7 @@ export const TheLayoffDashboard: Userscript = {
     }
 
     const loadAndRefreshContent = async () => {
-      cards = await loadPosts(true)
+      cards = (await loadPosts(true)).sort(sortPosts)
       if (refreshCards) refreshCards()
     }
     const getCards = () => {
@@ -84,7 +84,7 @@ export const TheLayoffDashboard: Userscript = {
       message={`Loading ${getCompanyBookmarks().length} Company Bookmarks...`}
       onCancel={onCancelLoading}
     />);
-    cards = await loadPosts(false)
+    cards = (await loadPosts(false)).sort(sortPosts)
     const features = createFeatures(getPersistence, {
       picklist: {
         pageTypes: ['dashboard'],
