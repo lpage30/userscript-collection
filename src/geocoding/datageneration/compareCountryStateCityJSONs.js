@@ -5,7 +5,7 @@ import { CountryStateCityMapGenerator } from './src/countrystatecitymap_generato
 function compareSortedStringArrays(leftArray, rightArray) {
     const left = leftArray.sort((l, r) => l.localeCompare(r))
     const right = rightArray.sort((l, r) => l.localeCompare(r))
-    const result = { left, right, overlap: [], missingInLeft: [], missingInRight: []}
+    const result = { left, right, overlap: [], missingInLeft: [], missingInRight: [] }
     let l = 0
     let r = 0
     while (l < left.length || r < right.length) {
@@ -62,7 +62,7 @@ function logCompareResult(leftName, rightName, compareSortedStringArraysResult) 
 async function main() {
     const scriptNameArgument = Path.basename(process.argv[1])
     const geocodingDirpath = process.argv[2]
-    
+
     const { loadBaseMap, loadGeocodedMap } = CountryStateCityMapGenerator(CountryDataInput(geocodingDirpath))
 
     const baseMap = await loadBaseMap('')
@@ -79,7 +79,7 @@ async function main() {
             geocodedStates = Object.keys(geocodedMap[countryName].states)
             const stateResult = compareSortedStringArrays(baseStates, geocodedStates)
             logCompareResult(`(${countryName}).baseStateNames`, `(${countryName}).geocodedStateNames`, stateResult)
-            
+
             stateResult.overlap.forEach(stateName => {
                 let baseCities = []
                 let geocodedCities = []
@@ -89,11 +89,11 @@ async function main() {
                     const cityResult = compareSortedStringArrays(baseCities, geocodedCities)
                     logCompareResult(`(${countryName}).(${stateName}).baseCityNames`, `(${countryName}).(${stateName}).geocodedCityNames`, cityResult)
 
-                } catch(e) {
+                } catch (e) {
                     throw new Error(`Failed collecting cities for country(${countryName}).state(${stateName}) baseCities(["${baseCities.join('","')}"]) geocodedCities(["${geocodedCities.join('","')}"]). ${e}`)
                 }
             })
-        } catch(e) {
+        } catch (e) {
             if (e.message.startsWith('Failed')) {
                 throw e
             }

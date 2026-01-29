@@ -22,9 +22,9 @@ import { createFeatures } from "../../dashboardcomponents/OptionalFeatures";
 import { Persistence } from "../../dashboardcomponents/persistence";
 import { createOnExternalDataUpdates } from "../common/onexternaldataupdate";
 import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
-import { OutageBreakdownDashboardPopupAndSummary } from "../../geoblackout/ui/OutageBreakdownDashboard";
+import { OutageBreakdownDashboardPopup } from "../../geoblackout/ui/OutageBreakdownDashboard";
 import { toCompanyCardComponent } from "../common/CompanyCardComponent";
-import { CompanyHealthStatus, CompanyHealthStatusSort } from "../../common/CompanyHealthStatus";
+import { CompanyHealthStatus, CompanyHealthStatusSort, toCompanyHealthStatus } from "../../common/CompanyHealthStatus";
 
 export const DownDetectorDashboard: Userscript = {
   name: "DownDetectorDashboard",
@@ -109,13 +109,13 @@ export const DownDetectorDashboard: Userscript = {
         },
         {
           after: 'lastrow',
-          element: <OutageBreakdownDashboardPopupAndSummary
+          element: <OutageBreakdownDashboardPopup
             onOutageBreakdowns={breakdowns => {
               onOutageBreakdowns(breakdowns)
               if (rerenderDashboard) rerenderDashboard()
             }}
             companyHealthStatuses={
-              cards.map(c => c as CompanyHealthStatus)
+              cards.map(toCompanyHealthStatus)
             }
 
           />
@@ -128,7 +128,7 @@ export const DownDetectorDashboard: Userscript = {
               if (rerenderDashboard) rerenderDashboard()
             }}
             companyHealthStatuses={
-              cards.map(c => c as CompanyHealthStatus)
+              cards.map(toCompanyHealthStatus)
             }
           />
         },

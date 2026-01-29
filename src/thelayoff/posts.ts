@@ -28,7 +28,7 @@ export interface Post extends Card {
 
 export function sortPosts(l: Post, r: Post) {
     const order1 = (r.lastReply ?? r.date) - (l.lastReply ?? l.date)
-    const order2 = l.company.localeCompare(r.company)
+    const order2 = l.postDiv.companyLink.name.localeCompare(r.postDiv.companyLink.name)
 
     return 0 !== order1 ? order1 :
         0 !== order2 ? order2 : l.postDiv.title.localeCompare(r.postDiv.title)

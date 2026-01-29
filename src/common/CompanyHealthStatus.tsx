@@ -11,6 +11,9 @@ export interface CompanyHealthStatus {
     dependentServiceStatuses: ServiceStatus[]
     outageBreakdownService?: OutageBreakdown
 }
+export function toCompanyHealthStatus<T extends CompanyHealthStatus>(c: T): CompanyHealthStatus {
+    return c as CompanyHealthStatus
+}
 
 export const CompanyHealthLevelTypeInfoMap = {
     danger: { rank: 1, bgColor: 'red', fgColor: 'white', displayName: 'Major Impact' },

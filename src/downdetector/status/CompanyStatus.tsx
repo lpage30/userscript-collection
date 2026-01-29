@@ -12,7 +12,8 @@ import { PersistenceClass } from "../../dashboardcomponents/persistence";
 import { toCompanyTitleText } from "../../common/CompanyHealthStatus";
 import { createOnExternalDataUpdates } from "../common/onexternaldataupdate";
 import { ServiceDashboardPopupAndSummary } from "../../statusAPIs/ui/ServiceDashboard";
-import { OutageBreakdownDashboardPopupAndSummary } from "../../geoblackout/ui/OutageBreakdownDashboard";
+import { OutageBreakdownDashboardPopup } from "../../geoblackout/ui/OutageBreakdownDashboard";
+import { toCompanyHealthStatus } from "../../common/CompanyHealthStatus";
 
 interface CompanyStatusProps {
   persistence: PersistenceClass
@@ -74,20 +75,21 @@ export const CompanyStatus: React.FC<CompanyStatusProps> = ({
         addedHeaderComponents={[
           {
             after: 'lastrow',
-            element: <OutageBreakdownDashboardPopupAndSummary
+            element: <OutageBreakdownDashboardPopup
               onOutageBreakdowns={(outages) => {
                 onOutageBreakdowns(outages)
                 const foundCompany = (displayedCards.current ?? []).find(({ companyName }) => companyName === company.company?.companyName)
                 company.company = foundCompany ?? company.company
                 if (rerenderAndFocus.current) rerenderAndFocus.current(company.company)
               }}
+              companyHealthStatuses={(displayedCards.current ?? []).map(toCompanyHealthStatus)}
             />
           },
           {
             after: 'lastrow',
             element: <ServiceDashboardPopupAndSummary
               onServiceStatus={onServiceStatus}
-              companyHealthStatuses={(displayedCards.current ?? []).map(({ companyName, level }) => ({ companyName, healthStatus: level }))}
+              companyHealthStatuses={(displayedCards.current ?? []).map(toCompanyHealthStatus)}
               isolatedCompanyNames={[company.companyName]}
             />
           },
