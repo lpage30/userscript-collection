@@ -68,6 +68,32 @@ function toCompanyMetadataCard(data: Partial<CompanyMetadata>): CompanyMetadata 
     metadata.color = () => CompanyHealthLevelTypeInfoMap[metadata.level].bgColor
     metadata.href = (pageName: string) => metadata.pageInfo[pageName].href
     metadata.companyDiv = { ...data.companyDiv }
+    metadata.graphSvgSparkline = (scaling?: { width: number, height: number }): JSX.Element => {
+        if (scaling) {
+            return <svg
+                height={scaling.height}
+                width={scaling.width}
+                className={data.companyDiv.sparkLineSvg.class}
+                strokeWidth={data.companyDiv.sparkLineSvg.strokeWidth}
+                viewBox={`0 0 ${data.companyDiv.sparkLineSvg.width} ${data.companyDiv.sparkLineSvg.height}`}
+            >
+                {data.companyDiv.sparkLineSvg.paths.map(path => (
+                    <path className={path.class} d={path.d} fill={path.fill} stroke={path.stroke}></path>
+                ))}
+            </svg>
+        }
+        return <svg
+            height={data.companyDiv.sparkLineSvg.height}
+            width={data.companyDiv.sparkLineSvg.width}
+            className={data.companyDiv.sparkLineSvg.class}
+            strokeWidth={data.companyDiv.sparkLineSvg.strokeWidth}
+        >
+            {data.companyDiv.sparkLineSvg.paths.map(path => (
+                <path className={path.class} d={path.d} fill={path.fill} stroke={path.stroke}></path>
+            ))}
+        </svg>
+
+    }
     return metadata as CompanyMetadata
 
 }

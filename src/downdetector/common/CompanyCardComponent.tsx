@@ -28,7 +28,7 @@ export const CompanyCardComponent: React.FC<CompanyCardComponentProps> = ({
         <DependentServiceListingComponent serviceStatuses={company.dependentServiceStatuses} />
       )}
     </div>
-    <CompanyDownDetectorCard id={`${id}-downdetector-card`} companyDivMetadata={company.companyDiv} />
+    <CompanyDownDetectorCard id={`${id}-downdetector-card`} company={company} />
     <div id={`${id}-wrapped-breakdown`} style={{ display: 'flex' }}>
       {company.outageBreakdownService && (
         <OutageBreakdownListingComponent service={company.outageBreakdownService} />

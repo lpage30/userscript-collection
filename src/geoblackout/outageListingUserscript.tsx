@@ -6,6 +6,7 @@ import React from "react";
 import { Userscript } from "../common/userscript";
 import {
   awaitPageLoadByMutation,
+  awaitQueryAll,
 } from "../common/await_functions";
 import { reportOutageListing } from "./outageAggregator";
 
@@ -19,6 +20,8 @@ export const outageListing: Userscript = {
   },
   preparePage: async (href: string): Promise<void> => {
     await awaitPageLoadByMutation();
+    await awaitQueryAll('a')
+    await awaitQueryAll('canvas')
   },
   cleanupContainers: async (href: string): Promise<boolean> => false,
   createContainer: async (href: string): Promise<HTMLElement> => null,

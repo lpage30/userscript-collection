@@ -6,9 +6,16 @@ import React from "react";
 import { Userscript } from "../common/userscript";
 import {
   awaitPageLoadByMutation,
+  awaitQueryAll,
 } from "../common/await_functions";
 import { parseNumber } from "../common/functions";
-import { OutageBreakdown, OutageBreakdownData } from "./outageBreakdownAPItypes";
+import {
+  OutageBreakdown,
+  OutageBreakdownData,
+  ReferenceTimelineLineData,
+  ReportedTimelineGraphData,
+  ReportedTimelineGraph
+} from "./outageBreakdownAPItypes";
 import { reportServiceOutage } from "./outageAggregator";
 
 export const serviceOutage: Userscript = {
@@ -22,6 +29,7 @@ export const serviceOutage: Userscript = {
   },
   preparePage: async (href: string): Promise<void> => {
     await awaitPageLoadByMutation();
+    await awaitQueryAll('canvas')
   },
   cleanupContainers: async (href: string): Promise<boolean> => false,
   createContainer: async (href: string): Promise<HTMLElement> => null,
@@ -37,6 +45,18 @@ export const serviceOutage: Userscript = {
           alertCount: parseNumber(parts[2])
         }
       })
+
+    const graphData: ReportedTimelineGraph = Object.entries(document.querySelector('canvas'))
+      .filter(([key]) => key.startsWith('__reactFiber'))[0][1].return.memoizedProps.data.datasets
+      .map((obj: any): ReferenceTimelineLineData | ReportedTimelineGraphData => {
+        const newObj = JSON.parse(JSON.stringify(({ ...obj, ...(obj.label === 'Référence' ? { label: 'Reference' } : {}) })))
+        switch (newObj.label) {
+          case 'Reference': return newObj as ReferenceTimelineLineData
+          case 'Reports': return newObj as ReportedTimelineGraphData
+          default: throw new Error(`Unsupported Graph type: ${obj.label} ${JSON.stringify(obj)}`)
+        }
+      })
+
     const serviceBlurb = Array.from(
       Array.from(document.querySelectorAll('div[class*="ReportPage"]'))
         .filter(e => e.className.endsWith('content'))[0]
@@ -45,11 +65,13 @@ export const serviceOutage: Userscript = {
     ).slice(-2)
       .map(e => e.innerText)
       .join('\n')
+
     reportServiceOutage({
       timestamp: Date.now(),
       service: serviceName,
       serviceHref: href,
       blurb: serviceBlurb,
+      graphData,
       data: outageData
     } as OutageBreakdown)
 

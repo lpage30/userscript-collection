@@ -33,6 +33,7 @@ export interface IncidentReports {
   pastHr15minAvg: number
   riskFactorFactor: number
 }
+
 export interface CompanyDivMetadata {
   id: string
   name: string

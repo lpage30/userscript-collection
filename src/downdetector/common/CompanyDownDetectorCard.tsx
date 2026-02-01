@@ -1,15 +1,17 @@
 import React from 'react'
-import { CompanyDivMetadata } from './CompanyTypes'
+import { CompanyMetadata } from './CompanyTypes'
 
 interface CompanyDownDetectorCardProps {
   id: string
-  companyDivMetadata: CompanyDivMetadata
+  company: CompanyMetadata
 }
 
 export const CompanyDownDetectorCard: React.FC<CompanyDownDetectorCardProps> = ({
   id,
-  companyDivMetadata
+  company
 }) => {
+  const companyDivMetadata = company.companyDiv
+
   return (<div id={id} style={{
     position: 'relative',
     paddingRight: '15px',
@@ -29,7 +31,7 @@ export const CompanyDownDetectorCard: React.FC<CompanyDownDetectorCardProps> = (
         href={companyDivMetadata.href}
         title={companyDivMetadata.name}
         style={{ display: 'block' }}>
-        <div className={'wrapper'}>
+        <div>
           <img
             src={companyDivMetadata.titleImage.src}
             title={companyDivMetadata.name}
@@ -38,19 +40,9 @@ export const CompanyDownDetectorCard: React.FC<CompanyDownDetectorCardProps> = (
             width={companyDivMetadata.titleImage.width}
             className={companyDivMetadata.titleImage.class} />
         </div>
-        <div className={'caption'}>
+        <div>
           <h5>{companyDivMetadata.name}</h5>
-          <svg
-            height={companyDivMetadata.sparkLineSvg.height}
-            width={companyDivMetadata.sparkLineSvg.width}
-            className={companyDivMetadata.sparkLineSvg.class}
-            strokeWidth={companyDivMetadata.sparkLineSvg.strokeWidth}
-          >
-            {companyDivMetadata.sparkLineSvg.paths.map(path => (
-              <path className={path.class} d={path.d} fill={path.fill} stroke={path.stroke}></path>
-            ))}
-          </svg>
-
+          {company.graphSvgSparkline()}
         </div>
       </a>
     </div>

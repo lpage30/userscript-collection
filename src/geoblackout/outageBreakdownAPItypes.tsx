@@ -1,15 +1,41 @@
 import React, { JSX } from 'react'
-import { normalizeName, toHashCode } from '../common/functions'
+import { normalizeName } from '../common/functions'
 import { Card } from '../dashboardcomponents/datatypes'
+export const OutageBreakdownGraphDimensions = {
+    width: 677,
+    height: 250
+}
 export interface OutageBreakdownData {
     percentage: number
     type: string
     alertCount: number
 }
-export interface OutageBreakdown extends Card{
+export interface ReferenceTimelineLineData {
+    label: 'Reference'
+    data: { x: string, y: number }[]
+    borderColor: string,
+    borderDash: number[]
+    borderWidth: number
+    fill: boolean
+    pointHoverRadius: number
+    pointRadius: number
+    tension: number
+}
+export interface ReportedTimelineGraphData {
+    label: 'Reports'
+    type: string
+    data: { x: string, y: number }[]
+    backgroundColor: string[]
+    borderColor: string[],
+    borderWidth: number
+}
+export type ReportedTimelineGraph = (ReferenceTimelineLineData | ReportedTimelineGraphData)[]
+
+export interface OutageBreakdown extends Card {
     timestamp: number
     serviceHref: string
     service: string
+    graphData: ReportedTimelineGraph
     blurb: string
     data: OutageBreakdownData[]
 }

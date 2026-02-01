@@ -1,13 +1,18 @@
+import React, { JSX } from 'react'
 import { OutageBreakdown } from "../geoblackout/outageBreakdownAPItypes"
 import { ServiceStatus } from "../statusAPIs/statustypes"
 
 export const HealthLevelTypes = ['danger', 'warning', 'success'] as const;
 export type HealthLevelType = (typeof HealthLevelTypes)[number];
-
+export const CompanyGraphSvgDimensions = {
+  width: 242.492,
+  height: 40
+}
 export interface CompanyHealthStatus {
     companyName: string,
     level: HealthLevelType;
     riskFactor: number
+    graphSvgSparkline: (scaling?: { width: number, height: number }) => JSX.Element
     dependentServiceStatuses: ServiceStatus[]
     outageBreakdownService?: OutageBreakdown
 }

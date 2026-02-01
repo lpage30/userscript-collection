@@ -298,3 +298,15 @@ export function scaleDimension(srcDim: { height: number, width: number }, fixedS
     }
     return { height: fixedSideLength, width: Math.round(fixedSideLength * (srcDim.width / srcDim.height)) }
 }
+
+export function applyStylesToElement<T extends HTMLElement>(element: T, styles?: CSSProperties) {
+    if ([null, undefined].some(n => n === element || n === styles)) {
+        return
+    }
+    for (const key in styles) {
+        if (Object.prototype.hasOwnProperty.call(styles, key)) {
+            // The DOM style property expects camelCase, which React uses natively
+            element.style[key] = styles[key];
+        }
+    }
+}
